@@ -1,0 +1,23 @@
+---
+- name: Check if Homebrew is installed
+  ansible.builtin.stat:
+    path: /opt/homebrew/bin/brew
+  register: homebrew_check
+
+- name: Install Homebrew
+  when: not homebrew_check.stat.exists
+  ansible.builtin.shell: >
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  args:
+    creates: /opt/homebrew/bin/brew
+
+- name: Update Homebrew
+  community.general.homebrew:
+    update_homebrew: true
+
+- name: Install packages from Brewfile
+  ansible.builtin.command:
+    cmd: brew bundle --file={{ role_path }}/files/Brewfile --no-lock
+  environment:
+    HOMEBREW_BUNDLE_NO_LOCK: "1"
+  changed_when: false

@@ -1,0 +1,26 @@
+---
+- name: "Phase 2: Development tools"
+  hosts: localhost
+  connection: local
+
+  roles:
+    - role: git
+      tags: [git, dev-tools]
+
+    - role: zsh
+      tags: [zsh, dev-tools]
+
+    - role: python
+      tags: [python, dev-tools]
+
+    - role: node
+      tags: [node, dev-tools]
+
+    - role: docker
+      tags: [docker, dev-tools]
+
+    - role: vscode
+      tags: [vscode, dev-tools]
+
+    - role: claude-code
+      tags: [claude-code, dev-tools]

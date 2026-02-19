@@ -1,0 +1,23 @@
+---
+- name: Check if fnm is installed
+  ansible.builtin.command: fnm --version
+  register: fnm_check
+  changed_when: false
+  failed_when: false
+
+- name: Install fnm
+  when: fnm_check.rc != 0
+  ansible.builtin.shell: curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell
+  args:
+    creates: "{{ ansible_env.HOME }}/.local/share/fnm/fnm"
+
+- name: Install Node LTS via fnm
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    fnm install --lts
+    fnm default lts-latest
+  args:
+    executable: /bin/bash
+  register: node_install
+  changed_when: "'Installing' in node_install.stderr"

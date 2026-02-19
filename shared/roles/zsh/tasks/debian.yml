@@ -1,0 +1,10 @@
+---
+- name: Install zsh
+  ansible.builtin.apt:
+    name: zsh
+    state: present
+  become: true
+
+- name: Set zsh path fact
+  ansible.builtin.set_fact:
+    zsh_path: /usr/bin/zsh

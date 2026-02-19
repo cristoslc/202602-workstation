@@ -1,0 +1,36 @@
+# Declarative manifest of all macOS packages.
+# Run: brew bundle --file=Brewfile
+
+# Taps
+tap "homebrew/bundle"
+
+# CLI Tools
+brew "git"
+brew "zsh"
+brew "jq"
+brew "ripgrep"
+brew "fd"
+brew "bat"
+brew "eza"
+brew "fzf"
+brew "tree"
+brew "wget"
+brew "htop"
+brew "stow"
+brew "sops"
+brew "age"
+brew "gum"
+brew "mas"
+
+# GUI Applications
+cask "1password"
+cask "1password-cli"
+cask "visual-studio-code"
+cask "docker"
+cask "raycast"
+cask "firefox"
+cask "claude"
+
+# Mac App Store apps (requires being signed in)
+# Uncomment and set IDs as needed:
+# mas "Amphetamine", id: 937984704

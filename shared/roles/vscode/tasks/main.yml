@@ -1,0 +1,10 @@
+---
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+
+- name: Install VS Code extensions
+  ansible.builtin.command: "code --install-extension {{ item }}"
+  loop: "{{ lookup('file', role_path + '/files/extensions.txt').splitlines() | select | list }}"
+  register: ext_result
+  changed_when: "'was successfully installed' in ext_result.stdout"
+  failed_when: false

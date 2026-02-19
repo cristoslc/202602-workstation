@@ -1,0 +1,17 @@
+---
+- name: Check if Claude Code is installed
+  ansible.builtin.command: claude --version
+  register: claude_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Claude Code via npm
+  when: claude_check.rc != 0
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    npm install -g @anthropic-ai/claude-code
+  args:
+    executable: /bin/bash
+  register: claude_install
+  changed_when: claude_install.rc == 0

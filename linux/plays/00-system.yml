@@ -1,0 +1,19 @@
+---
+- name: "Phase 0: System foundation"
+  hosts: localhost
+  connection: local
+
+  pre_tasks:
+    - name: Verify running on Debian-based Linux
+      ansible.builtin.assert:
+        that: ansible_os_family == "Debian"
+        fail_msg: "This playbook is for Debian-based Linux only."
+
+  roles:
+    - role: base
+      tags: [base, system]
+      when: apply_system_roles | default(true)
+
+    - role: system
+      tags: [system]
+      when: apply_system_roles | default(true)

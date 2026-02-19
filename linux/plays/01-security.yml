@@ -1,0 +1,11 @@
+---
+- name: "Phase 1: Security and secrets"
+  hosts: localhost
+  connection: local
+
+  roles:
+    - role: onepassword
+      tags: [onepassword, security]
+
+    - role: sops
+      tags: [sops, security]

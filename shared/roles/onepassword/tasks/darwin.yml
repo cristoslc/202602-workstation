@@ -1,0 +1,10 @@
+---
+- name: Install 1Password via Homebrew
+  community.general.homebrew_cask:
+    name: 1password
+    state: present
+
+- name: Install 1Password CLI via Homebrew
+  community.general.homebrew_cask:
+    name: 1password-cli
+    state: present

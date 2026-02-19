@@ -1,0 +1,23 @@
+---
+- name: Check if mas is installed
+  ansible.builtin.command: mas version
+  register: mas_check
+  changed_when: false
+  failed_when: false
+
+- name: Check if signed into App Store
+  when: mas_check.rc == 0
+  ansible.builtin.command: mas account
+  register: mas_account
+  changed_when: false
+  failed_when: false
+
+- name: Install Mac App Store apps
+  when: mas_check.rc == 0 and mas_account.rc == 0
+  ansible.builtin.command: "mas install {{ item.id }}"
+  loop: "{{ mas_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: mas_result
+  changed_when: "'Installed' in mas_result.stdout"
+  failed_when: false

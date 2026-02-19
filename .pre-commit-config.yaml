@@ -1,0 +1,17 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sops-encrypted-check
+        name: Verify SOPS files are encrypted
+        entry: bash -c 'for f in "$@"; do if ! grep -q "\"sops\":" "$f" && ! grep -q "sops:" "$f"; then echo "ERROR: $f is not encrypted!"; exit 1; fi; done'
+        language: system
+        files: '\.(sops\.yml|sops\.yaml|sops)$'
+        types: [file]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-d, relaxed]
+        files: '\.(yml|yaml)$'
+        exclude: '.sops\.'

@@ -1,0 +1,20 @@
+---
+- name: "Phase 3: Desktop environment"
+  hosts: localhost
+  connection: local
+
+  roles:
+    - role: firefox
+      tags: [firefox, desktop]
+
+    - role: espanso
+      tags: [espanso, desktop]
+
+    - role: vicinae
+      tags: [vicinae, desktop]
+
+    - role: cinnamon
+      tags: [cinnamon, desktop]
+
+    - role: dev
+      tags: [dev, desktop]

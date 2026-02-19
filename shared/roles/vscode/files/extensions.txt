@@ -1,0 +1,2 @@
+# Shared VS Code extensions — one extension ID per line.
+# Add extensions that are useful on both Linux and macOS.

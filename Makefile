@@ -1,0 +1,58 @@
+SHELL := /bin/bash
+PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ifeq ($(PLATFORM),darwin)
+  PLATFORM_DIR := macos
+else
+  PLATFORM_DIR := linux
+endif
+
+WORKSTATION_DIR ?= $(HOME)/.workstation
+ANSIBLE_CONFIG := $(CURDIR)/$(PLATFORM_DIR)/ansible.cfg
+export ANSIBLE_CONFIG
+
+.PHONY: help first-run bootstrap lint apply decrypt clean-secrets status \
+        edit-secrets-shared edit-secrets-linux edit-secrets-macos
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+first-run: ## One-time repo setup (age key, encrypt secrets, GitHub remote)
+	./first-run.sh
+
+bootstrap: ## Run full bootstrap for this platform
+	./bootstrap.sh $(WORKSTATION_DIR)
+
+lint: ## Run ansible-lint and yamllint on all playbooks
+	./scripts/lint.sh
+
+apply: ## Apply a specific role: make apply ROLE=zsh
+ifndef ROLE
+	$(error ROLE is required. Usage: make apply ROLE=zsh)
+endif
+	cd $(PLATFORM_DIR) && ansible-playbook site.yml --tags $(ROLE) --ask-become-pass
+
+decrypt: ## Decrypt all SOPS files to .decrypted/ dirs
+	@echo "Decrypting shared secrets..."
+	@./scripts/decrypt-secrets.sh shared/secrets
+	@echo "Decrypting $(PLATFORM_DIR) secrets..."
+	@./scripts/decrypt-secrets.sh $(PLATFORM_DIR)/secrets
+
+clean-secrets: ## Wipe all .decrypted/ directories
+	find . -type d -name '.decrypted' -exec rm -rf {}/* \;
+	@echo "All .decrypted/ directories cleaned."
+
+edit-secrets-shared: ## Edit shared encrypted vars
+	sops shared/secrets/vars.sops.yml
+
+edit-secrets-linux: ## Edit Linux encrypted vars
+	sops linux/secrets/vars.sops.yml
+
+edit-secrets-macos: ## Edit macOS encrypted vars
+	sops macos/secrets/vars.sops.yml
+
+status: ## Show workstation status (stub — Rich dashboard planned)
+	@uv run --with rich scripts/workstation-status.py 2>/dev/null || echo "Status dashboard requires uv + Python. Run bootstrap first."
+
+check-collisions: ## Check for stow filename collisions between layers
+	./scripts/check-stow-collisions.sh

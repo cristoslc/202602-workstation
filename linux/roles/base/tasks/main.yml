@@ -1,0 +1,24 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - curl
+      - wget
+      - unzip
+      - htop
+      - jq
+      - ripgrep
+      - fd-find
+      - bat
+      - tree
+      - fzf
+      - software-properties-common
+    state: present
+  become: true
