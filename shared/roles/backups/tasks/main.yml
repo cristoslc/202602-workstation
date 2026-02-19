@@ -1,0 +1,10 @@
+---
+# Backups role: Backblaze (macOS) / Timeshift (Linux)
+
+- name: Verify Backblaze (macOS)
+  when: ansible_os_family == "Darwin"
+  ansible.builtin.include_tasks: darwin.yml
+
+- name: Install and configure Timeshift (Debian)
+  when: ansible_os_family == "Debian"
+  ansible.builtin.include_tasks: debian.yml

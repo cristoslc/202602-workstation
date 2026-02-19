@@ -9,3 +9,12 @@ mkcd() {
 ff() {
   find . -name "*$1*" 2>/dev/null
 }
+
+# SSH until host comes up (useful for rebooting remote machines)
+ssh-until-up() {
+  local host="$1"; shift
+  false
+  while [[ $? -ne 0 ]]; do
+    ssh -o ConnectTimeout=5 "$host" "$@" || (sleep 5; false)
+  done
+}

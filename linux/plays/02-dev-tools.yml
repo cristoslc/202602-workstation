@@ -5,10 +5,10 @@
 
   roles:
     - role: git
-      tags: [git, dev-tools]
+      tags: [git, gh, lazygit, delta, dev-tools]
 
-    - role: zsh
-      tags: [zsh, dev-tools]
+    - role: shell
+      tags: [shell, zsh, direnv, dev-tools]
 
     - role: python
       tags: [python, dev-tools]
@@ -19,8 +19,11 @@
     - role: docker
       tags: [docker, dev-tools]
 
-    - role: vscode
-      tags: [vscode, dev-tools]
+    - role: editor
+      tags: [editor, vscode, dev-tools]
 
     - role: claude-code
       tags: [claude-code, dev-tools]
+
+    - role: terminal
+      tags: [terminal, tmux, dev-tools]

@@ -1,0 +1,24 @@
+---
+# macOS: media apps installed via Brewfile. Verify presence.
+
+- name: Verify Spotify is installed
+  ansible.builtin.command: brew list --cask spotify
+  register: spotify_check
+  changed_when: false
+  failed_when: false
+
+- name: Note about Spotify
+  when: spotify_check.rc != 0
+  ansible.builtin.debug:
+    msg: "Spotify not installed. Add 'spotify' to Brewfile and run brew bundle."
+
+- name: Verify VLC is installed
+  ansible.builtin.command: brew list --cask vlc
+  register: vlc_check
+  changed_when: false
+  failed_when: false
+
+- name: Note about VLC
+  when: vlc_check.rc != 0
+  ansible.builtin.debug:
+    msg: "VLC not installed. Add 'vlc' to Brewfile and run brew bundle."

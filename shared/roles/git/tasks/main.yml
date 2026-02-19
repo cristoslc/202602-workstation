@@ -1,5 +1,8 @@
 ---
-- name: Include OS-specific tasks
+# Git role: core git + gh + lazygit + delta
+# Sub-tasks carry tool-level tags for selective runs.
+
+- name: Include OS-specific git install
   ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
 
 - name: Configure git user name
@@ -21,3 +24,15 @@
     name: init.defaultBranch
     scope: global
     value: main
+
+- name: Install GitHub CLI
+  ansible.builtin.include_tasks: gh.yml
+  tags: [gh]
+
+- name: Install lazygit
+  ansible.builtin.include_tasks: lazygit.yml
+  tags: [lazygit]
+
+- name: Install delta
+  ansible.builtin.include_tasks: delta.yml
+  tags: [delta]

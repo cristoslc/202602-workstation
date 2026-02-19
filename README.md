@@ -51,11 +51,15 @@ The bootstrap wizard (powered by [gum](https://github.com/charmbracelet/gum)) wa
 ### Selective Runs
 
 ```bash
-make apply ROLE=zsh          # Apply just the zsh role
-make apply ROLE=docker       # Apply just docker
-make lint                    # Run ansible-lint + yamllint
-make status                  # Workstation status dashboard
-make check-collisions        # Verify no stow filename conflicts
+make apply ROLE=git             # Apply git + gh + lazygit + delta
+make apply ROLE=gh              # Apply just the gh sub-task
+make apply ROLE=browsers        # Apply all browsers + set daily driver
+make apply ROLE=secrets-manager # Apply 1Password + SOPS
+make apply ROLE=shell           # Apply zsh + direnv
+make apply ROLE=file-transfer   # Apply Cyberduck/Filezilla
+make lint                       # Run ansible-lint + yamllint
+make status                     # Workstation status dashboard
+make check-collisions           # Verify no stow filename conflicts
 ```
 
 ## Architecture
@@ -67,24 +71,53 @@ make check-collisions        # Verify no stow filename conflicts
 ├── shared/
 │   ├── lib/wizard.sh         gum TUI wizard (sourced by both platforms)
 │   ├── requirements.yml      Ansible Galaxy collections
-│   ├── roles/                Cross-platform roles (git, zsh, python, docker, node, ...)
-│   ├── dotfiles/             Cross-platform stow packages (zsh, git, vscode, ...)
+│   ├── roles/                Function-based cross-platform roles
+│   │   ├── git/              git + gh + lazygit + delta
+│   │   ├── shell/            zsh + direnv
+│   │   ├── secrets-manager/  1Password + SOPS/age
+│   │   ├── terminal/         tmux + iTerm2 verification
+│   │   ├── editor/           VS Code + extensions
+│   │   ├── browsers/         Firefox + Brave + Chrome, daily driver default
+│   │   ├── launchers/        Raycast (macOS) / Vicinae (Linux)
+│   │   ├── communication/    Slack + Signal
+│   │   ├── media/            Spotify + VLC
+│   │   ├── vpn/              Tailscale + Surfshark
+│   │   ├── backups/          Backblaze (macOS) / Timeshift (Linux)
+│   │   ├── utilities/        Keka (macOS)
+│   │   ├── file-transfer/    Cyberduck (macOS) / Filezilla (Linux)
+│   │   ├── text-expansion/   Espanso (Linux) / Raycast snippets (macOS)
+│   │   ├── python/           uv + global tools
+│   │   ├── node/             fnm + LTS
+│   │   ├── docker/           Docker Engine/Desktop
+│   │   ├── claude-code/      Claude Code CLI
+│   │   └── stow/             GNU Stow dotfile deployment
+│   ├── dotfiles/             Cross-platform stow packages (zsh, git, tmux, ssh, ...)
 │   └── secrets/              Encrypted shared vars + secret dotfiles
 ├── linux/
 │   ├── bootstrap.sh          Linux entry point (apt prereqs → uv → Ansible)
-│   ├── site.yml → plays/     Phase playbooks (system → security → dev → desktop → dotfiles)
-│   ├── roles/                Linux-only roles (base, system, firefox, espanso, vicinae, cinnamon)
+│   ├── site.yml → plays/     Phase playbooks (security → dev → desktop → dotfiles)
+│   ├── roles/                Linux-only roles (base, system, desktop-env, dev)
 │   ├── dotfiles/             Linux stow packages
 │   └── secrets/              Encrypted Linux vars + secret dotfiles
 ├── macos/
 │   ├── bootstrap.sh          macOS entry point (Homebrew → uv → Ansible)
 │   ├── site.yml → plays/     Phase playbooks
-│   ├── roles/                macOS-only roles (homebrew, raycast, mas, macos-defaults)
+│   ├── roles/                macOS-only roles (homebrew, mas, macos-defaults)
 │   ├── dotfiles/             macOS stow packages
 │   └── secrets/              Encrypted macOS vars
 ├── docs/                     Detailed documentation
 └── scripts/                  Linting, collision checks, status dashboard
 ```
+
+### Role Organization
+
+Roles are organized by **function** (what capability they provide), not by tool name. Each role handles both platforms internally via OS dispatch. This ensures:
+
+- Adding a tool on macOS naturally prompts considering the Linux equivalent
+- `make apply ROLE=<function>` runs everything related to that capability
+- Sub-task tags allow running individual tools: `make apply ROLE=gh` runs only the gh sub-task within the git role
+
+**Naming convention**: plural when multiple tools of the same type (`browsers`, `launchers`, `backups`), singular when one tool or concept (`git`, `shell`, `terminal`, `editor`).
 
 ### How the Layers Work
 
@@ -142,14 +175,18 @@ See [docs/secrets.md](docs/secrets.md) for setup, key distribution, and rotation
 
 ## Tools Managed
 
-### Shared (both platforms)
-git, zsh, Python (uv), Node (fnm), Docker, VS Code, Claude Code, 1Password, SOPS + age, GNU Stow
+### Phase 1 — Security
+`secrets-manager`: 1Password (+ SSH agent), SOPS + age
 
-### Linux
-Firefox, Espanso, Vicinae, Cinnamon keybindings, Timeshift, build essentials
+### Phase 2 — Development
+`git`: git, gh, lazygit, delta · `shell`: zsh, direnv · `python`: uv · `node`: fnm · `docker`: Docker Engine/Desktop · `editor`: VS Code · `claude-code`: Claude Code CLI · `terminal`: tmux, iTerm2
 
-### macOS
-Homebrew + Brewfile, Raycast, Mac App Store apps (mas), macOS defaults (Dock, Finder, keyboard, trackpad, screenshots)
+### Phase 3 — Desktop
+`browsers`: Firefox, Brave, Chrome · `launchers`: Raycast / Vicinae · `text-expansion`: Espanso · `communication`: Slack, Signal · `media`: Spotify, VLC · `vpn`: Tailscale, Surfshark · `backups`: Backblaze / Timeshift · `utilities`: Keka · `file-transfer`: Cyberduck / Filezilla
+
+### Platform-only
+**Linux**: `base` (build-essential, ripgrep, fd, bat, fzf, dust, duf, ...) · `system` (X11 check, release pin) · `desktop-env` (Cinnamon keybindings) · `dev` (gcc, pkg-config, headers)
+**macOS**: `homebrew` (Brewfile) · `mas` (App Store: Amphetamine) · `macos-defaults` (Dock, Finder, keyboard, trackpad, screenshots)
 
 ## Documentation
 
@@ -166,6 +203,7 @@ Homebrew + Brewfile, Raycast, Mac App Store apps (mas), macOS defaults (Dock, Fi
 | IaC tool | Ansible | Cross-platform, declarative roles, large ecosystem |
 | Dotfiles | GNU Stow | Simple, no magic, file-level symlinks with `--no-folding` |
 | Secrets | SOPS + age | Public repo safe, no GPG complexity, Ansible integration |
+| Role organization | Function-based | Each role = one capability, handles both platforms internally |
 | Shell | zsh | Default on macOS, widely supported on Linux |
 | Python | uv | Fast, replaces pip + pyenv + virtualenv |
 | Node | fnm | Fast, rust-based, cross-platform |

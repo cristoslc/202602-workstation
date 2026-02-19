@@ -1,0 +1,16 @@
+---
+# lazygit sub-task
+- name: Install lazygit (macOS)
+  when: ansible_os_family == "Darwin"
+  community.general.homebrew:
+    name: lazygit
+    state: present
+
+- name: Install lazygit (Debian)
+  when: ansible_os_family == "Debian"
+  ansible.builtin.shell: |
+    LAZYGIT_VERSION=$(curl -s https://api.github.com/repos/jesseduffield/lazygit/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" | tar xzf - -C /usr/local/bin lazygit
+  args:
+    creates: /usr/local/bin/lazygit
+  become: true

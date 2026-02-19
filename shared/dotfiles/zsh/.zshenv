@@ -21,3 +21,8 @@ fi
 if [ -d "$HOME/.local/share/uv/python" ]; then
   export PATH="$(find "$HOME/.local/share/uv/python" -maxdepth 2 -name bin -type d | head -1):$PATH" 2>/dev/null
 fi
+
+# direnv
+if command -v direnv &>/dev/null; then
+  eval "$(direnv hook zsh)"
+fi

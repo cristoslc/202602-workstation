@@ -1,0 +1,56 @@
+---
+# Debian/Ubuntu: install browsers via apt and external repos.
+
+- name: Verify Firefox is installed (Mint ships .deb by default)
+  ansible.builtin.command: firefox --version
+  register: firefox_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Firefox if not present
+  when: firefox_check.rc != 0
+  ansible.builtin.apt:
+    name: firefox
+    state: present
+  become: true
+
+- name: Add Brave browser GPG key
+  ansible.builtin.shell: |
+    curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+      https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/brave-browser-archive-keyring.gpg
+  become: true
+
+- name: Add Brave browser apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"
+    state: present
+  become: true
+
+- name: Install Brave browser
+  ansible.builtin.apt:
+    name: brave-browser
+    state: present
+    update_cache: true
+  become: true
+
+- name: Add Google Chrome GPG key
+  ansible.builtin.shell: |
+    curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/google-chrome-keyring.gpg
+  become: true
+
+- name: Add Google Chrome apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] https://dl.google.com/linux/chrome/deb/ stable main"
+    state: present
+  become: true
+
+- name: Install Google Chrome
+  ansible.builtin.apt:
+    name: google-chrome-stable
+    state: present
+    update_cache: true
+  become: true

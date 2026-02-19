@@ -1,0 +1,29 @@
+---
+# Linux: install Slack and Signal via their repos.
+
+- name: Install Slack via snap
+  community.general.snap:
+    name: slack
+    classic: true
+    state: present
+  become: true
+
+- name: Add Signal GPG key
+  ansible.builtin.shell: |
+    curl -fsSL https://updates.signal.org/desktop/apt/keys.asc | gpg --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/signal-desktop-keyring.gpg
+  become: true
+
+- name: Add Signal apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main"
+    state: present
+  become: true
+
+- name: Install Signal Desktop
+  ansible.builtin.apt:
+    name: signal-desktop
+    state: present
+    update_cache: true
+  become: true

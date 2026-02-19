@@ -4,17 +4,32 @@
   connection: local
 
   roles:
-    - role: firefox
-      tags: [firefox, desktop]
+    - role: browsers
+      tags: [browsers, firefox, brave, chrome, desktop]
 
-    - role: espanso
-      tags: [espanso, desktop]
+    - role: launchers
+      tags: [launchers, vicinae, desktop]
 
-    - role: vicinae
-      tags: [vicinae, desktop]
+    - role: text-expansion
+      tags: [text-expansion, espanso, desktop]
 
-    - role: cinnamon
-      tags: [cinnamon, desktop]
+    - role: communication
+      tags: [communication, slack, signal, desktop]
+
+    - role: media
+      tags: [media, spotify, vlc, desktop]
+
+    - role: vpn
+      tags: [vpn, tailscale, surfshark, desktop]
+
+    - role: backups
+      tags: [backups, timeshift, desktop]
+
+    - role: file-transfer
+      tags: [file-transfer, filezilla, desktop]
+
+    - role: desktop-env
+      tags: [desktop-env, cinnamon, desktop]
 
     - role: dev
       tags: [dev, desktop]

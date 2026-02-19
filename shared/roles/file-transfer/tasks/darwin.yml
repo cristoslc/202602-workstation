@@ -1,0 +1,13 @@
+---
+# macOS: Cyberduck installed via Brewfile. Verify presence.
+
+- name: Verify Cyberduck is installed
+  ansible.builtin.command: brew list --cask cyberduck
+  register: cyberduck_check
+  changed_when: false
+  failed_when: false
+
+- name: Note about Cyberduck
+  when: cyberduck_check.rc != 0
+  ansible.builtin.debug:
+    msg: "Cyberduck not installed. Add 'cyberduck' to Brewfile and run brew bundle."

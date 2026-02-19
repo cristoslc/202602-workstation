@@ -1,36 +1,90 @@
 # Declarative manifest of all macOS packages.
 # Run: brew bundle --file=Brewfile
+#
+# Comments map each entry to its Ansible role for traceability.
 
 # Taps
 tap "homebrew/bundle"
 
-# CLI Tools
+# --- Git (role: git) ---
 brew "git"
+brew "gh"
+brew "lazygit"
+brew "delta"
+
+# --- Shell (role: shell) ---
 brew "zsh"
+brew "direnv"
+
+# --- Terminal (role: terminal) ---
+brew "tmux"
+
+# --- Base CLI (role: homebrew — no shared role equivalent) ---
 brew "jq"
+brew "wget"
 brew "ripgrep"
 brew "fd"
+brew "fzf"
 brew "bat"
 brew "eza"
-brew "fzf"
 brew "tree"
-brew "wget"
 brew "htop"
+brew "dust"
+brew "duf"
+brew "tldr"
+brew "mc"
+
+# --- Secrets / IaC (role: secrets-manager + stow) ---
 brew "stow"
 brew "sops"
 brew "age"
 brew "gum"
 brew "mas"
 
-# GUI Applications
+# --- Secrets Manager (role: secrets-manager) ---
 cask "1password"
 cask "1password-cli"
-cask "visual-studio-code"
-cask "docker"
-cask "raycast"
+
+# --- Browsers (role: browsers) ---
 cask "firefox"
+cask "brave-browser"
+cask "google-chrome"
+
+# --- Editor (role: editor) ---
+cask "visual-studio-code"
+
+# --- Docker (role: docker) ---
+cask "docker"
+
+# --- Terminal (role: terminal) ---
+cask "iterm2"
+
+# --- Launchers (role: launchers) ---
+cask "raycast"
+
+# --- Communication (role: communication) ---
+cask "slack"
+cask "signal"
+
+# --- Media (role: media) ---
+cask "spotify"
+cask "vlc"
+
+# --- Utilities (role: utilities) ---
+cask "keka"
+
+# --- Backups (role: backups) ---
+cask "backblaze"
+
+# --- VPN (role: vpn) ---
+cask "surfshark"
+cask "tailscale"
+
+# --- File Transfer (role: file-transfer) ---
+cask "cyberduck"
+
+# --- AI (role: claude-code) ---
 cask "claude"
 
-# Mac App Store apps (requires being signed in)
-# Uncomment and set IDs as needed:
-# mas "Amphetamine", id: 937984704
+# --- Mac App Store (role: mas) ---
+mas "Amphetamine", id: 937984704

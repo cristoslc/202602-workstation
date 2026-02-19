@@ -1,0 +1,12 @@
+---
+# Launchers role: Raycast (macOS) / Vicinae (Linux)
+
+- name: Configure Raycast (macOS)
+  when: ansible_os_family == "Darwin"
+  ansible.builtin.include_tasks: darwin.yml
+  tags: [raycast]
+
+- name: Install and configure Vicinae (Debian)
+  when: ansible_os_family == "Debian"
+  ansible.builtin.include_tasks: debian.yml
+  tags: [vicinae]

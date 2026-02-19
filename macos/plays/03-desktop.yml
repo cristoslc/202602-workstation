@@ -4,8 +4,29 @@
   connection: local
 
   roles:
-    - role: raycast
-      tags: [raycast, desktop]
+    - role: browsers
+      tags: [browsers, firefox, brave, chrome, desktop]
+
+    - role: launchers
+      tags: [launchers, raycast, desktop]
+
+    - role: communication
+      tags: [communication, slack, signal, desktop]
+
+    - role: media
+      tags: [media, spotify, vlc, desktop]
+
+    - role: vpn
+      tags: [vpn, tailscale, surfshark, desktop]
+
+    - role: backups
+      tags: [backups, backblaze, desktop]
+
+    - role: utilities
+      tags: [utilities, keka, desktop]
+
+    - role: file-transfer
+      tags: [file-transfer, cyberduck, desktop]
 
     - role: mas
       tags: [mas, desktop]

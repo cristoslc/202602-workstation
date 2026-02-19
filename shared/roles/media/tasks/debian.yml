@@ -1,0 +1,14 @@
+---
+# Linux: install Spotify and VLC.
+
+- name: Install Spotify via snap
+  community.general.snap:
+    name: spotify
+    state: present
+  become: true
+
+- name: Install VLC
+  ansible.builtin.apt:
+    name: vlc
+    state: present
+  become: true

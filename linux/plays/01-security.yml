@@ -4,8 +4,5 @@
   connection: local
 
   roles:
-    - role: onepassword
-      tags: [onepassword, security]
-
-    - role: sops
-      tags: [sops, security]
+    - role: secrets-manager
+      tags: [secrets-manager, onepassword, sops, security]

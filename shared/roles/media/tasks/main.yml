@@ -1,0 +1,10 @@
+---
+# Media role: Spotify + VLC
+
+- name: Install media apps (macOS)
+  when: ansible_os_family == "Darwin"
+  ansible.builtin.include_tasks: darwin.yml
+
+- name: Install media apps (Debian)
+  when: ansible_os_family == "Debian"
+  ansible.builtin.include_tasks: debian.yml
