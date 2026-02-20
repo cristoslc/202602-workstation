@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 # Root entry point: detects OS and delegates to platform-specific bootstrap.
 # Usage: ./bootstrap.sh [clone-path]
@@ -28,7 +29,7 @@ if [ ! -f "$SCRIPT_DIR/$PLATFORM/bootstrap.sh" ]; then
     xcode-select --install 2>/dev/null || true
     until xcode-select -p &>/dev/null; do sleep 5; done
   fi
-  git clone ${GITHUB_REPO_URL} "$WORKSTATION_DIR"
+  git clone "${GITHUB_REPO_URL}" "$WORKSTATION_DIR"
   SCRIPT_DIR="$WORKSTATION_DIR"
 fi
 

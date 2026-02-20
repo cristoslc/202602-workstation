@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 WORKSTATION_DIR="${1:-$HOME/.workstation}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,9 +22,16 @@ fi
 
 # --- Phase 2: Install Homebrew ---
 
+# Pin Homebrew installer to a specific commit to prevent supply chain attacks.
+# Update this SHA when you want to pull in a newer installer version:
+#   git ls-remote https://github.com/Homebrew/install.git HEAD
+BREW_INSTALL_COMMIT="0e1bf654fd95d1ddebe83b1f8c77de6e2c1b7cfe"
 if ! command -v brew &>/dev/null; then
   info "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  brew_installer="$(mktemp)"
+  curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/${BREW_INSTALL_COMMIT}/install.sh" -o "$brew_installer"
+  /bin/bash "$brew_installer"
+  rm -f "$brew_installer"
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
@@ -34,9 +42,15 @@ brew install sops age stow gum 2>/dev/null || true
 
 # --- Phase 4: Install uv and Ansible ---
 
+# NOTE: uv is bootstrapped without checksum verification here because Ansible
+# (installed via uv) is not yet available. The Ansible python role pins uv to a
+# specific version with SHA-256 verification for subsequent installs.
 if ! command -v uv &>/dev/null; then
   info "Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  uv_installer="$(mktemp)"
+  curl -LsSf https://astral.sh/uv/install.sh -o "$uv_installer"
+  sh "$uv_installer"
+  rm -f "$uv_installer"
   export PATH="$HOME/.local/bin:$PATH"
 fi
 

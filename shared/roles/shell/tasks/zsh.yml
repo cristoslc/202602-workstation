@@ -38,8 +38,9 @@
     shell: "{{ zsh_path }}"
   become: true
 
-- name: Create zsh config directory
+- name: Create zsh config directory with verified ownership
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/zsh"
     state: directory
+    owner: "{{ ansible_user_id }}"
     mode: "0755"

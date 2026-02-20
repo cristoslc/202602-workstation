@@ -1,5 +1,5 @@
 ---
-# macOS: Keka installed via Brewfile. Verify presence.
+# macOS: Keka via Brewfile.
 
 - name: Verify Keka is installed
   ansible.builtin.command: brew list --cask keka

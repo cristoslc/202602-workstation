@@ -25,7 +25,7 @@
         src: "{{ ansible_env.HOME }}/.zshrc"
         dest: "{{ ansible_env.HOME }}/.config/zsh/local.zsh"
         remote_src: true
-        mode: "0644"
+        mode: "0600"
         force: false  # Don't overwrite if local.zsh already exists
 
     - name: Back up original .zshrc
@@ -33,7 +33,7 @@
         src: "{{ ansible_env.HOME }}/.zshrc"
         dest: "{{ backup_dir }}/.zshrc"
         remote_src: true
-        mode: "0644"
+        mode: "0600"
 
     - name: Remove original .zshrc (stow will replace it)
       ansible.builtin.file:
@@ -59,7 +59,7 @@
         src: "{{ ansible_env.HOME }}/.gitconfig"
         dest: "{{ ansible_env.HOME }}/.config/git/local.gitconfig"
         remote_src: true
-        mode: "0644"
+        mode: "0600"
         force: false
 
     - name: Back up original .gitconfig
@@ -67,7 +67,7 @@
         src: "{{ ansible_env.HOME }}/.gitconfig"
         dest: "{{ backup_dir }}/.gitconfig"
         remote_src: true
-        mode: "0644"
+        mode: "0600"
 
     - name: Remove original .gitconfig
       ansible.builtin.file:
@@ -87,7 +87,7 @@
         src: "{{ ansible_env.HOME }}/.zshenv"
         dest: "{{ backup_dir }}/.zshenv"
         remote_src: true
-        mode: "0644"
+        mode: "0600"
 
     - name: Remove original .zshenv
       ansible.builtin.file:

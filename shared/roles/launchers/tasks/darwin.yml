@@ -1,6 +1,6 @@
 ---
-# Raycast is installed via Brewfile.
-# This task handles post-install configuration.
+# Raycast is installed via Brewfile; Paletro via Setapp.
+# This task handles post-install verification and configuration.
 
 - name: Check if Raycast settings export exists
   ansible.builtin.stat:
@@ -14,3 +14,15 @@
       - Set as default launcher
       - Configure clipboard history, snippets, window management
       - Export settings to macos/dotfiles/raycast/.config/raycast/ for future bootstraps
+
+# --- Setapp-managed launcher tools ---
+
+- name: Check if Paletro is installed
+  ansible.builtin.stat:
+    path: /Applications/Setapp/Paletro.app
+  register: paletro_check
+
+- name: Remind to install Paletro via Setapp
+  when: not paletro_check.stat.exists
+  ansible.builtin.debug:
+    msg: "Paletro is not installed. Install it via Setapp for app command palette."

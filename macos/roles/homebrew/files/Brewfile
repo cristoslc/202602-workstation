@@ -59,16 +59,37 @@ cask "docker"
 # --- Terminal (role: terminal) ---
 cask "iterm2"
 
+# --- Setapp (manages: Dato, BusyCal, CleanShot X, Downie, OpenIn, Paletro) ---
+cask "setapp"
+
 # --- Launchers (role: launchers) ---
 cask "raycast"
+# Also: Paletro (Setapp)
 
 # --- Communication (role: communication) ---
 cask "slack"
 cask "signal"
 
+# --- Calendar (role: calendar) ---
+# Dato (Setapp)
+# BusyCal (Setapp)
+
 # --- Media (role: media) ---
 cask "spotify"
 cask "vlc"
+# Also: Downie (Setapp)
+
+# --- Screenshots (role: screenshots) ---
+# CleanShot X (Setapp)
+
+# --- Link Handler (role: link-handler) ---
+# OpenIn (Setapp)
+
+# --- Text Expansion (role: text-expansion) ---
+cask "espanso"
+
+# --- Stream Deck (role: stream-deck) ---
+cask "elgato-stream-deck"
 
 # --- Utilities (role: utilities) ---
 cask "keka"
@@ -82,6 +103,11 @@ cask "tailscale"
 
 # --- File Transfer (role: file-transfer) ---
 cask "cyberduck"
+
+# --- Fonts (role: fonts) ---
+cask "font-jetbrains-mono-nerd-font"
+cask "font-fira-code-nerd-font"
+cask "font-meslo-lg-nerd-font"
 
 # --- AI (role: claude-code) ---
 cask "claude"

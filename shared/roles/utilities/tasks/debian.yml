@@ -1,0 +1,10 @@
+---
+# Linux: archive utilities beyond what Mint ships by default.
+
+- name: Install archive utilities
+  ansible.builtin.apt:
+    name:
+      - p7zip-full
+      - unrar
+    state: present
+  become: true

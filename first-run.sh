@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 # First-run setup: personalizes the template repo, generates age key, encrypts
 # secrets, and pushes to your own GitHub repo.
@@ -43,13 +44,23 @@ install_prereqs_linux() {
     sudo apt-get install -y -qq gettext-base
   fi
 
-  # sops
+  # sops (pinned version + checksum)
   if ! command -v sops &>/dev/null; then
     info "Installing sops..."
     local sops_version="3.9.4"
-    curl -fsSL "https://github.com/getsops/sops/releases/download/v${sops_version}/sops_${sops_version}_amd64.deb" -o /tmp/sops.deb
-    sudo dpkg -i /tmp/sops.deb
-    rm -f /tmp/sops.deb
+    local sops_sha256="e18a091c45888f82e1a7fd14561ebb913872441f92c8162d39bb63eb9308dd16"
+    local sops_deb
+    sops_deb="$(mktemp --suffix=.deb)"
+    curl -fsSL "https://github.com/getsops/sops/releases/download/v${sops_version}/sops_${sops_version}_amd64.deb" -o "$sops_deb"
+    local actual_sha256
+    actual_sha256="$(sha256sum "$sops_deb" | awk '{print $1}')"
+    if [ "$actual_sha256" != "$sops_sha256" ]; then
+      rm -f "$sops_deb"
+      error "sops checksum mismatch! Expected: $sops_sha256, Got: $actual_sha256"
+      exit 1
+    fi
+    sudo dpkg -i "$sops_deb"
+    rm -f "$sops_deb"
   fi
 
   # gh CLI
@@ -75,10 +86,17 @@ install_prereqs_macos() {
     until xcode-select -p &>/dev/null; do sleep 5; done
   fi
 
-  # Homebrew
+  # Homebrew — pin installer to a specific commit to prevent supply chain attacks.
+  # Update this SHA when you want to pull in a newer installer version:
+  #   git ls-remote https://github.com/Homebrew/install.git HEAD
+  local brew_commit="0e1bf654fd95d1ddebe83b1f8c77de6e2c1b7cfe"
   if ! command -v brew &>/dev/null; then
     info "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    local brew_installer
+    brew_installer="$(mktemp)"
+    curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/${brew_commit}/install.sh" -o "$brew_installer"
+    /bin/bash "$brew_installer"
+    rm -f "$brew_installer"
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
 
@@ -229,16 +247,31 @@ else
   elif command -v pip3 &>/dev/null; then
     pip3 install --user pre-commit
   else
-    # Install uv first, then pre-commit
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Install uv first, then pre-commit — download then execute (not pipe-to-shell).
+    # NOTE: No checksum verification here (bootstrap chicken-and-egg). The Ansible
+    # python role pins uv to a specific version with SHA-256 verification.
+    uv_installer="$(mktemp)"
+    curl -LsSf https://astral.sh/uv/install.sh -o "$uv_installer"
+    sh "$uv_installer"
+    rm -f "$uv_installer"
     export PATH="$HOME/.local/bin:$PATH"
     uv tool install pre-commit
   fi
 fi
 
+# C1: Assert pre-commit is available — secrets cannot be committed without this guardrail
+if ! command -v pre-commit &>/dev/null; then
+  error "pre-commit installation failed. Cannot continue without secret-leak protection."
+  exit 1
+fi
+
 if [ -d "$SCRIPT_DIR/.git" ]; then
   info "Installing pre-commit hooks..."
   cd "$SCRIPT_DIR" && pre-commit install
+  if [ ! -f "$SCRIPT_DIR/.git/hooks/pre-commit" ]; then
+    error "pre-commit hook not installed into .git/hooks/. Fix and re-run."
+    exit 1
+  fi
 fi
 
 # =============================================================================
@@ -269,8 +302,13 @@ if ! git remote get-url origin &>/dev/null; then
       gh auth login
     fi
 
+    repo_visibility="--private"
+    if gum confirm "Make the repo public? (Default: private)"; then
+      repo_visibility="--public"
+    fi
+
     info "Creating GitHub repo..."
-    gh repo create "${GITHUB_USERNAME}/${REPO_NAME}" --public --source . --remote origin
+    gh repo create "${GITHUB_USERNAME}/${REPO_NAME}" $repo_visibility --source . --remote origin
     info "GitHub repo created: https://github.com/${GITHUB_USERNAME}/${REPO_NAME}"
   else
     info "Skipping GitHub repo creation."
@@ -295,7 +333,10 @@ if gum confirm "Commit personalized changes and push?"; then
     git branch -M main
   fi
 
-  git add -A
+  # Stage only tracked files + the specific files modified by envsubst/sops.
+  # Avoids staging stray untracked files that could contain secrets.
+  git add -u
+  git add .sops.yaml bootstrap.sh README.md
   git commit -m "Initialize personalized workstation config"
 
   if git remote get-url origin &>/dev/null; then
@@ -306,7 +347,7 @@ if gum confirm "Commit personalized changes and push?"; then
   fi
 else
   info "Skipping commit. You can commit later with:"
-  info "  git add -A && git commit -m 'Initialize personalized workstation config'"
+  info "  git add -u && git commit -m 'Initialize personalized workstation config'"
 fi
 
 # =============================================================================

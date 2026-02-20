@@ -10,13 +10,25 @@
   ansible.builtin.file:
     path: "{{ backup_dir }}"
     state: directory
-    mode: "0755"
+    mode: "0700"
   vars:
     backup_dir: "{{ ansible_env.HOME }}/.workstation-backup/{{ ansible_date_time.iso8601_basic_short }}"
 
 - name: Backup and migrate pre-existing dotfiles
   when: bootstrap_mode == "existing_account"
   ansible.builtin.include_tasks: backup-existing.yml
+
+- name: Ensure SSH directories exist with restrictive permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ ansible_user_id }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ ansible_env.HOME }}/.ssh", mode: "0700" }
+    - { path: "{{ ansible_env.HOME }}/.ssh/config.d", mode: "0700" }
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Stow shared dotfiles
   ansible.builtin.include_tasks: stow-packages.yml

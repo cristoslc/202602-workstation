@@ -9,6 +9,20 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Environment
-.env.local
-.env.*.local
+# Environment & secrets
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Private keys & certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Credential files
+credentials.json
+service-account*.json
+.npmrc
+.netrc

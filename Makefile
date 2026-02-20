@@ -26,9 +26,9 @@ bootstrap: ## Run full bootstrap for this platform
 lint: ## Run ansible-lint and yamllint on all playbooks
 	./scripts/lint.sh
 
-apply: ## Apply a specific role: make apply ROLE=zsh
+apply: ## Apply a specific role: make apply ROLE=git (or ROLE=gh for sub-task)
 ifndef ROLE
-	$(error ROLE is required. Usage: make apply ROLE=zsh)
+	$(error ROLE is required. Usage: make apply ROLE=git)
 endif
 	cd $(PLATFORM_DIR) && ansible-playbook site.yml --tags $(ROLE) --ask-become-pass
 
@@ -38,9 +38,19 @@ decrypt: ## Decrypt all SOPS files to .decrypted/ dirs
 	@echo "Decrypting $(PLATFORM_DIR) secrets..."
 	@./scripts/decrypt-secrets.sh $(PLATFORM_DIR)/secrets
 
-clean-secrets: ## Wipe all .decrypted/ directories
-	find . -type d -name '.decrypted' -exec rm -rf {}/* \;
-	@echo "All .decrypted/ directories cleaned."
+clean-secrets: ## Wipe decrypted secrets, unstow symlinks, truncate Ansible log
+	# NOTE: rm does not securely erase data on SSDs. This is acceptable assuming
+	# full-disk encryption (FileVault on macOS, LUKS on Linux) is enabled.
+	# Unstow secret dotfile packages so symlinks don't dangle.
+	@for secrets_dotfiles in shared/secrets/.decrypted/dotfiles $(PLATFORM_DIR)/secrets/.decrypted/dotfiles; do \
+		if [ -d "$(WORKSTATION_DIR)/$$secrets_dotfiles" ]; then \
+			stow -D -d "$(WORKSTATION_DIR)/$$(dirname $$secrets_dotfiles)" -t "$(HOME)" "$$(basename $$secrets_dotfiles)" 2>/dev/null || true; \
+		fi; \
+	done
+	find . -type d -name '.decrypted' -exec rm -rf {} + 2>/dev/null || true
+	# Truncate Ansible log (may contain token values from prior runs).
+	@: > "$(HOME)/.local/log/ansible.log" 2>/dev/null || true
+	@echo "Decrypted secrets, stow symlinks, and Ansible log cleaned."
 
 edit-secrets-shared: ## Edit shared encrypted vars
 	sops shared/secrets/vars.sops.yml

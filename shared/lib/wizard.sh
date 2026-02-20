@@ -156,10 +156,19 @@ ensure_gum() {
   info "Installing gum..."
   case "${PLATFORM:-}" in
     linux)
-      # Install via .deb from GitHub releases
-      local gum_version="0.14.5"
-      local gum_deb="/tmp/gum_${gum_version}_amd64.deb"
+      # Install via .deb from GitHub releases (pinned version + checksum)
+      local gum_version="0.17.0"
+      local gum_sha256="4c59b09c7248ea03c1544a11506b1152b1d8bd20e602fb2c2e9d158204d1f490"
+      local gum_deb
+      gum_deb="$(mktemp --suffix=.deb)"
       curl -fsSL "https://github.com/charmbracelet/gum/releases/download/v${gum_version}/gum_${gum_version}_amd64.deb" -o "$gum_deb"
+      local actual_sha256
+      actual_sha256="$(sha256sum "$gum_deb" | awk '{print $1}')"
+      if [ "$actual_sha256" != "$gum_sha256" ]; then
+        rm -f "$gum_deb"
+        error "gum checksum mismatch! Expected: $gum_sha256, Got: $actual_sha256"
+        exit 1
+      fi
       sudo dpkg -i "$gum_deb"
       rm -f "$gum_deb"
       ;;

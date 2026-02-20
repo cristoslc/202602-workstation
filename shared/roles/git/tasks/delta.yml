@@ -8,11 +8,37 @@
 
 - name: Install delta (Debian)
   when: ansible_os_family == "Debian"
-  ansible.builtin.shell: |
-    DELTA_VERSION=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest | grep -Po '"tag_name": "\K[^"]*')
-    curl -fsSL "https://github.com/dandavison/delta/releases/latest/download/git-delta_${DELTA_VERSION}_amd64.deb" -o /tmp/delta.deb
-    dpkg -i /tmp/delta.deb
-    rm -f /tmp/delta.deb
-  args:
-    creates: /usr/bin/delta
-  become: true
+  block:
+    - name: Check delta version
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+      vars:
+        tool_name: delta
+        tool_repo: dandavison/delta
+        pinned_version: "{{ delta_version }}"
+
+    - name: Check if delta is installed at correct version
+      ansible.builtin.shell: delta --version 2>/dev/null | grep -qF '{{ delta_version }}'
+      register: delta_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download and verify delta
+      when: delta_installed.rc != 0
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+      vars:
+        download_url: "{{ delta_url }}"
+        expected_sha256: "{{ delta_sha256 }}"
+        tool_name: delta
+
+    - name: Install delta .deb
+      when: delta_installed.rc != 0
+      ansible.builtin.apt:
+        deb: "{{ _verified_download.path }}"
+        state: present
+      become: true
+
+    - name: Clean up delta temp file
+      when: delta_installed.rc != 0 and _verified_download is defined
+      ansible.builtin.file:
+        path: "{{ _verified_download.path }}"
+        state: absent

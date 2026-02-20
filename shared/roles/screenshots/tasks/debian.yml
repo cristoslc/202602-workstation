@@ -1,0 +1,7 @@
+---
+# Linux: screenshot tool not yet selected.
+# Flameshot and Shutter are candidates.
+
+- name: Screenshot tool placeholder
+  ansible.builtin.debug:
+    msg: "No Linux screenshot tool selected yet. Consider Flameshot or Shutter."

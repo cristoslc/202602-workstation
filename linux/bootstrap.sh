@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 WORKSTATION_DIR="${1:-$HOME/.workstation}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,13 +21,21 @@ sudo apt-get install -y -qq \
   curl \
   stow
 
-# Install sops
+# Install sops (pinned version + checksum)
 if ! command -v sops &>/dev/null; then
   info "Installing sops..."
-  local_sops_version="3.9.4"
-  curl -fsSL "https://github.com/getsops/sops/releases/download/v${local_sops_version}/sops_${local_sops_version}_amd64.deb" -o /tmp/sops.deb
-  sudo dpkg -i /tmp/sops.deb
-  rm -f /tmp/sops.deb
+  sops_version="3.9.4"
+  sops_sha256="e18a091c45888f82e1a7fd14561ebb913872441f92c8162d39bb63eb9308dd16"
+  sops_deb="$(mktemp --suffix=.deb)"
+  curl -fsSL "https://github.com/getsops/sops/releases/download/v${sops_version}/sops_${sops_version}_amd64.deb" -o "$sops_deb"
+  actual_sha256="$(sha256sum "$sops_deb" | awk '{print $1}')"
+  if [ "$actual_sha256" != "$sops_sha256" ]; then
+    rm -f "$sops_deb"
+    error "sops checksum mismatch! Expected: $sops_sha256, Got: $actual_sha256"
+    exit 1
+  fi
+  sudo dpkg -i "$sops_deb"
+  rm -f "$sops_deb"
 fi
 
 # Install age
@@ -40,9 +49,15 @@ ensure_gum
 
 # --- Phase 2: Install uv and Ansible ---
 
+# NOTE: uv is bootstrapped without checksum verification here because Ansible
+# (installed via uv) is not yet available. The Ansible python role pins uv to a
+# specific version with SHA-256 verification for subsequent installs.
 if ! command -v uv &>/dev/null; then
   info "Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  uv_installer="$(mktemp)"
+  curl -LsSf https://astral.sh/uv/install.sh -o "$uv_installer"
+  sh "$uv_installer"
+  rm -f "$uv_installer"
   export PATH="$HOME/.local/bin:$PATH"
 fi
 

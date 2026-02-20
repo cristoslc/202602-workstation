@@ -4,12 +4,25 @@
     path: /opt/homebrew/bin/brew
   register: homebrew_check
 
-- name: Install Homebrew
+- name: Download Homebrew installer
   when: not homebrew_check.stat.exists
-  ansible.builtin.shell: >
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    dest: /tmp/brew-install.sh
+    mode: "0755"
+
+- name: Run Homebrew installer
+  when: not homebrew_check.stat.exists
+  ansible.builtin.command: /bin/bash /tmp/brew-install.sh
   args:
     creates: /opt/homebrew/bin/brew
+  environment:
+    NONINTERACTIVE: "1"
+
+- name: Clean up Homebrew installer
+  ansible.builtin.file:
+    path: /tmp/brew-install.sh
+    state: absent
 
 - name: Update Homebrew
   community.general.homebrew:

@@ -1,0 +1,23 @@
+---
+# macOS: Dato and BusyCal are managed via Setapp.
+# Verify they are present (Setapp handles install/updates).
+
+- name: Check if Dato is installed
+  ansible.builtin.stat:
+    path: /Applications/Setapp/Dato.app
+  register: dato_check
+
+- name: Remind to install Dato via Setapp
+  when: not dato_check.stat.exists
+  ansible.builtin.debug:
+    msg: "Dato is not installed. Install it via Setapp."
+
+- name: Check if BusyCal is installed
+  ansible.builtin.stat:
+    path: /Applications/Setapp/BusyCal.app
+  register: busycal_check
+
+- name: Remind to install BusyCal via Setapp
+  when: not busycal_check.stat.exists
+  ansible.builtin.debug:
+    msg: "BusyCal is not installed. Install it via Setapp."

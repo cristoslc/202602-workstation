@@ -11,6 +11,13 @@ if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
   alias cat='batcat --paging=never'
 fi
 
+# Modern ls replacement
+if command -v eza &>/dev/null; then
+  alias ls='eza'
+  alias ll='eza -l'
+  alias la='eza -la'
+fi
+
 # xdg-open shortcut
 alias open='xdg-open'
 

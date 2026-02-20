@@ -13,6 +13,9 @@
     - role: text-expansion
       tags: [text-expansion, espanso, desktop]
 
+    - role: calendar
+      tags: [calendar, desktop]
+
     - role: communication
       tags: [communication, slack, signal, desktop]
 
@@ -24,6 +27,18 @@
 
     - role: backups
       tags: [backups, timeshift, desktop]
+
+    - role: screenshots
+      tags: [screenshots, desktop]
+
+    - role: link-handler
+      tags: [link-handler, xdg-mime, desktop]
+
+    - role: stream-deck
+      tags: [stream-deck, opendeck, desktop]
+
+    - role: utilities
+      tags: [utilities, desktop]
 
     - role: file-transfer
       tags: [file-transfer, filezilla, desktop]

@@ -1,11 +1,5 @@
 ---
-# Text Expansion role: Espanso (Linux) / placeholder (macOS)
+# Text Expansion role: Espanso (both platforms)
 
-- name: Install Espanso (Debian)
-  when: ansible_os_family == "Debian"
-  ansible.builtin.include_tasks: debian.yml
-
-- name: Note about text expansion (macOS)
-  when: ansible_os_family == "Darwin"
-  ansible.builtin.debug:
-    msg: "Text expansion on macOS is handled by Raycast snippets."
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"

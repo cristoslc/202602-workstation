@@ -1,0 +1,13 @@
+---
+# macOS: Espanso text expander via Homebrew cask.
+
+- name: Install Espanso (macOS)
+  community.general.homebrew_cask:
+    name: espanso
+    state: present
+
+- name: Note about Espanso accessibility
+  ansible.builtin.debug:
+    msg: >
+      Espanso requires accessibility permissions on macOS.
+      Grant access in System Settings → Privacy & Security → Accessibility.

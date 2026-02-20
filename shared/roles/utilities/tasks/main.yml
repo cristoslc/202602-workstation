@@ -1,11 +1,5 @@
 ---
-# Utilities role: Keka (macOS) / placeholder (Linux)
+# Utilities role: Keka (macOS) / archive tools (Linux)
 
-- name: Verify Keka (macOS)
-  when: ansible_os_family == "Darwin"
-  ansible.builtin.include_tasks: darwin.yml
-
-- name: Note about utilities (Debian)
-  when: ansible_os_family == "Debian"
-  ansible.builtin.debug:
-    msg: "Archive utilities on Linux are handled by base packages."
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"

@@ -1,8 +1,11 @@
 # Managed by iac-daily-driver-environments.
 # Machine-specific settings (user.email, signing key) go in:
 #   ~/.config/git/local.gitconfig
+# Platform-specific settings (op-ssh-sign path) are stowed automatically.
 
 [include]
+  path = ~/.config/git/macos.gitconfig
+  path = ~/.config/git/linux.gitconfig
   path = ~/.config/git/local.gitconfig
 
 [init]
@@ -34,3 +37,12 @@
 
 [rerere]
   enabled = true
+
+[commit]
+  gpgsign = true
+
+[tag]
+  gpgsign = true
+
+[gpg]
+  format = ssh

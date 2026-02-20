@@ -3,10 +3,16 @@ repos:
     hooks:
       - id: sops-encrypted-check
         name: Verify SOPS files are encrypted
-        entry: bash -c 'for f in "$@"; do if ! grep -q "\"sops\":" "$f" && ! grep -q "sops:" "$f"; then echo "ERROR: $f is not encrypted!"; exit 1; fi; done'
+        entry: bash -c 'for f in "$@"; do if ! grep -q "\"mac\": \"ENC" "$f" && ! grep -q "mac: ENC" "$f"; then echo "ERROR: $f is not encrypted! Missing SOPS MAC signature."; exit 1; fi; done' _
         language: system
-        files: '\.(sops\.yml|sops\.yaml|sops)$'
+        files: '\.(sops\.yml|sops\.yaml|sops\.json|sops)$'
         types: [file]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+        name: Scan for hardcoded secrets
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1

@@ -25,5 +25,8 @@
     - role: claude-code
       tags: [claude-code, dev-tools]
 
+    - role: fonts
+      tags: [fonts, dev-tools]
+
     - role: terminal
       tags: [terminal, tmux, iterm2, dev-tools]

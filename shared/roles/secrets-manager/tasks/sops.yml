@@ -19,10 +19,24 @@
     - name: Retrieve age key from 1Password
       when: op_check.rc == 0
       ansible.builtin.shell: |
-        mkdir -p "$(dirname '{{ age_keyfile }}')"
+        mkdir -p -m 700 "$(dirname '{{ age_keyfile }}')"
         op read "{{ onepassword_age_key_ref }}" > "{{ age_keyfile }}"
       args:
         creates: "{{ age_keyfile }}"
+      register: op_read_result
+      failed_when: false
+      no_log: true
+
+    - name: Warn if 1Password retrieval failed
+      when:
+        - op_check.rc == 0
+        - op_read_result is defined
+        - op_read_result.rc != 0
+      ansible.builtin.debug:
+        msg: >
+          1Password CLI is installed but failed to retrieve the age key.
+          Ensure the 1Password desktop app is running and unlocked,
+          and that {{ onepassword_age_key_ref }} exists in your vault.
 
 - name: Set age key permissions
   ansible.builtin.file:

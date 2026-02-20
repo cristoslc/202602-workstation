@@ -12,8 +12,15 @@
   changed_when: false
   failed_when: false
 
+- name: Warn if not signed into App Store
+  when: mas_check.rc == 0 and (mas_account.rc | default(1)) != 0
+  ansible.builtin.debug:
+    msg: >
+      Not signed into the Mac App Store — skipping App Store installs.
+      Sign in via App Store.app, then re-run: make apply ROLE=mas
+
 - name: Install Mac App Store apps
-  when: mas_check.rc == 0 and mas_account.rc == 0
+  when: mas_check.rc == 0 and (mas_account.rc | default(1)) == 0
   ansible.builtin.command: "mas install {{ item.id }}"
   loop: "{{ mas_apps }}"
   loop_control:

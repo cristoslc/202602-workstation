@@ -25,20 +25,112 @@
     state: present
   become: true
 
-- name: Install dust (du replacement) from GitHub releases
-  ansible.builtin.shell: |
-    DUST_VERSION=$(curl -s https://api.github.com/repos/bootandy/dust/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
-    curl -fsSL "https://github.com/bootandy/dust/releases/latest/download/dust-v${DUST_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xzf - --strip-components=1 -C /usr/local/bin --wildcards '*/dust'
-  args:
-    creates: /usr/local/bin/dust
+# --- dust (du replacement) ---
+- name: Check dust version
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  vars:
+    tool_name: dust
+    tool_repo: bootandy/dust
+    pinned_version: "{{ dust_version }}"
+
+- name: Check if dust is installed at correct version
+  ansible.builtin.shell: dust --version 2>/dev/null | grep -qF '{{ dust_version }}'
+  register: dust_installed
+  changed_when: false
+  failed_when: false
+
+- name: Download and verify dust
+  when: dust_installed.rc != 0
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+  vars:
+    download_url: "{{ dust_url }}"
+    expected_sha256: "{{ dust_sha256 }}"
+    tool_name: dust
+
+- name: Extract dust binary
+  when: dust_installed.rc != 0
+  ansible.builtin.shell: >
+    tar xzf "{{ _verified_download.path }}"
+    --strip-components=1 -C /usr/local/bin --wildcards '*/dust'
+  changed_when: true
   become: true
 
-- name: Install duf (df replacement) from GitHub releases
-  ansible.builtin.shell: |
-    DUF_VERSION=$(curl -s https://api.github.com/repos/muesli/duf/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
-    curl -fsSL "https://github.com/muesli/duf/releases/latest/download/duf_${DUF_VERSION}_linux_amd64.deb" -o /tmp/duf.deb
-    dpkg -i /tmp/duf.deb
-    rm -f /tmp/duf.deb
-  args:
-    creates: /usr/bin/duf
+- name: Clean up dust temp file
+  when: dust_installed.rc != 0 and _verified_download is defined
+  ansible.builtin.file:
+    path: "{{ _verified_download.path }}"
+    state: absent
+
+# --- duf (df replacement) ---
+- name: Check duf version
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  vars:
+    tool_name: duf
+    tool_repo: muesli/duf
+    pinned_version: "{{ duf_version }}"
+
+- name: Check if duf is installed at correct version
+  ansible.builtin.shell: duf --version 2>/dev/null | grep -qF '{{ duf_version }}'
+  register: duf_installed
+  changed_when: false
+  failed_when: false
+
+- name: Download and verify duf
+  when: duf_installed.rc != 0
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+  vars:
+    download_url: "{{ duf_url }}"
+    expected_sha256: "{{ duf_sha256 }}"
+    tool_name: duf
+
+- name: Install duf .deb
+  when: duf_installed.rc != 0
+  ansible.builtin.apt:
+    deb: "{{ _verified_download.path }}"
+    state: present
   become: true
+
+- name: Clean up duf temp file
+  when: duf_installed.rc != 0 and _verified_download is defined
+  ansible.builtin.file:
+    path: "{{ _verified_download.path }}"
+    state: absent
+
+# --- eza (modern ls) ---
+- name: Check eza version
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  vars:
+    tool_name: eza
+    tool_repo: eza-community/eza
+    pinned_version: "{{ eza_version }}"
+
+- name: Check if eza is installed at correct version
+  ansible.builtin.shell: eza --version 2>/dev/null | grep -qF '{{ eza_version }}'
+  register: eza_installed
+  changed_when: false
+  failed_when: false
+
+- name: Download and verify eza
+  when: eza_installed.rc != 0
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+  vars:
+    download_url: "{{ eza_url }}"
+    expected_sha256: "{{ eza_sha256 }}"
+    tool_name: eza
+
+- name: Extract eza binary
+  when: eza_installed.rc != 0
+  ansible.builtin.unarchive:
+    src: "{{ _verified_download.path }}"
+    dest: /usr/local/bin
+    remote_src: true
+    include:
+      - eza
+    mode: "0755"
+  become: true
+
+- name: Clean up eza temp file
+  when: eza_installed.rc != 0 and _verified_download is defined
+  ansible.builtin.file:
+    path: "{{ _verified_download.path }}"
+    state: absent

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 # Decrypt all .sops files in a secrets/ directory to .decrypted/ counterparts.
 # Usage: ./scripts/decrypt-secrets.sh <secrets-dir>
@@ -24,8 +25,8 @@ find "$SECRETS_DIR" -path "$DECRYPTED_DIR" -prune -o \( -name "*.sops" -o -name 
     decrypted_file="$DECRYPTED_DIR/${relative%.sops}"
   fi
 
-  # Create parent directory
-  mkdir -p "$(dirname "$decrypted_file")"
+  # Create parent directory (explicit mode as defense-in-depth alongside umask)
+  mkdir -p -m 700 "$(dirname "$decrypted_file")"
 
   # Decrypt
   echo "Decrypting: $encrypted_file -> $decrypted_file"

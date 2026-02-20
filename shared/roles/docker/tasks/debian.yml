@@ -8,11 +8,23 @@
     state: present
   become: true
 
-- name: Add Docker GPG key
-  ansible.builtin.apt_key:
+- name: Download Docker GPG key
+  ansible.builtin.get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+    dest: /tmp/docker-key.gpg
+    mode: "0644"
   become: true
+
+- name: Dearmor Docker GPG key
+  ansible.builtin.command: gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg /tmp/docker-key.gpg
+  args:
+    creates: /usr/share/keyrings/docker-archive-keyring.gpg
+  become: true
+
+- name: Clean up Docker key temp file
+  ansible.builtin.file:
+    path: /tmp/docker-key.gpg
+    state: absent
 
 - name: Get Ubuntu codename for Docker repo
   ansible.builtin.command: lsb_release -cs
@@ -21,7 +33,7 @@
 
 - name: Add Docker repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ubuntu_codename.stdout }} stable"
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ ubuntu_codename.stdout }} stable"
     state: present
   become: true
 
@@ -35,6 +47,22 @@
     state: present
     update_cache: true
   become: true
+
+- name: Configure Docker daemon security constraints
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "no-new-privileges": true,
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    mode: "0644"
+  become: true
+  notify: Restart Docker
 
 - name: Add user to docker group
   ansible.builtin.user:
