@@ -12,7 +12,8 @@ export ANSIBLE_CONFIG
 
 .PHONY: help first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions test test-bats check apply decrypt clean-secrets status \
-        edit-secrets-shared edit-secrets-linux edit-secrets-macos
+        edit-secrets-shared edit-secrets-linux edit-secrets-macos \
+        export-key import-key send-key receive-key
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -86,3 +87,15 @@ test-bats: ## Run bats shell unit tests
 test: lint test-bats ## Run all linters and tests
 
 check: shellcheck yamllint check-collisions test-bats ## Quick local verification (no ansible-lint)
+
+send-key: ## Send age key to another machine via Magic Wormhole
+	./scripts/transfer-key.sh send
+
+receive-key: ## Receive age key from another machine via Magic Wormhole
+	./scripts/transfer-key.sh receive
+
+export-key: ## Export age key as passphrase-encrypted blob (for AirDrop/paste)
+	./scripts/transfer-key.sh export
+
+import-key: ## Import age key from passphrase-encrypted blob
+	./scripts/transfer-key.sh import

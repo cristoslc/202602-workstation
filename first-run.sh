@@ -509,9 +509,10 @@ gum style \
   "First-run complete!" \
   "" \
   "Next steps:" \
-  "  1. Distribute age key to other machines:" \
-  "     $AGE_KEY_PATH" \
-  "  2. On another machine:" \
+  "  1. Transfer age key to another machine:" \
+  "     make send-key      (here — uses Magic Wormhole)" \
+  "     make receive-key   (there)" \
+  "  2. On the new machine:" \
   "     git clone $GITHUB_REPO_URL ~/.workstation" \
-  "     # Copy age key into place" \
-  "     cd ~/.workstation && ./bootstrap.sh"
+  "     cd ~/.workstation && make receive-key" \
+  "     ./bootstrap.sh"

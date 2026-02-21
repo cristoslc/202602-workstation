@@ -137,10 +137,48 @@ resolve_age_key() {
     fi
   fi
 
+  # Offer import from another machine (if age is installed and gum is available)
+  if command -v age &>/dev/null && command -v gum &>/dev/null; then
+    echo ""
+    warn "Age key not found locally or via 1Password."
+    local transfer_script
+    transfer_script="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/transfer-key.sh"
+
+    local import_method
+    if command -v wormhole &>/dev/null; then
+      import_method=$(gum choose \
+        --header "Import age key from another machine?" \
+        "Receive via Magic Wormhole (run 'make send-key' on source)" \
+        "Paste encrypted blob (run 'make export-key' on source)" \
+        "Skip — I'll set it up later")
+    else
+      import_method=$(gum choose \
+        --header "Import age key from another machine?" \
+        "Paste encrypted blob (run 'make export-key' on source)" \
+        "Skip — I'll set it up later")
+    fi
+
+    case "$import_method" in
+      "Receive via"*)
+        if [ -f "$transfer_script" ]; then
+          bash "$transfer_script" receive
+          [ -f "$key_path" ] && return 0
+        fi
+        ;;
+      "Paste"*)
+        if [ -f "$transfer_script" ]; then
+          bash "$transfer_script" import
+          [ -f "$key_path" ] && return 0
+        fi
+        ;;
+    esac
+  fi
+
   # Neither available
   warn "Age key not available. Secrets will not be decrypted."
   warn "To enable secrets, place your age private key at:"
   warn "  $key_path"
+  warn "Or on another machine with the key, run: make send-key"
   warn "Then re-run bootstrap."
   return 1
 }
