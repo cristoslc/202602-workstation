@@ -283,7 +283,10 @@ cd "$SCRIPT_DIR"
 
 if git remote get-url origin &>/dev/null; then
   current_origin=$(git remote get-url origin)
-  if [ "$current_origin" != "$GITHUB_REPO_URL" ]; then
+  # Compare owner/repo identity, not transport URL (SSH vs HTTPS).
+  if [[ "$current_origin" == *"${GITHUB_USERNAME}/${REPO_NAME}"* ]]; then
+    info "Remote 'origin' already points to ${GITHUB_USERNAME}/${REPO_NAME}."
+  else
     info "Removing template origin ($current_origin)..."
     git remote remove origin
   fi
@@ -307,9 +310,15 @@ if ! git remote get-url origin &>/dev/null; then
       repo_visibility="--public"
     fi
 
-    info "Creating GitHub repo..."
-    gh repo create "${GITHUB_USERNAME}/${REPO_NAME}" $repo_visibility --source . --remote origin
-    info "GitHub repo created: https://github.com/${GITHUB_USERNAME}/${REPO_NAME}"
+    # Create the repo if it doesn't already exist.
+    if gh repo view "${GITHUB_USERNAME}/${REPO_NAME}" &>/dev/null; then
+      info "GitHub repo ${GITHUB_USERNAME}/${REPO_NAME} already exists."
+      git remote add origin "https://github.com/${GITHUB_USERNAME}/${REPO_NAME}.git"
+    else
+      info "Creating GitHub repo..."
+      gh repo create "${GITHUB_USERNAME}/${REPO_NAME}" $repo_visibility --source . --remote origin
+    fi
+    info "Remote set to: https://github.com/${GITHUB_USERNAME}/${REPO_NAME}"
   else
     info "Skipping GitHub repo creation."
     info "You can add a remote later with:"
