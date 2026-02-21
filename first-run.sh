@@ -28,18 +28,22 @@ trap 'error "First-run failed. Fix the issue above and re-run."' ERR
 # =============================================================================
 
 # Write plaintext to a SOPS-managed file and encrypt it in place.
-# Writes to a temp file first so a failed sops -e -i doesn't destroy content.
+# Creates the temp file in the target's directory so it matches .sops.yaml
+# creation rules (path_regex: '.*/secrets/.*').
 _write_and_encrypt() {
   local target="$1"
   local content="$2"
+  local target_dir
+  target_dir="$(dirname "$target")"
   local tmpfile
-  tmpfile=$(mktemp)
+  tmpfile="$(mktemp "${target_dir}/.tmp.XXXXXX")"
   printf '%s\n' "$content" > "$tmpfile"
   if sops -e -i "$tmpfile"; then
     mv "$tmpfile" "$target"
+    info "Encrypted $(basename "$target")"
   else
     rm -f "$tmpfile"
-    error "Failed to encrypt $target. Plaintext was NOT written."
+    error "Failed to encrypt $(basename "$target"). Plaintext was NOT written."
     return 1
   fi
 }
@@ -123,19 +127,27 @@ git_user_email: \"${git_email:-PLACEHOLDER}\""
   if [ -n "$shell_content" ]; then
     _write_and_encrypt "$shell_file" "$shell_content"
   else
-    info "No shell secrets added. Edit later with:"
-    info "  EDITOR=nano make edit-secrets-shared"
+    info "No shell secrets added."
   fi
 
   # ─── Platform vars ─────────────────────────────────────────────────────────
   echo ""
   if [ "$PLATFORM" = "macos" ]; then
     info "macOS secrets: no keys defined yet."
-    info "  Edit later with: make edit-secrets-macos"
   else
     info "Linux secrets: no keys defined yet."
-    info "  Edit later with: make edit-secrets-linux"
   fi
+
+  # ─── Summary ───────────────────────────────────────────────────────────────
+  echo ""
+  info "To edit secrets later:"
+  info "  make edit-secrets-shared    # shared vars (git_user_email, etc.)"
+  if [ "$PLATFORM" = "macos" ]; then
+    info "  make edit-secrets-macos     # macOS-specific vars"
+  else
+    info "  make edit-secrets-linux     # Linux-specific vars"
+  fi
+  info "  Tip: EDITOR=nano make edit-secrets-shared"
 }
 
 # =============================================================================
