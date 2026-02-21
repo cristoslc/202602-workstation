@@ -367,8 +367,23 @@ if gum confirm "Commit personalized changes and push?"; then
   fi
 
   if git remote get-url origin &>/dev/null; then
-    git push -u origin main
-    info "Pushed to $(git remote get-url origin)"
+    # Safety check: verify the remote is either empty or shares our history.
+    remote_head=$(git ls-remote --refs origin HEAD 2>/dev/null | awk '{print $1}')
+    if [ -n "$remote_head" ]; then
+      if git merge-base --is-ancestor "$remote_head" HEAD 2>/dev/null || \
+         git merge-base --is-ancestor HEAD "$remote_head" 2>/dev/null; then
+        git push -u origin main
+        info "Pushed to $(git remote get-url origin)"
+      else
+        warn "Remote has commits that don't share history with this repo."
+        warn "Refusing to push. Verify that origin points to the correct repo."
+        warn "  origin: $(git remote get-url origin)"
+      fi
+    else
+      # Empty remote — first push.
+      git push -u origin main
+      info "Pushed to $(git remote get-url origin)"
+    fi
   else
     info "Committed locally. Push when you've added a remote."
   fi
