@@ -116,7 +116,16 @@ fi
 # =============================================================================
 
 if ! grep -q '${AGE_PUBLIC_KEY}' "$SCRIPT_DIR/.sops.yaml" 2>/dev/null; then
-  warn "This repo appears to be already configured (.sops.yaml has no template tokens)."
+  # Summarize what's already done.
+  echo ""
+  gum style --border normal --border-foreground 3 --padding "1 2" \
+    "This repo appears to be already configured:" \
+    "  Age key: $([ -f "$HOME/.config/sops/age/keys.txt" ] && echo 'exists' || echo 'missing')" \
+    "  .sops.yaml: personalized" \
+    "  Origin: $(git remote get-url origin 2>/dev/null || echo 'not set')" \
+    "  Secrets: $(find "$SCRIPT_DIR" -path '*/secrets/*.sops*' -exec grep -l '"sops":' {} + 2>/dev/null | wc -l | tr -d ' ') encrypted" \
+    "  Pre-commit: $([ -f "$SCRIPT_DIR/.git/hooks/pre-commit" ] && echo 'installed' || echo 'not installed')"
+
   if ! gum confirm "Re-run first-run anyway?"; then
     info "Nothing to do. Exiting."
     exit 0
@@ -287,8 +296,12 @@ if git remote get-url origin &>/dev/null; then
   if [[ "$current_origin" == *"${GITHUB_USERNAME}/${REPO_NAME}"* ]]; then
     info "Remote 'origin' already points to ${GITHUB_USERNAME}/${REPO_NAME}."
   else
-    info "Removing template origin ($current_origin)..."
-    git remote remove origin
+    warn "Current origin ($current_origin) does not match ${GITHUB_USERNAME}/${REPO_NAME}."
+    if gum confirm "Replace origin remote?"; then
+      git remote remove origin
+    else
+      info "Keeping existing origin."
+    fi
   fi
 fi
 
@@ -346,7 +359,12 @@ if gum confirm "Commit personalized changes and push?"; then
   # Avoids staging stray untracked files that could contain secrets.
   git add -u
   git add .sops.yaml bootstrap.sh README.md
-  git commit -m "Initialize personalized workstation config"
+
+  if git diff --cached --quiet; then
+    info "Nothing to commit (already personalized)."
+  else
+    git commit -m "Initialize personalized workstation config"
+  fi
 
   if git remote get-url origin &>/dev/null; then
     git push -u origin main
