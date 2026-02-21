@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Managed by iac-daily-driver-environments.
 # PATH setup lives here — sourced before .zshrc, so fragment load order doesn't matter.
 
@@ -19,8 +20,13 @@ fi
 
 # uv managed Python
 if [ -d "$HOME/.local/share/uv/python" ]; then
-  export PATH="$(find "$HOME/.local/share/uv/python" -maxdepth 2 -name bin -type d | head -1):$PATH" 2>/dev/null
+  _uv_python_bin="$(find "$HOME/.local/share/uv/python" -maxdepth 2 -name bin -type d | head -1)" 2>/dev/null
+  export PATH="${_uv_python_bin}:$PATH"
+  unset _uv_python_bin
 fi
+
+# SOPS age key (macOS defaults to ~/Library/Application Support/; we use ~/.config/)
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
 # direnv
 if command -v direnv &>/dev/null; then

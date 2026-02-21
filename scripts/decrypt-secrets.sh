@@ -2,6 +2,9 @@
 set -euo pipefail
 umask 077
 
+# Tell SOPS where to find the age key (macOS defaults to ~/Library/Application Support/).
+export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+
 # Decrypt all .sops files in a secrets/ directory to .decrypted/ counterparts.
 # Usage: ./scripts/decrypt-secrets.sh <secrets-dir>
 # Example: ./scripts/decrypt-secrets.sh shared/secrets

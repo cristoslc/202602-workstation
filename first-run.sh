@@ -183,6 +183,7 @@ fi
 # =============================================================================
 
 AGE_KEY_PATH="$HOME/.config/sops/age/keys.txt"
+export SOPS_AGE_KEY_FILE="$AGE_KEY_PATH"
 AGE_PUBLIC_KEY=""
 
 if $RESUME_MODE; then

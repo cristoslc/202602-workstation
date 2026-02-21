@@ -10,6 +10,11 @@ WORKSTATION_DIR ?= $(HOME)/.workstation
 ANSIBLE_CONFIG := $(CURDIR)/$(PLATFORM_DIR)/ansible.cfg
 export ANSIBLE_CONFIG
 
+# SOPS looks for age keys at ~/Library/Application Support/sops/age/ on macOS,
+# but we store them at ~/.config/sops/age/ (XDG convention). Tell SOPS where to look.
+SOPS_AGE_KEY_FILE ?= $(HOME)/.config/sops/age/keys.txt
+export SOPS_AGE_KEY_FILE
+
 .PHONY: help first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions test test-bats check apply decrypt clean-secrets status \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
