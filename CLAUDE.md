@@ -15,9 +15,16 @@ Cross-platform (macOS + Linux) workstation provisioning using Ansible, GNU Stow,
 
 ## Commit discipline
 
-**Template fixes go upstream.** Any fix to template-level files (anything that runs *before* `first-run.sh` personalizes the repo) must be committed as a separate, pre-personalization commit — not bundled into the personalization commit. Use `git reset --soft` to reorder if needed. This ensures all future users of the template get the fix.
+**Template changes go upstream — personalization stays last.** The personalization commit (`Initialize personalized workstation config`) must ALWAYS be the final commit on the branch. All template-level commits — whether fixes or new features — must be ordered before it in the git history. This keeps the upstream template clean: anyone can fork the repo, and every commit up to (but not including) personalization is reusable.
 
-The personalization commit (`Initialize personalized workstation config`) should only contain envsubst token replacements and SOPS-encrypted secrets.
+Personalization-only files: `.sops.yaml` (with real age public key baked in), `bootstrap.sh` (with real repo URL), `README.md` (with real repo URL), and `*/secrets/*.sops.*` (encrypted with real key). The personalization commit should only touch these.
+
+**When committing template changes to an already-personalized repo:**
+1. Commit the template change normally (it lands after personalization)
+2. Reorder: `git reset --hard <last-template-commit>`, cherry-pick template commits, then cherry-pick personalization last
+3. `git push --force-with-lease` (safe when no other machines consume the repo yet)
+
+Never bundle template code and personalization content in the same commit.
 
 ## Key conventions
 
