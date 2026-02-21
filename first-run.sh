@@ -115,20 +115,66 @@ fi
 # Phase 2: Detect if already run
 # =============================================================================
 
+RESUME_MODE=false
 if ! grep -q '${AGE_PUBLIC_KEY}' "$SCRIPT_DIR/.sops.yaml" 2>/dev/null; then
-  # Summarize what's already done.
-  echo ""
-  gum style --border normal --border-foreground 3 --padding "1 2" \
-    "This repo appears to be already configured:" \
-    "  Age key: $([ -f "$HOME/.config/sops/age/keys.txt" ] && echo 'exists' || echo 'missing')" \
-    "  .sops.yaml: personalized" \
-    "  Origin: $(git remote get-url origin 2>/dev/null || echo 'not set')" \
-    "  Secrets: $(find "$SCRIPT_DIR" -path '*/secrets/*.sops*' -exec grep -l '"sops":' {} + 2>/dev/null | wc -l | tr -d ' ') encrypted" \
-    "  Pre-commit: $([ -f "$SCRIPT_DIR/.git/hooks/pre-commit" ] && echo 'installed' || echo 'not installed')"
+  # Determine what's incomplete.
+  _has_origin=false
+  _has_commit=false
+  _is_pushed=false
+  _has_precommit=false
+  _pending=()
 
-  if ! gum confirm "Re-run first-run anyway?"; then
-    info "Nothing to do. Exiting."
-    exit 0
+  if git remote get-url origin &>/dev/null; then _has_origin=true; fi
+  if [ -f "$SCRIPT_DIR/.git/hooks/pre-commit" ]; then _has_precommit=true; fi
+  # Check if personalization changes are committed (no diff in the files envsubst touches).
+  if git diff --quiet -- .sops.yaml bootstrap.sh README.md 2>/dev/null && \
+     git diff --quiet -- '*/secrets/*' 2>/dev/null; then
+    _has_commit=true
+  fi
+  if $_has_origin && $_has_commit; then
+    if git rev-parse --verify origin/main &>/dev/null && \
+       [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] 2>/dev/null; then
+      _is_pushed=true
+    fi
+  fi
+
+  $_has_precommit || _pending+=("install pre-commit hooks")
+  $_has_origin    || _pending+=("set up GitHub remote")
+  $_has_commit    || _pending+=("commit personalized changes")
+  $_is_pushed     || _pending+=("push to remote")
+
+  echo ""
+  if [ ${#_pending[@]} -eq 0 ]; then
+    gum style --border normal --border-foreground 2 --padding "1 2" \
+      "First-run is already complete." \
+      "  Origin: $(git remote get-url origin 2>/dev/null || echo 'not set')"
+    if ! gum confirm "Re-run from the beginning anyway?"; then
+      info "Nothing to do. Exiting."
+      exit 0
+    fi
+  else
+    pending_list=$(printf '  - %s\n' "${_pending[@]}")
+    gum style --border normal --border-foreground 3 --padding "1 2" \
+      "First-run was started but not finished. Remaining steps:" \
+      "$pending_list"
+
+    resume_choice=$(gum choose \
+      --header "How would you like to proceed?" \
+      "Resume from where it left off" \
+      "Start over from the beginning" \
+      "Exit")
+
+    case "$resume_choice" in
+      "Resume"*)
+        RESUME_MODE=true
+        ;;
+      "Start over"*)
+        ;;
+      "Exit"*)
+        info "Exiting."
+        exit 0
+        ;;
+    esac
   fi
 fi
 
@@ -139,108 +185,132 @@ fi
 AGE_KEY_PATH="$HOME/.config/sops/age/keys.txt"
 AGE_PUBLIC_KEY=""
 
-echo ""
-gum style \
-  --border normal \
-  --border-foreground 4 \
-  --padding "1 2" \
-  --margin "0 0 1 0" \
-  "First-Run Setup"
-
-if [ -f "$AGE_KEY_PATH" ]; then
-  info "Age key already exists at $AGE_KEY_PATH"
-  # Extract public key from existing key file
+if $RESUME_MODE; then
+  # Extract existing values — no prompts needed for Phases 3-6.
   AGE_PUBLIC_KEY=$(grep -o 'age1[a-z0-9]*' "$AGE_KEY_PATH" | head -1 || true)
   if [ -z "$AGE_PUBLIC_KEY" ]; then
-    # Try to get it from the recipient line
     AGE_PUBLIC_KEY=$(age-keygen -y "$AGE_KEY_PATH" 2>/dev/null || true)
   fi
-  if [ -z "$AGE_PUBLIC_KEY" ]; then
-    error "Could not extract public key from $AGE_KEY_PATH"
+
+  # Extract repo info from bootstrap.sh (envsubst already baked the URL in).
+  GITHUB_REPO_URL=$(grep -o 'https://github\.com/[^"]*\.git' "$SCRIPT_DIR/bootstrap.sh" 2>/dev/null || echo "")
+  if [ -z "$GITHUB_REPO_URL" ]; then
+    # Fall back to origin remote.
+    GITHUB_REPO_URL=$(git remote get-url origin 2>/dev/null | sed 's|git@github.com:|https://github.com/|; s|\.git$|.git|' || echo "")
+  fi
+  if [ -n "$GITHUB_REPO_URL" ]; then
+    _repo_path="${GITHUB_REPO_URL##*github.com/}"
+    _repo_path="${_repo_path%.git}"
+    GITHUB_USERNAME="${_repo_path%%/*}"
+    REPO_NAME="${_repo_path##*/}"
+    info "Resuming: ${GITHUB_USERNAME}/${REPO_NAME}"
+  else
+    error "Could not determine repo info from bootstrap.sh or origin remote."
     exit 1
   fi
-  info "Public key: $AGE_PUBLIC_KEY"
+  export AGE_PUBLIC_KEY GITHUB_REPO_URL GITHUB_USERNAME REPO_NAME
 else
-  info "Generating age keypair..."
-  mkdir -p "$(dirname "$AGE_KEY_PATH")"
-  AGE_KEYGEN_OUTPUT=$(age-keygen 2>&1)
-  echo "$AGE_KEYGEN_OUTPUT" | grep -v "^Public key:" > "$AGE_KEY_PATH"
-  chmod 700 "$(dirname "$AGE_KEY_PATH")"
-  chmod 600 "$AGE_KEY_PATH"
-  AGE_PUBLIC_KEY=$(echo "$AGE_KEYGEN_OUTPUT" | grep "^Public key:" | awk '{print $3}')
-  info "Age keypair generated."
-  info "Public key: $AGE_PUBLIC_KEY"
   echo ""
-  gum style --foreground 3 \
-    "Keep your private key safe! Back it up to a secure location." \
-    "Path: $AGE_KEY_PATH"
-fi
+  gum style \
+    --border normal \
+    --border-foreground 4 \
+    --padding "1 2" \
+    --margin "0 0 1 0" \
+    "First-Run Setup"
 
-# =============================================================================
-# Phase 4: Prompt for GitHub username + repo name
-# =============================================================================
-
-echo ""
-GITHUB_USERNAME=$(gum input \
-  --header "GitHub username" \
-  --placeholder "your-username")
-
-REPO_NAME=$(gum input \
-  --header "Repository name" \
-  --value "my-workstation" \
-  --placeholder "my-workstation")
-
-GITHUB_REPO_URL="https://github.com/${GITHUB_USERNAME}/${REPO_NAME}.git"
-
-info "Repo URL: $GITHUB_REPO_URL"
-
-# =============================================================================
-# Phase 5: Replace tokens with envsubst
-# =============================================================================
-
-echo ""
-info "Personalizing configuration files..."
-
-export AGE_PUBLIC_KEY GITHUB_REPO_URL GITHUB_USERNAME REPO_NAME
-
-# MUST use explicit var lists — bootstrap.sh has ${BASH_SOURCE[0]} and ${1:-...}
-# that envsubst would destroy without scoping
-envsubst '${AGE_PUBLIC_KEY}' < "$SCRIPT_DIR/.sops.yaml" > "$SCRIPT_DIR/.sops.yaml.tmp"
-mv "$SCRIPT_DIR/.sops.yaml.tmp" "$SCRIPT_DIR/.sops.yaml"
-
-envsubst '${GITHUB_REPO_URL}' < "$SCRIPT_DIR/bootstrap.sh" > "$SCRIPT_DIR/bootstrap.sh.tmp"
-mv "$SCRIPT_DIR/bootstrap.sh.tmp" "$SCRIPT_DIR/bootstrap.sh"
-chmod +x "$SCRIPT_DIR/bootstrap.sh"
-
-envsubst '${GITHUB_REPO_URL} ${GITHUB_USERNAME} ${REPO_NAME}' < "$SCRIPT_DIR/README.md" > "$SCRIPT_DIR/README.md.tmp"
-mv "$SCRIPT_DIR/README.md.tmp" "$SCRIPT_DIR/README.md"
-
-info "Tokens replaced in .sops.yaml, bootstrap.sh, and README.md"
-
-# =============================================================================
-# Phase 6: Encrypt all placeholder secret files
-# =============================================================================
-
-echo ""
-info "Encrypting secret placeholder files..."
-
-encrypted_count=0
-while IFS= read -r -d '' sops_file; do
-  # Skip .sops.yaml itself (the config file, not a secret)
-  if [[ "$sops_file" == *".sops.yaml" ]] && [[ "$sops_file" != *"/secrets/"* ]]; then
-    continue
+  if [ -f "$AGE_KEY_PATH" ]; then
+    info "Age key already exists at $AGE_KEY_PATH"
+    AGE_PUBLIC_KEY=$(grep -o 'age1[a-z0-9]*' "$AGE_KEY_PATH" | head -1 || true)
+    if [ -z "$AGE_PUBLIC_KEY" ]; then
+      AGE_PUBLIC_KEY=$(age-keygen -y "$AGE_KEY_PATH" 2>/dev/null || true)
+    fi
+    if [ -z "$AGE_PUBLIC_KEY" ]; then
+      error "Could not extract public key from $AGE_KEY_PATH"
+      exit 1
+    fi
+    info "Public key: $AGE_PUBLIC_KEY"
+  else
+    info "Generating age keypair..."
+    mkdir -p "$(dirname "$AGE_KEY_PATH")"
+    AGE_KEYGEN_OUTPUT=$(age-keygen 2>&1)
+    echo "$AGE_KEYGEN_OUTPUT" | grep -v "^Public key:" > "$AGE_KEY_PATH"
+    chmod 700 "$(dirname "$AGE_KEY_PATH")"
+    chmod 600 "$AGE_KEY_PATH"
+    AGE_PUBLIC_KEY=$(echo "$AGE_KEYGEN_OUTPUT" | grep "^Public key:" | awk '{print $3}')
+    info "Age keypair generated."
+    info "Public key: $AGE_PUBLIC_KEY"
+    echo ""
+    gum style --foreground 3 \
+      "Keep your private key safe! Back it up to a secure location." \
+      "Path: $AGE_KEY_PATH"
   fi
-  # Skip files that are already encrypted (contain sops metadata)
-  if grep -q '"sops":' "$sops_file" 2>/dev/null || grep -q 'sops:' "$sops_file" 2>/dev/null; then
-    info "  Already encrypted: $sops_file"
-    continue
-  fi
-  info "  Encrypting: $sops_file"
-  sops -e -i "$sops_file"
-  ((encrypted_count++)) || true
-done < <(find "$SCRIPT_DIR" -path '*/secrets/*' \( -name '*.sops.yml' -o -name '*.sops.yaml' -o -name '*.sops' \) -print0)
 
-info "Encrypted $encrypted_count file(s)."
+  # ===========================================================================
+  # Phase 4: Prompt for GitHub username + repo name
+  # ===========================================================================
+
+  echo ""
+  GITHUB_USERNAME=$(gum input \
+    --header "GitHub username" \
+    --placeholder "your-username")
+
+  REPO_NAME=$(gum input \
+    --header "Repository name" \
+    --value "my-workstation" \
+    --placeholder "my-workstation")
+
+  GITHUB_REPO_URL="https://github.com/${GITHUB_USERNAME}/${REPO_NAME}.git"
+
+  info "Repo URL: $GITHUB_REPO_URL"
+
+  # ===========================================================================
+  # Phase 5: Replace tokens with envsubst
+  # ===========================================================================
+
+  echo ""
+  info "Personalizing configuration files..."
+
+  export AGE_PUBLIC_KEY GITHUB_REPO_URL GITHUB_USERNAME REPO_NAME
+
+  # MUST use explicit var lists — bootstrap.sh has ${BASH_SOURCE[0]} and ${1:-...}
+  # that envsubst would destroy without scoping
+  envsubst '${AGE_PUBLIC_KEY}' < "$SCRIPT_DIR/.sops.yaml" > "$SCRIPT_DIR/.sops.yaml.tmp"
+  mv "$SCRIPT_DIR/.sops.yaml.tmp" "$SCRIPT_DIR/.sops.yaml"
+
+  envsubst '${GITHUB_REPO_URL}' < "$SCRIPT_DIR/bootstrap.sh" > "$SCRIPT_DIR/bootstrap.sh.tmp"
+  mv "$SCRIPT_DIR/bootstrap.sh.tmp" "$SCRIPT_DIR/bootstrap.sh"
+  chmod +x "$SCRIPT_DIR/bootstrap.sh"
+
+  envsubst '${GITHUB_REPO_URL} ${GITHUB_USERNAME} ${REPO_NAME}' < "$SCRIPT_DIR/README.md" > "$SCRIPT_DIR/README.md.tmp"
+  mv "$SCRIPT_DIR/README.md.tmp" "$SCRIPT_DIR/README.md"
+
+  info "Tokens replaced in .sops.yaml, bootstrap.sh, and README.md"
+
+  # ===========================================================================
+  # Phase 6: Encrypt all placeholder secret files
+  # ===========================================================================
+
+  echo ""
+  info "Encrypting secret placeholder files..."
+
+  encrypted_count=0
+  while IFS= read -r -d '' sops_file; do
+    # Skip .sops.yaml itself (the config file, not a secret)
+    if [[ "$sops_file" == *".sops.yaml" ]] && [[ "$sops_file" != *"/secrets/"* ]]; then
+      continue
+    fi
+    # Skip files that are already encrypted (contain sops metadata)
+    if grep -q '"sops":' "$sops_file" 2>/dev/null || grep -q 'sops:' "$sops_file" 2>/dev/null; then
+      info "  Already encrypted: $sops_file"
+      continue
+    fi
+    info "  Encrypting: $sops_file"
+    sops -e -i "$sops_file"
+    ((encrypted_count++)) || true
+  done < <(find "$SCRIPT_DIR" -path '*/secrets/*' \( -name '*.sops.yml' -o -name '*.sops.yaml' -o -name '*.sops' \) -print0)
+
+  info "Encrypted $encrypted_count file(s)."
+fi  # end of: if $RESUME_MODE ... else
 
 # =============================================================================
 # Phase 7: Install pre-commit hooks
