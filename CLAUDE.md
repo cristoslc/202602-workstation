@@ -15,16 +15,37 @@ Cross-platform (macOS + Linux) workstation provisioning using Ansible, GNU Stow,
 
 ## Commit discipline
 
-**Template changes go upstream — personalization stays last.** The personalization commit (`Initialize personalized workstation config`) must ALWAYS be the final commit on the branch. All template-level commits — whether fixes or new features — must be ordered before it in the git history. This keeps the upstream template clean: anyone can fork the repo, and every commit up to (but not including) personalization is reusable.
+**The personalization commit is always the final commit on the branch.** Every commit before it is clean, reusable template code. This is the upstream — anyone can fork the repo and every commit up to (but not including) personalization works out of the box.
 
-Personalization-only files: `.sops.yaml` (with real age public key baked in), `bootstrap.sh` (with real repo URL), `README.md` (with real repo URL), and `*/secrets/*.sops.*` (encrypted with real key). The personalization commit should only touch these.
+### What is personalization?
 
-**When committing template changes to an already-personalized repo:**
-1. Commit the template change normally (it lands after personalization)
-2. Reorder: `git reset --hard <last-template-commit>`, cherry-pick template commits, then cherry-pick personalization last
-3. `git push --force-with-lease` (safe when no other machines consume the repo yet)
+These files — and ONLY these files — contain personalized content:
 
-Never bundle template code and personalization content in the same commit.
+| File | Personalized content |
+|------|---------------------|
+| `.sops.yaml` | Real age public key (replaces `${AGE_PUBLIC_KEY}`) |
+| `bootstrap.sh` | Real GitHub repo URL (replaces `${GITHUB_REPO_URL}`) |
+| `README.md` | Real repo URL, username, repo name |
+| `*/secrets/*.sops.*` | Encrypted with real age key |
+
+Everything else is template code.
+
+### Commit procedure (MUST follow for every commit)
+
+1. **Classify your change.** If it touches ANY file not in the table above, it is a template change.
+2. **Commit the template change.** Write the commit as normal.
+3. **Reorder before pushing.** After every template commit, reorder so personalization is last:
+   ```
+   git reset --hard <hash-of-your-new-template-commit>
+   git cherry-pick <personalization-commit-hash>
+   git push --force-with-lease
+   ```
+   To find the personalization commit: `git log --oneline --all | grep "Initialize personalized"`
+4. **Never push with personalization buried in the middle of the history.** If you realize template commits are stacked after personalization, stop and reorder before pushing.
+
+### Why this matters
+
+The commit history before personalization IS the template. If personalized content (age keys, repo URLs, encrypted secrets) appears in a template-position commit, it leaks into upstream and every future fork inherits someone else's config.
 
 ## Key conventions
 
