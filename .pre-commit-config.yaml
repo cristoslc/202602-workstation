@@ -3,7 +3,11 @@ repos:
     hooks:
       - id: sops-encrypted-check
         name: Verify SOPS files are encrypted
-        entry: bash -c 'for f in "$@"; do if ! grep -q "\"mac\": \"ENC" "$f" && ! grep -q "mac: ENC" "$f"; then echo "ERROR: $f is not encrypted! Missing SOPS MAC signature."; exit 1; fi; done' _
+        entry: >-
+          bash -c 'for f in "$@"; do
+          if ! grep -q "\"mac\": \"ENC" "$f" && ! grep -q "mac: ENC" "$f"; then
+          echo "ERROR: $f is not encrypted! Missing SOPS MAC signature."; exit 1;
+          fi; done' _
         language: system
         files: '\.(sops\.yml|sops\.yaml|sops\.json|sops)$'
         types: [file]
@@ -18,6 +22,11 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
-        args: [-d, relaxed]
         files: '\.(yml|yaml)$'
         exclude: '.sops\.'
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]

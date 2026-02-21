@@ -5,15 +5,14 @@ set -euo pipefail
 # Useful for detecting drift.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
-
-echo "Checking dotfile symlinks..."
+REPO_DIR="${REPO_DIR:-$(dirname "$SCRIPT_DIR")}"
 
 check_links() {
   local dotfiles_dir="$1"
   local label="$2"
+  local target_dir="${3:-$HOME}"
 
-  [ -d "$dotfiles_dir" ] || return
+  [ -d "$dotfiles_dir" ] || return 0
 
   for pkg_dir in "$dotfiles_dir"/*/; do
     [ -d "$pkg_dir" ] || continue
@@ -22,7 +21,7 @@ check_links() {
 
     while IFS= read -r -d '' file; do
       local relative="${file#$pkg_dir}"
-      local target="$HOME/$relative"
+      local target="$target_dir/$relative"
 
       if [ -L "$target" ]; then
         local link_target
@@ -42,8 +41,13 @@ check_links() {
   done
 }
 
-check_links "$REPO_DIR/shared/dotfiles" "shared"
-check_links "$REPO_DIR/linux/dotfiles" "linux"
-check_links "$REPO_DIR/macos/dotfiles" "macos"
+# Allow sourcing for tests without executing main logic.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "Checking dotfile symlinks..."
 
-echo "Done."
+  check_links "$REPO_DIR/shared/dotfiles" "shared"
+  check_links "$REPO_DIR/linux/dotfiles" "linux"
+  check_links "$REPO_DIR/macos/dotfiles" "macos"
+
+  echo "Done."
+fi

@@ -5,9 +5,9 @@ set -euo pipefail
 # A collision occurs when the same relative file path exists in both shared and platform dotfiles.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_DIR="${REPO_DIR:-$(dirname "$SCRIPT_DIR")}"
 
-SHARED_DIR="$REPO_DIR/shared/dotfiles"
+SHARED_DIR="${SHARED_DIR:-$REPO_DIR/shared/dotfiles}"
 COLLISIONS=0
 
 check_collisions() {
@@ -40,20 +40,23 @@ check_collisions() {
   done
 }
 
-echo "Checking stow filename collisions..."
-check_collisions "$REPO_DIR/linux/dotfiles" "linux"
-check_collisions "$REPO_DIR/macos/dotfiles" "macos"
+# Allow sourcing for tests without executing main logic.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "Checking stow filename collisions..."
+  check_collisions "$REPO_DIR/linux/dotfiles" "linux"
+  check_collisions "$REPO_DIR/macos/dotfiles" "macos"
 
-# Also check secrets dotfiles
-check_collisions "$REPO_DIR/shared/secrets/dotfiles" "shared-secrets"
-check_collisions "$REPO_DIR/linux/secrets/dotfiles" "linux-secrets"
-check_collisions "$REPO_DIR/macos/secrets/dotfiles" "macos-secrets"
+  # Also check secrets dotfiles
+  check_collisions "$REPO_DIR/shared/secrets/dotfiles" "shared-secrets"
+  check_collisions "$REPO_DIR/linux/secrets/dotfiles" "linux-secrets"
+  check_collisions "$REPO_DIR/macos/secrets/dotfiles" "macos-secrets"
 
-if [ "$COLLISIONS" -gt 0 ]; then
-  echo ""
-  echo "Found $COLLISIONS collision(s). Rename files to avoid conflicts."
-  exit 1
-else
-  echo "No collisions found."
-  exit 0
+  if [ "$COLLISIONS" -gt 0 ]; then
+    echo ""
+    echo "Found $COLLISIONS collision(s). Rename files to avoid conflicts."
+    exit 1
+  else
+    echo "No collisions found."
+    exit 0
+  fi
 fi

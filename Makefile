@@ -10,7 +10,8 @@ WORKSTATION_DIR ?= $(HOME)/.workstation
 ANSIBLE_CONFIG := $(CURDIR)/$(PLATFORM_DIR)/ansible.cfg
 export ANSIBLE_CONFIG
 
-.PHONY: help first-run bootstrap lint apply decrypt clean-secrets status \
+.PHONY: help first-run bootstrap lint shellcheck yamllint ansible-lint \
+        check-collisions test test-bats check apply decrypt clean-secrets status \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos
 
 help: ## Show this help
@@ -23,8 +24,20 @@ first-run: ## One-time repo setup (age key, encrypt secrets, GitHub remote)
 bootstrap: ## Run full bootstrap for this platform
 	./bootstrap.sh $(WORKSTATION_DIR)
 
-lint: ## Run ansible-lint and yamllint on all playbooks
+lint: ## Run all linters (yamllint, shellcheck, ansible-lint, collisions)
 	./scripts/lint.sh
+
+yamllint: ## Run yamllint on all YAML files
+	yamllint . --no-warnings
+
+shellcheck: ## Run shellcheck on all shell scripts
+	shellcheck --severity=warning \
+		bootstrap.sh first-run.sh linux/bootstrap.sh macos/bootstrap.sh \
+		shared/lib/wizard.sh scripts/*.sh
+
+ansible-lint: ## Run ansible-lint on all playbooks (SOPS disabled)
+	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/linux/ansible.cfg ansible-lint linux/site.yml
+	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/macos/ansible.cfg ansible-lint macos/site.yml
 
 apply: ## Apply a specific role: make apply ROLE=git (or ROLE=gh for sub-task)
 ifndef ROLE
@@ -66,3 +79,10 @@ status: ## Show workstation status (stub — Rich dashboard planned)
 
 check-collisions: ## Check for stow filename collisions between layers
 	./scripts/check-stow-collisions.sh
+
+test-bats: ## Run bats shell unit tests
+	bats tests/bats/
+
+test: lint test-bats ## Run all linters and tests
+
+check: shellcheck yamllint check-collisions test-bats ## Quick local verification (no ansible-lint)

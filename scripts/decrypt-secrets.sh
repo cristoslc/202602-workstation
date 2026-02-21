@@ -6,32 +6,46 @@ umask 077
 # Usage: ./scripts/decrypt-secrets.sh <secrets-dir>
 # Example: ./scripts/decrypt-secrets.sh shared/secrets
 
-SECRETS_DIR="${1:?Usage: $0 <secrets-dir>}"
-DECRYPTED_DIR="$SECRETS_DIR/.decrypted"
+# Compute the decrypted output path for a given SOPS-encrypted file.
+# Strips the .sops segment while preserving the file extension.
+#   vars.sops.yml  → vars.yml
+#   vars.sops.yaml → vars.yaml
+#   secrets.zsh.sops → secrets.zsh
+compute_output_path() {
+  local decrypted_dir="$1"
+  local relative="$2"
 
-if [ ! -d "$SECRETS_DIR" ]; then
-  echo "Directory not found: $SECRETS_DIR"
-  exit 1
-fi
-
-# Find all .sops and .sops.yml files (excluding .decrypted/ itself)
-find "$SECRETS_DIR" -path "$DECRYPTED_DIR" -prune -o \( -name "*.sops" -o -name "*.sops.yml" -o -name "*.sops.yaml" \) -print | while read -r encrypted_file; do
-  # Compute output path: replace secrets_dir with decrypted_dir, strip .sops suffix
-  relative="${encrypted_file#$SECRETS_DIR/}"
-  # For dotfiles: strip .sops extension. For vars files: keep .yml but strip .sops
   if [[ "$relative" == *.sops.yml ]] || [[ "$relative" == *.sops.yaml ]]; then
-    decrypted_file="$DECRYPTED_DIR/${relative/.sops/}"
+    echo "$decrypted_dir/${relative/.sops/}"
   else
-    decrypted_file="$DECRYPTED_DIR/${relative%.sops}"
+    echo "$decrypted_dir/${relative%.sops}"
+  fi
+}
+
+# Allow sourcing for tests without executing main logic.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  SECRETS_DIR="${1:?Usage: $0 <secrets-dir>}"
+  DECRYPTED_DIR="$SECRETS_DIR/.decrypted"
+
+  if [ ! -d "$SECRETS_DIR" ]; then
+    echo "Directory not found: $SECRETS_DIR"
+    exit 1
   fi
 
-  # Create parent directory (explicit mode as defense-in-depth alongside umask)
-  mkdir -p -m 700 "$(dirname "$decrypted_file")"
+  # Find all .sops and .sops.yml files (excluding .decrypted/ itself)
+  find "$SECRETS_DIR" -path "$DECRYPTED_DIR" -prune -o \( -name "*.sops" -o -name "*.sops.yml" -o -name "*.sops.yaml" \) -print | while read -r encrypted_file; do
+    relative="${encrypted_file#$SECRETS_DIR/}"
+    decrypted_file="$(compute_output_path "$DECRYPTED_DIR" "$relative")"
 
-  # Decrypt
-  echo "Decrypting: $encrypted_file -> $decrypted_file"
-  sops -d "$encrypted_file" > "$decrypted_file"
-  chmod 600 "$decrypted_file"
-done
+    # Create parent directory (explicit mode as defense-in-depth alongside umask).
+    # shellcheck disable=SC2174  # -m only applies to deepest dir; parents inherit umask 077
+    mkdir -p -m 700 "$(dirname "$decrypted_file")"
 
-echo "Done. Decrypted files are in $DECRYPTED_DIR/"
+    # Decrypt
+    echo "Decrypting: $encrypted_file -> $decrypted_file"
+    sops -d "$encrypted_file" > "$decrypted_file"
+    chmod 600 "$decrypted_file"
+  done
+
+  echo "Done. Decrypted files are in $DECRYPTED_DIR/"
+fi

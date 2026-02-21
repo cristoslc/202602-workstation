@@ -4,7 +4,7 @@ umask 077
 
 WORKSTATION_DIR="${1:-$HOME/.workstation}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLATFORM="macos"
+export PLATFORM="macos"
 
 # Source shared wizard
 source "$SCRIPT_DIR/../shared/lib/wizard.sh"
