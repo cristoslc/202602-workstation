@@ -37,7 +37,7 @@ mkdir -p ~/.config/sops/age
 chmod 600 ~/.config/sops/age/keys.txt
 
 # Clone and bootstrap
-git clone ${GITHUB_REPO_URL} ~/.workstation
+git clone https://github.com/cristoslc/202602-workstation.git ~/.workstation
 cd ~/.workstation
 ./bootstrap.sh
 ```

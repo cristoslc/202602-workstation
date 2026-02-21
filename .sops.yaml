@@ -1,5 +1,5 @@
 creation_rules:
   - path_regex: '.*/secrets/.*'
-    age: '${AGE_PUBLIC_KEY}'
+    age: 'age156zdlx3ysm24xcc0sac4hvfr4dxkx9kp8pr7enu9k2el6jrfqazqkpgear'
     # This token is replaced by first-run.sh with your actual age public key.
     # Run ./first-run.sh to set up the repo for the first time.
