@@ -10,6 +10,7 @@ repos:
           fi; done' _
         language: system
         files: '\.(sops\.yml|sops\.yaml|sops\.json|sops)$'
+        exclude: '^\.sops\.yaml$'
         types: [file]
 
   - repo: https://github.com/gitleaks/gitleaks
