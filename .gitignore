@@ -6,6 +6,9 @@
 keys.txt
 *.age-key
 
+# Logs
+first-run.log
+
 # Ansible
 *.retry
 

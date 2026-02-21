@@ -4,9 +4,38 @@ umask 077
 
 # First-run setup: personalizes the template repo, generates age key, encrypts
 # secrets, and pushes to your own GitHub repo.
-# Usage: ./first-run.sh
+# Usage: ./first-run.sh [--debug]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+# Tee all output to a log file while preserving interactive terminal display.
+# Pass --debug for bash trace output (set -x) in the log.
+FIRST_RUN_LOG="$SCRIPT_DIR/first-run.log"
+DEBUG_MODE=false
+if [[ "${1:-}" == "--debug" ]]; then
+  DEBUG_MODE=true
+  shift
+fi
+
+# Start the log with a header.
+{
+  echo "═══════════════════════════════════════════════════════════════"
+  echo "first-run.sh — $(date '+%Y-%m-%d %H:%M:%S %Z')"
+  echo "platform: $(uname -s) $(uname -m)"
+  echo "shell: $BASH_VERSION"
+  echo "debug: $DEBUG_MODE"
+  echo "═══════════════════════════════════════════════════════════════"
+} > "$FIRST_RUN_LOG"
+
+# Tee stdout and stderr to the log file.
+exec > >(tee -a "$FIRST_RUN_LOG") 2>&1
+
+# Enable bash tracing in debug mode (output goes to log via stderr redirect).
+if $DEBUG_MODE; then
+  export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+  set -x
+fi
 
 # Detect platform
 case "$(uname -s)" in
@@ -21,7 +50,7 @@ esac
 # Source shared helpers (info, warn, error, ensure_gum)
 source "$SCRIPT_DIR/shared/lib/wizard.sh"
 
-trap 'error "First-run failed. Fix the issue above and re-run."' ERR
+trap 'error "First-run failed. Check $FIRST_RUN_LOG for details."' ERR
 
 # =============================================================================
 # Guided secret collection (called from Phase 11 and re-run detection)
@@ -647,4 +676,6 @@ gum style \
   "  2. On the new machine:" \
   "     git clone $GITHUB_REPO_URL ~/.workstation" \
   "     cd ~/.workstation && make receive-key" \
-  "     ./bootstrap.sh"
+  "     ./bootstrap.sh" \
+  "" \
+  "Log: $FIRST_RUN_LOG"
