@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077  # Ensure all temp files and dirs are created owner-only
 
 # Transfer age private key between machines.
 #
@@ -27,6 +28,16 @@ else
   warn()  { echo "[WARN] $1"; }
   error() { echo "[ERROR] $1"; }
 fi
+
+# Accumulated list of temp files to clean up on exit.
+_CLEANUP_FILES=()
+
+_cleanup() {
+  for f in "${_CLEANUP_FILES[@]}"; do
+    rm -f "$f"
+  done
+}
+trap _cleanup EXIT INT TERM HUP
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -76,8 +87,32 @@ verify_imported_key() {
 ensure_key_dir() {
   local key_dir
   key_dir="$(dirname "$AGE_KEY_PATH")"
+  # umask 077 is already set globally — mkdir inherits 700.
   mkdir -p "$key_dir"
-  chmod 700 "$key_dir"
+}
+
+# Decrypt ciphertext into AGE_KEY_PATH atomically: write to a temp file first,
+# then mv into place. Prevents truncating the key file if decryption fails
+# (e.g., wrong passphrase).
+install_decrypted_key() {
+  local tmpdest
+  tmpdest="$(mktemp)"
+  _CLEANUP_FILES+=("$tmpdest")
+
+  # Decrypt into temp file; if this fails the real key path is untouched.
+  if ! "$@" > "$tmpdest"; then
+    error "Decryption failed. Key was NOT written."
+    exit 1
+  fi
+
+  if [ ! -s "$tmpdest" ]; then
+    error "Decryption produced an empty file. Aborting."
+    exit 1
+  fi
+
+  ensure_key_dir
+  mv "$tmpdest" "$AGE_KEY_PATH"
+  chmod 600 "$AGE_KEY_PATH"
 }
 
 # ---------------------------------------------------------------------------
@@ -103,8 +138,7 @@ send_key() {
 
   local tmpfile
   tmpfile="$(mktemp)"
-  # shellcheck disable=SC2064
-  trap "rm -f '$tmpfile'" EXIT
+  _CLEANUP_FILES+=("$tmpfile")
 
   age -p -a "$AGE_KEY_PATH" > "$tmpfile"
 
@@ -129,8 +163,7 @@ receive_key() {
 
   local tmpfile
   tmpfile="$(mktemp)"
-  # shellcheck disable=SC2064
-  trap "rm -f '$tmpfile'" EXIT
+  _CLEANUP_FILES+=("$tmpfile")
 
   echo ""
   info "Enter the wormhole code from the sender."
@@ -141,9 +174,7 @@ receive_key() {
   echo ""
   info "Decrypting... (enter the passphrase from the sender)"
 
-  ensure_key_dir
-  age -d "$tmpfile" > "$AGE_KEY_PATH"
-  chmod 600 "$AGE_KEY_PATH"
+  install_decrypted_key age -d "$tmpfile"
 
   info "Age key imported to $AGE_KEY_PATH"
   verify_imported_key
@@ -194,12 +225,16 @@ import_key() {
   # Strip our transfer markers if the user copied those too.
   blob=$(echo "$blob" | grep -v '^\-\-\-\-\-BEGIN AGE KEY TRANSFER' | grep -v '^\-\-\-\-\-END AGE KEY TRANSFER')
 
+  # Write blob to a temp file so install_decrypted_key can process it.
+  local tmpblob
+  tmpblob="$(mktemp)"
+  _CLEANUP_FILES+=("$tmpblob")
+  echo "$blob" > "$tmpblob"
+
   echo ""
   info "Decrypting... (enter the passphrase from the sender)"
 
-  ensure_key_dir
-  echo "$blob" | age -d > "$AGE_KEY_PATH"
-  chmod 600 "$AGE_KEY_PATH"
+  install_decrypted_key age -d "$tmpblob"
 
   info "Age key imported to $AGE_KEY_PATH"
   verify_imported_key

@@ -125,15 +125,17 @@ resolve_age_key() {
   # Try 1Password CLI
   if command -v op &>/dev/null; then
     info "Attempting to retrieve age key from 1Password..."
-    mkdir -p "$key_dir"
-    chmod 700 "$key_dir"
-    if op read "op://Private/age-key/private-key" > "$key_path" 2>/dev/null; then
+    (umask 077 && mkdir -p "$key_dir")
+    local key_tmp
+    key_tmp="$(mktemp)"
+    if op read "op://Private/age-key/private-key" > "$key_tmp" 2>/dev/null && [ -s "$key_tmp" ]; then
+      mv "$key_tmp" "$key_path"
       chmod 600 "$key_path"
       info "Age key retrieved from 1Password."
       return 0
     else
+      rm -f "$key_tmp"
       warn "Could not retrieve age key from 1Password (not signed in?)."
-      rm -f "$key_path"
     fi
   fi
 
@@ -141,37 +143,39 @@ resolve_age_key() {
   if command -v age &>/dev/null && command -v gum &>/dev/null; then
     echo ""
     warn "Age key not found locally or via 1Password."
-    local transfer_script
-    transfer_script="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/transfer-key.sh"
+    local repo_dir
+    repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    local transfer_script="$repo_dir/scripts/transfer-key.sh"
 
-    local import_method
-    if command -v wormhole &>/dev/null; then
-      import_method=$(gum choose \
-        --header "Import age key from another machine?" \
-        "Receive via Magic Wormhole (run 'make send-key' on source)" \
-        "Paste encrypted blob (run 'make export-key' on source)" \
-        "Skip — I'll set it up later")
-    else
-      import_method=$(gum choose \
-        --header "Import age key from another machine?" \
-        "Paste encrypted blob (run 'make export-key' on source)" \
-        "Skip — I'll set it up later")
-    fi
+    # Validate the resolved path is inside the repo (prevents symlink traversal).
+    if [[ "$transfer_script" != "$repo_dir/"* ]]; then
+      warn "Unexpected transfer script path: $transfer_script. Skipping import."
+    elif [ -f "$transfer_script" ]; then
+      local import_method
+      if command -v wormhole &>/dev/null; then
+        import_method=$(gum choose \
+          --header "Import age key from another machine?" \
+          "Receive via Magic Wormhole (run 'make send-key' on source)" \
+          "Paste encrypted blob (run 'make export-key' on source)" \
+          "Skip — I'll set it up later")
+      else
+        import_method=$(gum choose \
+          --header "Import age key from another machine?" \
+          "Paste encrypted blob (run 'make export-key' on source)" \
+          "Skip — I'll set it up later")
+      fi
 
-    case "$import_method" in
-      "Receive via"*)
-        if [ -f "$transfer_script" ]; then
+      case "$import_method" in
+        "Receive via"*)
           bash "$transfer_script" receive
           [ -f "$key_path" ] && return 0
-        fi
-        ;;
-      "Paste"*)
-        if [ -f "$transfer_script" ]; then
+          ;;
+        "Paste"*)
           bash "$transfer_script" import
           [ -f "$key_path" ] && return 0
-        fi
-        ;;
-    esac
+          ;;
+      esac
+    fi
   fi
 
   # Neither available
