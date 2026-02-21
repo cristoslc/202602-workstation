@@ -24,6 +24,43 @@ source "$SCRIPT_DIR/shared/lib/wizard.sh"
 trap 'error "First-run failed. Fix the issue above and re-run."' ERR
 
 # =============================================================================
+# Guided secret editing (called from Phase 11 and re-run detection)
+# =============================================================================
+
+edit_secrets() {
+  echo ""
+  gum style \
+    --border normal \
+    --border-foreground 6 \
+    --padding "1 2" \
+    "Secrets are encrypted with placeholders." \
+    "You can populate them with real values now," \
+    "or do it later with: make edit-secrets-shared"
+
+  echo ""
+  if gum confirm "Edit shared secrets now?"; then
+    sops "$SCRIPT_DIR/shared/secrets/vars.sops.yml"
+  fi
+
+  if gum confirm "Edit shared shell secrets (API keys, tokens for .zshrc)?"; then
+    sops "$SCRIPT_DIR/shared/secrets/dotfiles/zsh/.config/zsh/secrets.zsh.sops"
+  fi
+
+  if [ "$PLATFORM" = "linux" ]; then
+    if gum confirm "Edit Linux secrets?"; then
+      sops "$SCRIPT_DIR/linux/secrets/vars.sops.yml"
+    fi
+    if gum confirm "Edit Linux Espanso private matches?"; then
+      sops "$SCRIPT_DIR/linux/secrets/dotfiles/espanso/.config/espanso/match/private.yml.sops"
+    fi
+  else
+    if gum confirm "Edit macOS secrets?"; then
+      sops "$SCRIPT_DIR/macos/secrets/vars.sops.yml"
+    fi
+  fi
+}
+
+# =============================================================================
 # Phase 1: Self-bootstrap prerequisites
 # =============================================================================
 
@@ -143,14 +180,46 @@ if ! grep -q '${AGE_PUBLIC_KEY}' "$SCRIPT_DIR/.sops.yaml" 2>/dev/null; then
   $_has_commit    || _pending+=("commit personalized changes")
   $_is_pushed     || _pending+=("push to remote")
 
+  # Check if secrets still contain placeholder values (Phase 11 never completed).
+  _has_placeholder_secrets=false
+  if grep -q 'PLACEHOLDER' "$SCRIPT_DIR/shared/secrets/vars.sops.yml" 2>/dev/null || \
+     SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops -d "$SCRIPT_DIR/shared/secrets/vars.sops.yml" 2>/dev/null | grep -q 'PLACEHOLDER'; then
+    _has_placeholder_secrets=true
+  fi
+
   echo ""
   if [ ${#_pending[@]} -eq 0 ]; then
-    gum style --border normal --border-foreground 2 --padding "1 2" \
-      "First-run is already complete." \
-      "  Origin: $(git remote get-url origin 2>/dev/null || echo 'not set')"
-    if ! gum confirm "Re-run from the beginning anyway?"; then
-      info "Nothing to do. Exiting."
-      exit 0
+    if $_has_placeholder_secrets; then
+      gum style --border normal --border-foreground 3 --padding "1 2" \
+        "First-run is complete, but secrets still contain placeholders." \
+        "  Origin: $(git remote get-url origin 2>/dev/null || echo 'not set')"
+      edit_choice=$(gum choose \
+        --header "What would you like to do?" \
+        "Edit secrets now" \
+        "Re-run everything from the beginning" \
+        "Exit (edit later with: make edit-secrets-shared)")
+      case "$edit_choice" in
+        "Edit secrets"*)
+          AGE_KEY_PATH="$HOME/.config/sops/age/keys.txt"
+          export SOPS_AGE_KEY_FILE="$AGE_KEY_PATH"
+          edit_secrets
+          exit 0
+          ;;
+        "Re-run"*)
+          ;;
+        "Exit"*)
+          info "Edit secrets later with: make edit-secrets-shared"
+          exit 0
+          ;;
+      esac
+    else
+      gum style --border normal --border-foreground 2 --padding "1 2" \
+        "First-run is already complete." \
+        "  Origin: $(git remote get-url origin 2>/dev/null || echo 'not set')"
+      if ! gum confirm "Re-run from the beginning anyway?"; then
+        info "Nothing to do. Exiting."
+        exit 0
+      fi
     fi
   else
     pending_list=$(printf '  - %s\n' "${_pending[@]}")
@@ -467,35 +536,7 @@ fi
 # Phase 11: Guided secret editing
 # =============================================================================
 
-echo ""
-gum style \
-  --border normal \
-  --border-foreground 6 \
-  --padding "1 2" \
-  "Secrets are encrypted with placeholders." \
-  "You can populate them with real values now," \
-  "or do it later with: make edit-secrets-shared"
-
-echo ""
-if gum confirm "Edit shared secrets now?"; then
-  sops "$SCRIPT_DIR/shared/secrets/vars.sops.yml"
-fi
-
-if gum confirm "Edit shared shell secrets (API keys, tokens for .zshrc)?"; then
-  sops "$SCRIPT_DIR/shared/secrets/dotfiles/zsh/.config/zsh/secrets.zsh.sops"
-fi
-
-if gum confirm "Edit Linux secrets?"; then
-  sops "$SCRIPT_DIR/linux/secrets/vars.sops.yml"
-fi
-
-if gum confirm "Edit Linux Espanso private matches?"; then
-  sops "$SCRIPT_DIR/linux/secrets/dotfiles/espanso/.config/espanso/match/private.yml.sops"
-fi
-
-if gum confirm "Edit macOS secrets?"; then
-  sops "$SCRIPT_DIR/macos/secrets/vars.sops.yml"
-fi
+edit_secrets
 
 # =============================================================================
 # Done
