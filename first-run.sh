@@ -24,8 +24,25 @@ source "$SCRIPT_DIR/shared/lib/wizard.sh"
 trap 'error "First-run failed. Fix the issue above and re-run."' ERR
 
 # =============================================================================
-# Guided secret editing (called from Phase 11 and re-run detection)
+# Guided secret collection (called from Phase 11 and re-run detection)
 # =============================================================================
+
+# Write plaintext to a SOPS-managed file and encrypt it in place.
+# Writes to a temp file first so a failed sops -e -i doesn't destroy content.
+_write_and_encrypt() {
+  local target="$1"
+  local content="$2"
+  local tmpfile
+  tmpfile=$(mktemp)
+  printf '%s\n' "$content" > "$tmpfile"
+  if sops -e -i "$tmpfile"; then
+    mv "$tmpfile" "$target"
+  else
+    rm -f "$tmpfile"
+    error "Failed to encrypt $target. Plaintext was NOT written."
+    return 1
+  fi
+}
 
 edit_secrets() {
   echo ""
@@ -33,30 +50,91 @@ edit_secrets() {
     --border normal \
     --border-foreground 6 \
     --padding "1 2" \
-    "Secrets are encrypted with placeholders." \
-    "You can populate them with real values now," \
-    "or do it later with: make edit-secrets-shared"
+    "Secret Configuration" \
+    "Press Enter to skip any value you don't have ready." \
+    "Edit later with: make edit-secrets-shared"
 
+  # ─── Shared vars ───────────────────────────────────────────────────────────
   echo ""
-  if gum confirm "Edit shared secrets now?"; then
-    sops "$SCRIPT_DIR/shared/secrets/vars.sops.yml"
+  info "Shared secrets (used on all platforms):"
+
+  local shared_vars="$SCRIPT_DIR/shared/secrets/vars.sops.yml"
+  local current_email=""
+  if [ -f "$shared_vars" ]; then
+    current_email=$(sops -d "$shared_vars" 2>/dev/null \
+      | grep '^git_user_email:' \
+      | sed 's/^git_user_email: *//' \
+      | tr -d '"'"'" || true)
+    [ "$current_email" = "PLACEHOLDER" ] && current_email=""
   fi
 
-  if gum confirm "Edit shared shell secrets (API keys, tokens for .zshrc)?"; then
-    sops "$SCRIPT_DIR/shared/secrets/dotfiles/zsh/.config/zsh/secrets.zsh.sops"
-  fi
+  local git_email
+  git_email=$(gum input \
+    --header "Git email${current_email:+ (current: $current_email)}" \
+    --value "$current_email" \
+    --placeholder "you@example.com")
 
-  if [ "$PLATFORM" = "linux" ]; then
-    if gum confirm "Edit Linux secrets?"; then
-      sops "$SCRIPT_DIR/linux/secrets/vars.sops.yml"
-    fi
-    if gum confirm "Edit Linux Espanso private matches?"; then
-      sops "$SCRIPT_DIR/linux/secrets/dotfiles/espanso/.config/espanso/match/private.yml.sops"
-    fi
+  _write_and_encrypt "$shared_vars" "---
+git_user_email: \"${git_email:-PLACEHOLDER}\""
+
+  if [ -n "$git_email" ]; then
+    info "git_user_email: $git_email"
   else
-    if gum confirm "Edit macOS secrets?"; then
-      sops "$SCRIPT_DIR/macos/secrets/vars.sops.yml"
+    info "git_user_email: skipped (edit later with: make edit-secrets-shared)"
+  fi
+
+  # ─── Shell secrets ─────────────────────────────────────────────────────────
+  echo ""
+  info "Shell secrets (exported in .zshrc via secrets.zsh):"
+
+  local shell_file="$SCRIPT_DIR/shared/secrets/dotfiles/zsh/.config/zsh/secrets.zsh.sops"
+  local shell_content=""
+
+  # Show existing exports (masking values)
+  if [ -f "$shell_file" ]; then
+    local existing
+    existing=$(sops -d "$shell_file" 2>/dev/null | grep '^export ' || true)
+    if [ -n "$existing" ]; then
+      info "Currently set:"
+      echo "$existing" | sed 's/=.*/=***/'
+      echo ""
     fi
+    # Preserve existing content (excluding comments-only placeholder)
+    local full_content
+    full_content=$(sops -d "$shell_file" 2>/dev/null || true)
+    if echo "$full_content" | grep -q '^export '; then
+      shell_content="$full_content"
+    fi
+  fi
+
+  while gum confirm "Add a shell secret (export KEY=\"value\")?"; do
+    local key value
+    key=$(gum input --header "Variable name" --placeholder "SOME_API_KEY")
+    [ -z "$key" ] && continue
+    value=$(gum input --header "Value for $key" --placeholder "value" --password)
+    [ -z "$value" ] && { info "Skipped $key (empty value)."; continue; }
+    if [ -z "$shell_content" ]; then
+      shell_content="# Shell secrets — sourced by .zshrc"
+    fi
+    shell_content+=$'\n'"export ${key}=\"${value}\""
+    info "Added $key"
+  done
+
+  if [ -n "$shell_content" ]; then
+    _write_and_encrypt "$shell_file" "$shell_content"
+  else
+    info "No shell secrets added. Edit later with:"
+    info "  EDITOR=nano make edit-secrets-shared"
+  fi
+
+  # ─── Platform vars ─────────────────────────────────────────────────────────
+  echo ""
+  if [ "$PLATFORM" = "macos" ]; then
+    info "macOS secrets: no keys defined yet."
+    info "  Edit later with: make edit-secrets-macos"
+  else
+    info "Linux secrets: no keys defined yet."
+    info "  Edit later with: make edit-secrets-linux"
   fi
 }
 
