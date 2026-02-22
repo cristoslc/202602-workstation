@@ -5,6 +5,9 @@ umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PLATFORM="macos"
 
+# Ensure tools installed to ~/.local/bin are visible (uv, ansible, etc.).
+export PATH="$HOME/.local/bin:$PATH"
+
 # Source shared wizard
 source "$SCRIPT_DIR/../shared/lib/wizard.sh"
 
@@ -50,7 +53,6 @@ if ! command -v uv &>/dev/null; then
   curl -LsSf https://astral.sh/uv/install.sh -o "$uv_installer"
   sh "$uv_installer"
   rm -f "$uv_installer"
-  export PATH="$HOME/.local/bin:$PATH"
 fi
 
 if ! command -v ansible-playbook &>/dev/null; then
@@ -61,7 +63,7 @@ fi
 # --- Phase 5: Install Ansible Galaxy collections ---
 
 info "Installing Ansible Galaxy collections..."
-ansible-galaxy collection install -r "$SCRIPT_DIR/../shared/requirements.yml" --force
+ansible-galaxy collection install -r "$SCRIPT_DIR/../shared/requirements.yml"
 
 # --- Phase 6: Run wizard ---
 

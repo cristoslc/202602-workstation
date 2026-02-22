@@ -5,6 +5,9 @@ umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PLATFORM="linux"
 
+# Ensure tools installed to ~/.local/bin are visible (uv, ansible, etc.).
+export PATH="$HOME/.local/bin:$PATH"
+
 # Source shared wizard
 source "$SCRIPT_DIR/../shared/lib/wizard.sh"
 
@@ -12,13 +15,21 @@ trap 'error "Bootstrap failed. Re-run after fixing the issue above."' ERR
 
 # --- Phase 1: Install minimal prerequisites ---
 
-info "Installing prerequisites..."
-sudo apt-get update -qq
-sudo apt-get install -y -qq \
-  python3 \
-  python3-venv \
-  curl \
-  stow
+_apt_prereqs=(python3 python3-venv curl stow)
+_missing=()
+for pkg in "${_apt_prereqs[@]}"; do
+  if ! dpkg -s "$pkg" &>/dev/null; then
+    _missing+=("$pkg")
+  fi
+done
+
+if [ ${#_missing[@]} -gt 0 ]; then
+  info "Installing prerequisites: ${_missing[*]}..."
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq "${_missing[@]}"
+else
+  info "Prerequisites already installed."
+fi
 
 # Install sops (pinned version + checksum)
 if ! command -v sops &>/dev/null; then
@@ -57,7 +68,6 @@ if ! command -v uv &>/dev/null; then
   curl -LsSf https://astral.sh/uv/install.sh -o "$uv_installer"
   sh "$uv_installer"
   rm -f "$uv_installer"
-  export PATH="$HOME/.local/bin:$PATH"
 fi
 
 if ! command -v ansible-playbook &>/dev/null; then
@@ -67,8 +77,7 @@ fi
 
 # --- Phase 3: Install Ansible Galaxy collections ---
 
-info "Installing Ansible Galaxy collections..."
-ansible-galaxy collection install -r "$SCRIPT_DIR/../shared/requirements.yml" --force
+ansible-galaxy collection install -r "$SCRIPT_DIR/../shared/requirements.yml"
 
 # --- Phase 4: Run wizard ---
 
