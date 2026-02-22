@@ -1,6 +1,11 @@
 ---
 - name: Check if Claude Code is installed
-  ansible.builtin.command: claude --version
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    claude --version
+  args:
+    executable: /bin/bash
   register: claude_check
   changed_when: false
   failed_when: false

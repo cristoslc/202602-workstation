@@ -61,5 +61,14 @@
 
     - name: Start Espanso service
       ansible.builtin.command: espanso service start
+      register: _espanso_start
       when: _espanso_process.rc != 0
-      changed_when: true
+      changed_when: _espanso_start.rc == 0
+      failed_when: false
+
+    - name: Warn if Espanso failed to start
+      ansible.builtin.debug:
+        msg: >-
+          Espanso service failed to start (rc={{ _espanso_start.rc }}).
+          Complete the Espanso setup wizard first, then run 'espanso service start'.
+      when: _espanso_start.rc is defined and _espanso_start.rc != 0
