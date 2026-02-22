@@ -32,9 +32,6 @@ def mock_runner():
     runner.gh = MagicMock(return_value=ok)
     runner.sops_encrypt_in_place = MagicMock()
     runner.sops_decrypt = MagicMock(return_value="")
-    runner.gum_input = MagicMock(return_value="")
-    runner.gum_confirm = MagicMock(return_value=False)
-    runner.gum_choose = MagicMock(return_value="")
     runner.age_keygen = MagicMock(return_value=("private-key", "age1abc"))
     runner.age_public_key_from_file = MagicMock(return_value="age1abc")
     runner.command_exists = MagicMock(return_value=True)
@@ -43,12 +40,13 @@ def mock_runner():
 
 @pytest.fixture
 def mock_ui():
-    """WizardUI that captures output without printing."""
+    """WizardUI with prompt/confirm/choose mocked and output captured."""
     from rich.console import Console
 
     console = Console(file=open("/dev/null", "w"), force_terminal=True)
     ui = first_run.WizardUI(console)
-    # Track calls for assertions.
+
+    # Track output calls for assertions.
     ui._messages: list[tuple[str, str]] = []
     original_info = ui.info
     original_warn = ui.warn
@@ -69,6 +67,12 @@ def mock_ui():
     ui.info = tracking_info
     ui.warn = tracking_warn
     ui.error = tracking_error
+
+    # Mock interactive methods (prompt/confirm/choose).
+    ui.prompt = MagicMock(return_value="")
+    ui.confirm = MagicMock(return_value=False)
+    ui.choose = MagicMock(return_value="")
+
     return ui
 
 

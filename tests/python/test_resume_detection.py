@@ -112,7 +112,7 @@ class TestHandleRerun:
                 args=[], returncode=0, stdout="https://github.com/u/r.git", stderr=""
             )
         )
-        mock_runner.gum_confirm = MagicMock(return_value=False)
+        mock_ui.confirm = MagicMock(return_value=False)
 
         result = first_run.handle_rerun(mock_runner, mock_ui, state)
         assert result == "exit"
@@ -128,7 +128,7 @@ class TestHandleRerun:
                 args=[], returncode=0, stdout="https://github.com/u/r.git", stderr=""
             )
         )
-        mock_runner.gum_choose = MagicMock(return_value="Edit secrets now")
+        mock_ui.choose = MagicMock(return_value="Edit secrets now")
 
         result = first_run.handle_rerun(mock_runner, mock_ui, state)
         assert result == "edit-secrets"
@@ -139,7 +139,7 @@ class TestHandleRerun:
             is_personalized=True,
             pending=["push to remote"],
         )
-        mock_runner.gum_choose = MagicMock(return_value="Resume from where it left off")
+        mock_ui.choose = MagicMock(return_value="Resume from where it left off")
 
         result = first_run.handle_rerun(mock_runner, mock_ui, state)
         assert result == "resume"

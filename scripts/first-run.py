@@ -22,6 +22,8 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -188,59 +190,15 @@ class ToolRunner:
     def gh(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         return self.run(["gh", *args], check=check)
 
-    # --- Gum (interactive prompts) ---
-
-    def gum_input(
-        self,
-        *,
-        header: str,
-        placeholder: str = "",
-        value: str = "",
-        password: bool = False,
-    ) -> str:
-        cmd = ["gum", "input", "--header", header]
-        if placeholder:
-            cmd += ["--placeholder", placeholder]
-        if value:
-            cmd += ["--value", value]
-        if password:
-            cmd.append("--password")
-        # Capture stdout (result) but let stderr flow to terminal (interactive UI).
-        logger.debug("Running: %s", " ".join(cmd))
-        result = subprocess.run(
-            cmd, stdout=subprocess.PIPE, stderr=None, text=True, check=False
-        )
-        if result.returncode != 0:
-            return ""
-        return result.stdout.strip()
-
-    def gum_confirm(self, prompt: str) -> bool:
-        # No capture — gum needs full terminal access for the prompt.
-        logger.debug("Running: gum confirm %s", prompt)
-        result = subprocess.run(
-            ["gum", "confirm", prompt], check=False
-        )
-        return result.returncode == 0
-
-    def gum_choose(self, header: str, choices: list[str]) -> str:
-        cmd = ["gum", "choose", "--header", header] + choices
-        # Capture stdout (selected choice) but let stderr flow to terminal.
-        logger.debug("Running: %s", " ".join(cmd))
-        result = subprocess.run(
-            cmd, stdout=subprocess.PIPE, stderr=None, text=True, check=False
-        )
-        if result.returncode != 0:
-            return ""
-        return result.stdout.strip()
 
 
 # ---------------------------------------------------------------------------
-# WizardUI — output formatting via Rich
+# WizardUI — output + prompts via Rich
 # ---------------------------------------------------------------------------
 
 
 class WizardUI:
-    """Styled output via Rich Console. Prompts are handled by ToolRunner (gum)."""
+    """Styled output and interactive prompts via Rich Console."""
 
     def __init__(self, console: Console) -> None:
         self.console = console
@@ -275,6 +233,57 @@ class WizardUI:
                 padding=(1, 2),
             )
         )
+
+    # --- Interactive prompts (replaces gum subprocess calls) ---
+
+    def prompt(
+        self,
+        label: str,
+        *,
+        default: str = "",
+        password: bool = False,
+    ) -> str:
+        """Prompt for a single-line value. Returns empty string on Enter."""
+        suffix = f" [{default}]" if default and not password else ""
+        prompt_str = f"  [bold cyan]{label}[/bold cyan]{suffix}: "
+        logger.debug("Prompt: %s (default=%r, password=%s)", label, default, password)
+        try:
+            value = self.console.input(prompt_str, password=password)
+        except EOFError:
+            value = ""
+        result = value.strip() or default
+        logger.debug("Prompt result: %s", "***" if password else result)
+        return result
+
+    def confirm(self, question: str, *, default: bool = False) -> bool:
+        """Yes/no confirmation. Returns bool."""
+        hint = "[Y/n]" if default else "[y/N]"
+        prompt_str = f"  [bold cyan]{question}[/bold cyan] {hint}: "
+        logger.debug("Confirm: %s (default=%s)", question, default)
+        try:
+            answer = self.console.input(prompt_str).strip().lower()
+        except EOFError:
+            answer = ""
+        if not answer:
+            return default
+        return answer in ("y", "yes")
+
+    def choose(self, header: str, choices: list[str]) -> str:
+        """Numbered choice list. Returns the chosen string."""
+        self.console.print(f"\n  [bold]{header}[/bold]")
+        for i, choice in enumerate(choices, 1):
+            self.console.print(f"    [cyan]{i}.[/cyan] {choice}")
+        logger.debug("Choose: %s from %r", header, choices)
+        while True:
+            try:
+                answer = self.console.input("  [bold cyan]Choice[/bold cyan]: ").strip()
+            except EOFError:
+                return choices[-1]  # Default to last (usually Exit).
+            if answer.isdigit() and 1 <= int(answer) <= len(choices):
+                selected = choices[int(answer) - 1]
+                logger.debug("Chose: %s", selected)
+                return selected
+            self.console.print(f"    [dim]Enter 1-{len(choices)}[/dim]")
 
 
 # ---------------------------------------------------------------------------
@@ -357,7 +366,7 @@ def handle_rerun(
                 ],
                 border_style="yellow",
             )
-            choice = runner.gum_choose(
+            choice = ui.choose(
                 "What would you like to do?",
                 [
                     "Edit secrets now",
@@ -380,7 +389,7 @@ def handle_rerun(
             ],
             border_style="green",
         )
-        if not runner.gum_confirm("Re-run from the beginning anyway?"):
+        if not ui.confirm("Re-run from the beginning anyway?"):
             ui.info("Nothing to do. Exiting.")
             return "exit"
         return "restart"
@@ -394,7 +403,7 @@ def handle_rerun(
         ],
         border_style="yellow",
     )
-    choice = runner.gum_choose(
+    choice = ui.choose(
         "How would you like to proceed?",
         ["Resume from where it left off", "Start over from the beginning", "Exit"],
     )
@@ -448,15 +457,11 @@ def generate_or_load_age_key(runner: ToolRunner, ui: WizardUI) -> str:
 # ---------------------------------------------------------------------------
 
 
-def collect_repo_info(runner: ToolRunner, ui: WizardUI) -> RepoConfig:
+def collect_repo_info(ui: WizardUI) -> RepoConfig:
     """Prompt for GitHub username and repo name."""
     ui.console.print()
-    username = runner.gum_input(
-        header="GitHub username", placeholder="your-username"
-    )
-    repo_name = runner.gum_input(
-        header="Repository name", placeholder="my-workstation", value="my-workstation"
-    )
+    username = ui.prompt("GitHub username")
+    repo_name = ui.prompt("Repository name", default="my-workstation")
     config = RepoConfig(github_username=username, repo_name=repo_name)
     ui.info(f"Repo URL: {config.github_repo_url}")
     return config
@@ -617,7 +622,7 @@ def detach_from_template(
         return
 
     ui.warn(f"Current origin ({current_origin}) does not match {expected_slug}.")
-    if runner.gum_confirm("Replace origin remote?"):
+    if ui.confirm("Replace origin remote?"):
         runner.git("remote", "remove", "origin")
     else:
         ui.info("Keeping existing origin.")
@@ -639,7 +644,7 @@ def create_github_repo(
         return
 
     slug = f"{config.github_username}/{config.repo_name}"
-    if not runner.gum_confirm(f"Create GitHub repo {slug}?"):
+    if not ui.confirm(f"Create GitHub repo {slug}?"):
         ui.info("Skipping GitHub repo creation.")
         ui.info(f"You can add a remote later with:")
         ui.info(f"  git remote add origin {config.github_repo_url}")
@@ -652,7 +657,7 @@ def create_github_repo(
         runner.run(["gh", "auth", "login"], capture=False)
 
     visibility = "--private"
-    if runner.gum_confirm("Make the repo public? (Default: private)"):
+    if ui.confirm("Make the repo public? (Default: private)"):
         visibility = "--public"
 
     # Check if repo already exists.
@@ -680,7 +685,7 @@ def commit_and_push(
 ) -> None:
     """Stage, commit, push with merge-base safety check."""
     ui.console.print()
-    if not runner.gum_confirm("Commit personalized changes and push?"):
+    if not ui.confirm("Commit personalized changes and push?"):
         ui.info("Skipping commit. You can commit later with:")
         ui.info("  git add -u && git commit -m 'Initialize personalized workstation config'")
         return
@@ -758,122 +763,234 @@ def _try_push(runner: ToolRunner, ui: WizardUI, origin_url: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Secret schema: what the system needs
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SecretField:
+    """One secret the system consumes."""
+
+    key: str              # Variable name (git_user_email, ANTHROPIC_API_KEY, ...)
+    label: str            # Human-readable label for the prompt
+    placeholder: str      # Example value shown in empty field
+    description: str      # What this secret is used for
+    doc_url: str = ""     # URL to docs on how to obtain this secret
+    password: bool = False  # Mask input
+
+
+# Ansible vars — written to vars.sops.yml as YAML key/value pairs.
+SHARED_ANSIBLE_VARS: list[SecretField] = [
+    SecretField(
+        key="git_user_email",
+        label="Git email",
+        placeholder="you@example.com",
+        description="Used by the git role for git config user.email",
+    ),
+    SecretField(
+        key="git_user_name",
+        label="Git display name",
+        placeholder="Your Name",
+        description="Used by the git role for git config user.name",
+    ),
+]
+
+# Shell secrets — written to secrets.zsh.sops as export statements.
+# Sourced by .zshrc via ~/.config/zsh/secrets.zsh.
+SHELL_SECRETS: list[SecretField] = [
+    SecretField(
+        key="ANTHROPIC_API_KEY",
+        label="Anthropic API key",
+        placeholder="sk-ant-...",
+        description="For Claude CLI and API access",
+        doc_url="https://console.anthropic.com/settings/keys",
+        password=True,
+    ),
+    SecretField(
+        key="HOMEBREW_GITHUB_API_TOKEN",
+        label="GitHub token for Homebrew",
+        placeholder="ghp_...",
+        description="Avoids GitHub API rate limits during brew install",
+        doc_url="https://github.com/settings/tokens",
+        password=True,
+    ),
+]
+
+
+def _show_secret_overview(ui: WizardUI, plat: str) -> None:
+    """Print a table of all secrets the wizard will prompt for."""
+    table = Table(
+        title="Secrets Overview",
+        show_header=True,
+        header_style="bold",
+        border_style="cyan",
+        pad_edge=False,
+        show_lines=True,
+    )
+    table.add_column("#", style="cyan", width=3, justify="right")
+    table.add_column("Variable", style="bold")
+    table.add_column("Purpose")
+    table.add_column("Docs", style="dim")
+
+    n = 0
+    for sf in SHARED_ANSIBLE_VARS:
+        n += 1
+        table.add_row(str(n), sf.key, sf.description, sf.doc_url or "-")
+    for sf in SHELL_SECRETS:
+        n += 1
+        doc_cell = f"[link={sf.doc_url}]{sf.doc_url}[/link]" if sf.doc_url else "-"
+        table.add_row(str(n), sf.key, sf.description, doc_cell)
+
+    ui.console.print()
+    ui.console.print(table)
+    ui.console.print()
+    ui.console.print(
+        "  [dim]Press Enter to skip any value. "
+        "Edit later with: make edit-secrets-shared[/dim]"
+    )
+    ui.console.print(
+        "  [dim]Shell secrets are encrypted in the repo, decrypted at bootstrap,"
+        " and sourced via ~/.config/zsh/secrets.zsh[/dim]"
+    )
+
+
+def _prompt_for_field(
+    ui: WizardUI, sf: SecretField, current: str = ""
+) -> str:
+    """Prompt for a single secret field with context."""
+    ui.console.print()
+    ui.console.print(f"  [bold]{sf.label}[/bold] [dim]({sf.key})[/dim]")
+    ui.console.print(f"  [dim]{sf.description}[/dim]")
+    if sf.doc_url:
+        ui.console.print(f"  [dim]Docs:[/dim] [link={sf.doc_url}]{sf.doc_url}[/link]")
+
+    label = sf.label
+    if current and not sf.password:
+        label += f" [{current}]"
+    elif current and sf.password:
+        label += " [current: ***]"
+
+    return ui.prompt(label, default=current, password=sf.password)
+
+
 def edit_secrets(
     runner: ToolRunner, ui: WizardUI, plat: str
 ) -> None:
-    """Interactively collect and encrypt user's secrets."""
+    """Walk the user through each secret the system needs."""
     ui.console.print()
     ui.banner(
         "Secret Configuration",
         [
-            "Press Enter to skip any value you don't have ready.",
-            "Edit later with: make edit-secrets-shared",
+            "The wizard will walk you through each secret the system uses.",
+            "Values are SOPS-encrypted before being stored in the repo.",
         ],
         border_style="cyan",
     )
 
-    # --- Shared vars (git_user_email) ---
+    # Show overview table so the user knows what's coming.
+    _show_secret_overview(ui, plat)
+
+    # --- Shared Ansible vars (vars.sops.yml) ---
     ui.console.print()
-    ui.info("Shared secrets (used on all platforms):")
+    ui.console.print("  [bold underline]Ansible Variables[/bold underline]")
 
     shared_vars = REPO_ROOT / "shared" / "secrets" / "vars.sops.yml"
-    current_email = ""
+
+    # Load existing values so we can pre-fill prompts.
+    current_values: dict[str, str] = {}
     if shared_vars.exists():
         decrypted = runner.sops_decrypt(shared_vars)
         for line in decrypted.splitlines():
-            if line.startswith("git_user_email:"):
-                current_email = line.split(":", 1)[1].strip().strip("'\"")
-                if current_email == "PLACEHOLDER":
-                    current_email = ""
-                break
+            if ":" in line and not line.startswith("#") and not line.startswith("---"):
+                key, _, val = line.partition(":")
+                val = val.strip().strip("'\"")
+                if val and val != "PLACEHOLDER":
+                    current_values[key.strip()] = val
 
-    header = "Git email"
-    if current_email:
-        header += f" (current: {current_email})"
-    git_email = runner.gum_input(
-        header=header, value=current_email, placeholder="you@example.com"
-    )
+    # Prompt for each declared Ansible var.
+    collected_vars: dict[str, str] = {}
+    for sf in SHARED_ANSIBLE_VARS:
+        current = current_values.get(sf.key, "")
+        value = _prompt_for_field(ui, sf, current)
+        collected_vars[sf.key] = value or "PLACEHOLDER"
+        if value:
+            ui.info(f"  {sf.key}: {value}")
+        else:
+            ui.info(f"  {sf.key}: skipped")
 
-    email_value = git_email or "PLACEHOLDER"
-    write_and_encrypt(
-        runner,
-        shared_vars,
-        f"---\ngit_user_email: \"{email_value}\"",
-        ui,
-    )
-    if git_email:
-        ui.info(f"git_user_email: {git_email}")
-    else:
-        ui.info("git_user_email: skipped (edit later with: make edit-secrets-shared)")
+    # Write vars.sops.yml with all collected values.
+    yaml_lines = ["---"]
+    for key, value in collected_vars.items():
+        yaml_lines.append(f'{key}: "{value}"')
+    write_and_encrypt(runner, shared_vars, "\n".join(yaml_lines), ui)
 
-    # --- Shell secrets (export KEY="value") ---
+    # --- Shell secrets (secrets.zsh.sops) ---
     ui.console.print()
-    ui.banner(
-        "Shell Secrets",
-        [
-            "These become environment variables in every terminal session.",
-            "Stored encrypted in the repo, decrypted at bootstrap, and",
-            "sourced by .zshrc via ~/.config/zsh/secrets.zsh.",
-            "",
-            "Examples:  ANTHROPIC_API_KEY, GITHUB_TOKEN, OPENAI_API_KEY,",
-            "           AWS_ACCESS_KEY_ID, HOMEBREW_GITHUB_API_TOKEN",
-        ],
-        border_style="cyan",
-    )
+    ui.console.print("  [bold underline]Shell Secrets[/bold underline]")
 
     shell_file = (
         REPO_ROOT / "shared" / "secrets" / "dotfiles" / "zsh"
         / ".config" / "zsh" / "secrets.zsh.sops"
     )
-    shell_content = ""
 
-    # Show existing exports (masking values).
+    # Load existing exports so we can pre-fill and preserve custom ones.
+    existing_exports: dict[str, str] = {}
     if shell_file.exists():
         existing = runner.sops_decrypt(shell_file)
         if existing:
-            export_lines = [
-                line for line in existing.splitlines() if line.startswith("export ")
-            ]
-            if export_lines:
-                ui.info("Currently set:")
-                for line in export_lines:
-                    key_part = line.split("=", 1)[0]
-                    ui.console.print(f"  {key_part}=***")
-                ui.console.print()
-                # Preserve existing content.
-                shell_content = existing
+            for line in existing.splitlines():
+                if line.startswith("export "):
+                    eq_pos = line.find("=")
+                    if eq_pos > 0:
+                        ekey = line[len("export "):eq_pos]
+                        eval_ = line[eq_pos + 1:].strip().strip('"')
+                        existing_exports[ekey] = eval_
 
-    while runner.gum_confirm("Add a shell secret?"):
-        key = runner.gum_input(header="Variable name", placeholder="SOME_API_KEY")
-        if not key:
-            continue
-        value = runner.gum_input(
-            header=f"Value for {key}", placeholder="value", password=True
-        )
-        if not value:
-            ui.info(f"Skipped {key} (empty value).")
-            continue
-        if not shell_content:
-            shell_content = "# Shell secrets -- sourced by .zshrc"
-        shell_content += f'\nexport {key}="{value}"'
-        ui.info(f"Added {key}")
+    # Prompt for each declared shell secret.
+    collected_exports: dict[str, str] = dict(existing_exports)
+    for sf in SHELL_SECRETS:
+        current = existing_exports.get(sf.key, "")
+        value = _prompt_for_field(ui, sf, current)
+        if value:
+            collected_exports[sf.key] = value
+            ui.info(f"  {sf.key}: set")
+        elif not current:
+            ui.info(f"  {sf.key}: skipped")
 
-    if shell_content:
-        write_and_encrypt(runner, shell_file, shell_content, ui)
+    # Offer to add custom secrets beyond the declared ones.
+    ui.console.print()
+    while ui.confirm("Add a custom shell secret not listed above?"):
+        custom_key = ui.prompt("Variable name")
+        if not custom_key:
+            continue
+        custom_value = ui.prompt(f"Value for {custom_key}", password=True)
+        if not custom_value:
+            ui.info(f"  Skipped {custom_key} (empty value).")
+            continue
+        collected_exports[custom_key] = custom_value
+        ui.info(f"  {custom_key}: set")
+
+    # Write secrets.zsh.sops.
+    if collected_exports:
+        lines = ["# Shell secrets -- sourced by .zshrc"]
+        for ekey, eval_ in collected_exports.items():
+            lines.append(f'export {ekey}="{eval_}"')
+        write_and_encrypt(runner, shell_file, "\n".join(lines), ui)
     else:
-        ui.info("No shell secrets added.")
+        ui.info("No shell secrets configured.")
 
     # --- Platform vars ---
     ui.console.print()
     if plat == "macos":
-        ui.info("macOS secrets: no keys defined yet.")
+        ui.info("macOS secrets: no platform-specific keys defined yet.")
     else:
-        ui.info("Linux secrets: no keys defined yet.")
+        ui.info("Linux secrets: no platform-specific keys defined yet.")
 
     # --- Summary ---
     ui.console.print()
     ui.info("To edit secrets later:")
-    ui.info("  make edit-secrets-shared    # shared vars (git_user_email, etc.)")
+    ui.info("  make edit-secrets-shared    # Ansible vars + shell secrets")
     if plat == "macos":
         ui.info("  make edit-secrets-macos     # macOS-specific vars")
     else:
@@ -1044,7 +1161,7 @@ def main() -> None:
             age_pub = generate_or_load_age_key(runner, ui)
 
             # Phase 4: Repo info.
-            config = collect_repo_info(runner, ui)
+            config = collect_repo_info(ui)
             config.age_public_key = age_pub
 
             # Phase 5: Token replacement.

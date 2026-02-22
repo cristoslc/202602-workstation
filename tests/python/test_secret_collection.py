@@ -16,62 +16,144 @@ first_run = importlib.import_module("first-run")
 
 
 class TestEditSecrets:
-    """Tests for edit_secrets()."""
+    """Tests for edit_secrets() — guided prompts for each declared secret."""
 
-    def test_skipped_email_writes_placeholder(
+    def test_prompts_for_each_declared_field(
         self, tmp_repo, mock_runner, mock_ui, monkeypatch
     ):
-        """When user presses Enter (empty), PLACEHOLDER should be written."""
+        """Should prompt once per SHARED_ANSIBLE_VARS + SHELL_SECRETS entry."""
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
 
-        mock_runner.sops_decrypt = MagicMock(return_value="---\ngit_user_email: PLACEHOLDER\n")
-        mock_runner.gum_input = MagicMock(return_value="")
-        mock_runner.gum_confirm = MagicMock(return_value=False)
+        mock_runner.sops_decrypt = MagicMock(return_value="")
+        mock_ui.prompt = MagicMock(return_value="")
+        mock_ui.confirm = MagicMock(return_value=False)
         mock_runner.sops_encrypt_in_place = MagicMock()
 
         first_run.edit_secrets(mock_runner, mock_ui, "macos")
 
-        # write_and_encrypt should have been called with PLACEHOLDER.
-        # Check mock_runner.sops_encrypt_in_place was called (write_and_encrypt delegates).
+        # ui.prompt called at least once per ansible var + once per shell secret.
+        expected_min = len(first_run.SHARED_ANSIBLE_VARS) + len(first_run.SHELL_SECRETS)
+        assert mock_ui.prompt.call_count >= expected_min
+
+    def test_skipped_vars_write_placeholder(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        """When user presses Enter (empty) for all vars, PLACEHOLDERs are written."""
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+
+        mock_runner.sops_decrypt = MagicMock(return_value="")
+        mock_ui.prompt = MagicMock(return_value="")
+        mock_ui.confirm = MagicMock(return_value=False)
+        mock_runner.sops_encrypt_in_place = MagicMock()
+
+        first_run.edit_secrets(mock_runner, mock_ui, "macos")
+
         assert mock_runner.sops_encrypt_in_place.called
 
     def test_email_value_preserved(
         self, tmp_repo, mock_runner, mock_ui, monkeypatch
     ):
-        """When user enters an email, it should be written."""
+        """When user enters values, they should appear in info output."""
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
 
-        mock_runner.sops_decrypt = MagicMock(return_value="---\ngit_user_email: PLACEHOLDER\n")
-        mock_runner.gum_input = MagicMock(return_value="test@example.com")
-        mock_runner.gum_confirm = MagicMock(return_value=False)
+        mock_runner.sops_decrypt = MagicMock(return_value="")
+        # Return values for each prompt: git_user_email, git_user_name, then shell secrets.
+        num_ansible = len(first_run.SHARED_ANSIBLE_VARS)
+        num_shell = len(first_run.SHELL_SECRETS)
+        input_values = (
+            ["test@example.com", "Test User"][:num_ansible]
+            + [""] * num_shell
+        )
+        mock_ui.prompt = MagicMock(
+            side_effect=iter(input_values + [""] * 10)
+        )
+        mock_ui.confirm = MagicMock(return_value=False)
         mock_runner.sops_encrypt_in_place = MagicMock()
 
         first_run.edit_secrets(mock_runner, mock_ui, "macos")
 
         info_msgs = [m[1] for m in mock_ui._messages if m[0] == "info"]
         assert any("test@example.com" in m for m in info_msgs)
+        assert any("Test User" in m for m in info_msgs)
 
-    def test_shell_secret_loop(
+    def test_shell_secrets_prompted_by_name(
         self, tmp_repo, mock_runner, mock_ui, monkeypatch
     ):
-        """Adding shell secrets should loop until user says no."""
+        """Each declared SHELL_SECRETS entry should be prompted for by name."""
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
 
         mock_runner.sops_decrypt = MagicMock(return_value="")
-
-        # First gum_input: email.
-        # Then gum_confirm: yes (add secret), then no (stop).
-        # Then gum_input for key and value.
-        input_values = iter(["test@example.com", "MY_API_KEY", "secret123"])
-        mock_runner.gum_input = MagicMock(side_effect=lambda **_: next(input_values, ""))
-        confirm_values = iter([True, False])
-        mock_runner.gum_confirm = MagicMock(side_effect=lambda _: next(confirm_values, False))
+        # Skip ansible vars, then provide a value for the first shell secret.
+        num_ansible = len(first_run.SHARED_ANSIBLE_VARS)
+        num_shell = len(first_run.SHELL_SECRETS)
+        input_values = [""] * num_ansible + ["sk-ant-test123"] + [""] * (num_shell - 1)
+        mock_ui.prompt = MagicMock(
+            side_effect=iter(input_values + [""] * 10)
+        )
+        mock_ui.confirm = MagicMock(return_value=False)
         mock_runner.sops_encrypt_in_place = MagicMock()
 
         first_run.edit_secrets(mock_runner, mock_ui, "macos")
 
         info_msgs = [m[1] for m in mock_ui._messages if m[0] == "info"]
-        assert any("Added MY_API_KEY" in m for m in info_msgs)
+        first_secret_name = first_run.SHELL_SECRETS[0].key
+        assert any(first_secret_name in m for m in info_msgs)
+
+    def test_custom_shell_secret_loop(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        """User can add custom secrets beyond the declared list."""
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+
+        mock_runner.sops_decrypt = MagicMock(return_value="")
+
+        # Skip all declared prompts, then add one custom secret.
+        num_ansible = len(first_run.SHARED_ANSIBLE_VARS)
+        num_shell = len(first_run.SHELL_SECRETS)
+        input_values = (
+            [""] * num_ansible      # skip ansible vars
+            + [""] * num_shell      # skip declared shell secrets
+            + ["CUSTOM_KEY", "custom_value"]  # custom secret key + value
+        )
+        mock_ui.prompt = MagicMock(
+            side_effect=iter(input_values + [""] * 10)
+        )
+        # First confirm: yes (add custom), second: no (stop).
+        confirm_values = iter([True, False])
+        mock_ui.confirm = MagicMock(
+            side_effect=lambda _q, **_kw: next(confirm_values, False)
+        )
+        mock_runner.sops_encrypt_in_place = MagicMock()
+
+        first_run.edit_secrets(mock_runner, mock_ui, "macos")
+
+        info_msgs = [m[1] for m in mock_ui._messages if m[0] == "info"]
+        assert any("CUSTOM_KEY" in m for m in info_msgs)
+
+    def test_existing_values_prefilled(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        """Existing decrypted values should be passed as pre-fill to prompt."""
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+
+        mock_runner.sops_decrypt = MagicMock(
+            return_value='---\ngit_user_email: "old@example.com"\ngit_user_name: "Old Name"\n'
+        )
+        mock_ui.prompt = MagicMock(return_value="")
+        mock_ui.confirm = MagicMock(return_value=False)
+        mock_runner.sops_encrypt_in_place = MagicMock()
+
+        first_run.edit_secrets(mock_runner, mock_ui, "macos")
+
+        # First ui.prompt call should have default="old@example.com" (via _prompt_for_field).
+        first_call = mock_ui.prompt.call_args_list[0]
+        assert first_call.kwargs.get("default") == "old@example.com"
+
+    def test_secret_field_has_doc_url(self):
+        """SHELL_SECRETS entries should have doc_url populated."""
+        for sf in first_run.SHELL_SECRETS:
+            assert sf.doc_url, f"{sf.key} should have a doc_url"
+            assert sf.doc_url.startswith("https://"), f"{sf.key} doc_url should be HTTPS"
 
     def test_platform_awareness_macos(
         self, tmp_repo, mock_runner, mock_ui, monkeypatch
@@ -80,8 +162,8 @@ class TestEditSecrets:
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
 
         mock_runner.sops_decrypt = MagicMock(return_value="")
-        mock_runner.gum_input = MagicMock(return_value="")
-        mock_runner.gum_confirm = MagicMock(return_value=False)
+        mock_ui.prompt = MagicMock(return_value="")
+        mock_ui.confirm = MagicMock(return_value=False)
         mock_runner.sops_encrypt_in_place = MagicMock()
 
         first_run.edit_secrets(mock_runner, mock_ui, "macos")
@@ -97,8 +179,8 @@ class TestEditSecrets:
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
 
         mock_runner.sops_decrypt = MagicMock(return_value="")
-        mock_runner.gum_input = MagicMock(return_value="")
-        mock_runner.gum_confirm = MagicMock(return_value=False)
+        mock_ui.prompt = MagicMock(return_value="")
+        mock_ui.confirm = MagicMock(return_value=False)
         mock_runner.sops_encrypt_in_place = MagicMock()
 
         first_run.edit_secrets(mock_runner, mock_ui, "linux")
@@ -151,3 +233,25 @@ class TestWriteAndEncryptIntegration:
 
         assert written_content is not None
         assert 'export MY_KEY="my_value"' in written_content
+
+    def test_multiple_ansible_vars_in_yaml(self, tmp_path, mock_runner, mock_ui):
+        """Multiple ansible vars should all appear in the YAML output."""
+        target = tmp_path / "secrets" / "vars.sops.yml"
+        target.parent.mkdir(parents=True)
+
+        written_content = None
+
+        def capture_encrypt(path):
+            nonlocal written_content
+            written_content = path.read_text()
+
+        mock_runner.sops_encrypt_in_place = capture_encrypt
+
+        content = '---\ngit_user_email: "a@b.com"\ngit_user_name: "Test"'
+        first_run.write_and_encrypt(mock_runner, target, content, mock_ui)
+
+        assert written_content is not None
+        import yaml
+        parsed = yaml.safe_load(written_content)
+        assert parsed["git_user_email"] == "a@b.com"
+        assert parsed["git_user_name"] == "Test"

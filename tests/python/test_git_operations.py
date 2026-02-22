@@ -60,11 +60,11 @@ class TestDetachFromTemplate:
             return subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
 
         mock_runner.git = MagicMock(side_effect=git_side_effect)
-        mock_runner.gum_confirm = MagicMock(return_value=True)
+        mock_ui.confirm = MagicMock(return_value=True)
 
         first_run.detach_from_template(mock_runner, mock_ui, sample_config)
 
-        mock_runner.gum_confirm.assert_called_once()
+        mock_ui.confirm.assert_called_once()
         # Verify remote remove was called.
         mock_runner.git.assert_any_call("remote", "remove", "origin")
 
@@ -75,7 +75,7 @@ class TestCommitAndPush:
     def test_skip_on_decline(self, mock_runner, mock_ui, sample_config, monkeypatch):
         """If user declines, nothing should happen."""
         monkeypatch.setattr(first_run, "REPO_ROOT", Path("/tmp/test"))
-        mock_runner.gum_confirm = MagicMock(return_value=False)
+        mock_ui.confirm = MagicMock(return_value=False)
 
         first_run.commit_and_push(mock_runner, mock_ui, sample_config)
 
@@ -87,7 +87,7 @@ class TestCommitAndPush:
     ):
         """Should stage -u and specific named files."""
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
-        mock_runner.gum_confirm = MagicMock(return_value=True)
+        mock_ui.confirm = MagicMock(return_value=True)
 
         # Has staged changes.
         def git_side_effect(*args, **kwargs):
@@ -110,9 +110,7 @@ class TestCommitAndPush:
     ):
         """Push should verify merge-base ancestry."""
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
-        mock_runner.gum_confirm = MagicMock(return_value=True)
-
-        call_count = {"n": 0}
+        mock_ui.confirm = MagicMock(return_value=True)
 
         def git_side_effect(*args, **kwargs):
             if args == ("diff", "--cached", "--quiet"):
@@ -149,7 +147,7 @@ class TestCommitAndPush:
     ):
         """Should warn and refuse push if histories don't share ancestry."""
         monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
-        mock_runner.gum_confirm = MagicMock(return_value=True)
+        mock_ui.confirm = MagicMock(return_value=True)
 
         def git_side_effect(*args, **kwargs):
             check = kwargs.get("check", True)
