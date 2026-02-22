@@ -9,16 +9,42 @@
         that: ansible_os_family == "Debian"
         fail_msg: "This playbook is for Debian-based Linux only."
 
-    # Clean up auto-generated apt source files from prior bootstrap runs
-    # that didn't set filename: on apt_repository. These can conflict with
-    # files created by package installers (e.g. VS Code's dpkg post-install).
-    - name: Remove stale auto-generated apt source files
+    # Remove ALL apt source files that reference repos whose Signed-By
+    # values conflict (e.g. VS Code creates its own source with a different
+    # keyring than our Ansible role). Content-based matching catches every
+    # variant regardless of filename or format (.list / .sources).
+    - name: Find conflicting VS Code apt sources
+      ansible.builtin.find:
+        paths: /etc/apt/sources.list.d
+        patterns: ["*.list", "*.sources"]
+        contains: "packages\\.microsoft\\.com/repos/code"
+      register: _stale_vscode_sources
+      become: true
+
+    - name: Remove conflicting VS Code apt sources
       ansible.builtin.file:
-        path: "/etc/apt/sources.list.d/{{ item }}"
+        path: "{{ item.path }}"
         state: absent
-      loop:
-        - packages_microsoft_com_repos_code.list
-        - downloads_1password_com_linux_debian_amd64.list
+      loop: "{{ _stale_vscode_sources.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      become: true
+
+    - name: Find conflicting 1Password apt sources
+      ansible.builtin.find:
+        paths: /etc/apt/sources.list.d
+        patterns: ["*.list", "*.sources"]
+        contains: "downloads\\.1password\\.com"
+      register: _stale_1password_sources
+      become: true
+
+    - name: Remove conflicting 1Password apt sources
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ _stale_1password_sources.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
       become: true
 
   roles:
