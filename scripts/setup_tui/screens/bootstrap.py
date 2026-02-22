@@ -28,6 +28,9 @@ from ..lib.runner import REPO_ROOT
 
 logger = logging.getLogger("setup")
 
+BOOTSTRAP_LOG = REPO_ROOT / "bootstrap.log"
+ANSIBLE_LOG = Path.home() / ".local" / "log" / "ansible.log"
+
 # Phase definitions — order matches site.yml playbook imports.
 PHASES = [
     ("system", "System", "OS packages, fonts, system settings"),
@@ -203,6 +206,7 @@ class BootstrapRunScreen(Screen):
         self.phases = phases
         self.become_pass = become_pass
         self._finished = False
+        self._log_file = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -223,9 +227,21 @@ class BootstrapRunScreen(Screen):
     @work(thread=True)
     def _run_bootstrap(self) -> None:
         """Run the full bootstrap pipeline in a background thread."""
+        import re
+        from datetime import datetime, timezone
+
         platform = self.app.platform
         platform_dir = "macos" if platform == "macos" else "linux"
         apply_system_roles = "system" in self.phases
+
+        # Create fresh bootstrap.log for this run.
+        self._log_file = open(BOOTSTRAP_LOG, "w")
+        self._log_file.write(
+            f"Bootstrap started: {datetime.now(timezone.utc).isoformat()}\n"
+            f"Mode: {self.mode}  Platform: {platform}\n"
+            f"Phases: {', '.join(self.phases)}\n"
+            f"{'=' * 60}\n\n"
+        )
 
         steps = [
             ("Install prerequisites", self._step_prereqs),
@@ -257,6 +273,7 @@ class BootstrapRunScreen(Screen):
                 success = False
                 break
 
+        log_path = str(BOOTSTRAP_LOG)
         if success:
             self.app.call_from_thread(
                 self._update_sidebar, steps, len(steps)
@@ -266,16 +283,25 @@ class BootstrapRunScreen(Screen):
                 "\n[bold green]Bootstrap complete![/bold green]\n"
                 "[dim]Some changes may require a shell restart "
                 "or system reboot.[/dim]\n"
-                f"[dim]Log: ~/.local/log/setup.log[/dim]\n"
+                f"[dim]Log: {log_path}[/dim]\n"
             )
         else:
             self.app.call_from_thread(
                 self._log,
                 "\n[bold red]Bootstrap failed.[/bold red] "
                 "Fix the issue above and re-run.\n"
-                "[dim]Log: ~/.local/log/setup.log[/dim]\n"
+                f"[dim]Log: {log_path}[/dim]\n"
             )
 
+        # Append ansible log if it exists.
+        if ANSIBLE_LOG.exists():
+            self._log_file.write(f"\n{'=' * 60}\n")
+            self._log_file.write("Ansible log (from ~/.local/log/ansible.log):\n")
+            self._log_file.write(f"{'=' * 60}\n\n")
+            self._log_file.write(ANSIBLE_LOG.read_text())
+
+        self._log_file.close()
+        self._log_file = None
         self._finished = True
         self.app.call_from_thread(self._enable_done_buttons)
 
@@ -373,9 +399,17 @@ class BootstrapRunScreen(Screen):
             )
 
     def _log(self, text: str) -> None:
-        """Write a line to the RichLog widget."""
+        """Write a line to the RichLog widget and bootstrap.log file."""
+        import re
+
         log_widget = self.query_one("#output", RichLog)
         log_widget.write(text)
+
+        if self._log_file and not self._log_file.closed:
+            # Strip Rich markup tags for the plain-text log file.
+            plain = re.sub(r"\[/?[^\]]*\]", "", text)
+            self._log_file.write(plain + "\n")
+            self._log_file.flush()
 
     def _update_sidebar(
         self, steps: list[tuple[str, object]], current: int
