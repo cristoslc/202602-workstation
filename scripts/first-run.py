@@ -808,7 +808,18 @@ def edit_secrets(
 
     # --- Shell secrets (export KEY="value") ---
     ui.console.print()
-    ui.info("Shell secrets (exported in .zshrc via secrets.zsh):")
+    ui.banner(
+        "Shell Secrets",
+        [
+            "These become environment variables in every terminal session.",
+            "Stored encrypted in the repo, decrypted at bootstrap, and",
+            "sourced by .zshrc via ~/.config/zsh/secrets.zsh.",
+            "",
+            "Examples:  ANTHROPIC_API_KEY, GITHUB_TOKEN, OPENAI_API_KEY,",
+            "           AWS_ACCESS_KEY_ID, HOMEBREW_GITHUB_API_TOKEN",
+        ],
+        border_style="cyan",
+    )
 
     shell_file = (
         REPO_ROOT / "shared" / "secrets" / "dotfiles" / "zsh"
@@ -832,7 +843,7 @@ def edit_secrets(
                 # Preserve existing content.
                 shell_content = existing
 
-    while runner.gum_confirm('Add a shell secret (export KEY="value")?'):
+    while runner.gum_confirm("Add a shell secret?"):
         key = runner.gum_input(header="Variable name", placeholder="SOME_API_KEY")
         if not key:
             continue
