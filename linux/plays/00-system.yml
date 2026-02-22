@@ -12,8 +12,8 @@
   roles:
     - role: base
       tags: [base, system]
-      when: apply_system_roles | default(true)
+      when: apply_system_roles | default(true) | bool
 
     - role: system
       tags: [system]
-      when: apply_system_roles | default(true)
+      when: apply_system_roles | default(true) | bool

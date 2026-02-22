@@ -48,4 +48,4 @@
 
     - role: macos-defaults
       tags: [macos-defaults, desktop]
-      when: apply_macos_defaults | default(true)
+      when: apply_macos_defaults | default(true) | bool

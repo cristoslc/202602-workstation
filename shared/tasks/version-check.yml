@@ -13,7 +13,7 @@
 # Requires: skip_version_check (from role defaults, default false)
 
 - name: "{{ tool_name }} — check for newer version on GitHub"
-  when: not (skip_version_check | default(false))
+  when: not (skip_version_check | default(false) | bool)
   block:
     - name: "{{ tool_name }} — build GitHub API headers"
       ansible.builtin.set_fact:
