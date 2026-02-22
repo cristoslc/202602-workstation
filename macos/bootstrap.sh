@@ -10,6 +10,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Source shared wizard
 source "$SCRIPT_DIR/../shared/lib/wizard.sh"
+setup_logging
 
 trap 'error "Bootstrap failed. Re-run after fixing the issue above."' ERR
 
@@ -75,7 +76,6 @@ resolve_age_key || true
 
 # --- Phase 8: Run Ansible ---
 
-mkdir -p "$HOME/.local/log"
 info "Running Ansible playbook..."
 export ANSIBLE_CONFIG="$SCRIPT_DIR/ansible.cfg"
 cd "$SCRIPT_DIR"
