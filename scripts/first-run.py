@@ -241,18 +241,22 @@ class WizardUI:
         label: str,
         *,
         default: str = "",
-        password: bool = False,
+        sensitive: bool = False,
     ) -> str:
-        """Prompt for a single-line value. Returns empty string on Enter."""
-        suffix = f" [{default}]" if default and not password else ""
+        """Prompt for a single-line value. Returns empty string on Enter.
+
+        sensitive: if True, the value is masked in logs (but still visible
+        during input so the user can verify paste accuracy).
+        """
+        suffix = f" [{default}]" if default and not sensitive else ""
         prompt_str = f"  [bold cyan]{label}[/bold cyan]{suffix}: "
-        logger.debug("Prompt: %s (default=%r, password=%s)", label, default, password)
+        logger.debug("Prompt: %s (default=%r, sensitive=%s)", label, default, sensitive)
         try:
-            value = self.console.input(prompt_str, password=password)
+            value = self.console.input(prompt_str)
         except EOFError:
             value = ""
         result = value.strip() or default
-        logger.debug("Prompt result: %s", "***" if password else result)
+        logger.debug("Prompt result: %s", "***" if sensitive else result)
         return result
 
     def confirm(self, question: str, *, default: bool = False) -> bool:
@@ -885,12 +889,12 @@ def _prompt_for_field(
     elif current and sf.password:
         label += f" [current: {_mask_value(current)}]"
 
-    value = ui.prompt(label, default=current, password=sf.password)
+    value = ui.prompt(label, default=current, sensitive=sf.password)
 
-    # Show confirmation so user can verify what was captured.
+    # Show masked confirmation so the user can verify what was captured.
     if value and sf.password:
         ui.console.print(
-            f"  [green]\u2713[/green] [dim]{_mask_value(value)} "
+            f"  [green]\u2713[/green] [dim]Saved: {_mask_value(value)} "
             f"({len(value)} chars)[/dim]"
         )
 
@@ -987,12 +991,15 @@ def edit_secrets(
         custom_key = ui.prompt("Variable name")
         if not custom_key:
             continue
-        custom_value = ui.prompt(f"Value for {custom_key}", password=True)
+        custom_value = ui.prompt(f"Value for {custom_key}", sensitive=True)
         if not custom_value:
             ui.info(f"  Skipped {custom_key} (empty value).")
             continue
         collected_exports[custom_key] = custom_value
-        ui.info(f"  {custom_key}: set")
+        ui.info(
+            f"  {custom_key}: saved "
+            f"({_mask_value(custom_value)}, {len(custom_value)} chars)"
+        )
 
     # Write secrets.zsh.sops.
     if collected_exports:
