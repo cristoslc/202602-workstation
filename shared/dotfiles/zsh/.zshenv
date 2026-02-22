@@ -21,7 +21,7 @@ fi
 # uv managed Python
 if [ -d "$HOME/.local/share/uv/python" ]; then
   _uv_python_bin="$(find "$HOME/.local/share/uv/python" -maxdepth 2 -name bin -type d | head -1)" 2>/dev/null
-  export PATH="${_uv_python_bin}:$PATH"
+  export PATH="$PATH:${_uv_python_bin}"
   unset _uv_python_bin
 fi
 

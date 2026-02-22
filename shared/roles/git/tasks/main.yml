@@ -5,17 +5,25 @@
 - name: Include OS-specific git install
   ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
 
+- name: Ensure git config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/git"
+    state: directory
+    mode: "0755"
+
 - name: Configure git user name
   community.general.git_config:
     name: user.name
-    scope: global
+    scope: file
+    file: "{{ ansible_facts.env.HOME }}/.config/git/local.gitconfig"
     value: "{{ git_user_name }}"
   when: git_user_name is defined
 
 - name: Configure git user email
   community.general.git_config:
     name: user.email
-    scope: global
+    scope: file
+    file: "{{ ansible_facts.env.HOME }}/.config/git/local.gitconfig"
     value: "{{ git_user_email }}"
   when: git_user_email is defined
 

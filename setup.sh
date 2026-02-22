@@ -70,4 +70,13 @@ fi
 
 # --- Hand off to the Textual TUI ---
 
-exec uv run --with textual,pyyaml "$SCRIPT_DIR/scripts/setup.py" "$@"
+uv run --with textual,pyyaml "$SCRIPT_DIR/scripts/setup.py" "$@" || tui_exit=$?
+tui_exit="${tui_exit:-0}"
+
+# Exit code 7 = bootstrap succeeded, reload shell to pick up new dotfiles.
+if [ "$tui_exit" -eq 7 ]; then
+  echo "Reloading shell to apply updated configs..."
+  exec "${SHELL:-/bin/bash}" -l
+fi
+
+exit "$tui_exit"

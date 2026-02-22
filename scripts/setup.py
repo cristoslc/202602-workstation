@@ -34,6 +34,9 @@ def main() -> None:
     if result == "relaunch":
         # Re-exec through the same entry point after Textual restores the terminal.
         os.execv(sys.executable, [sys.executable] + sys.argv)
+    elif result == "reload_shell":
+        # Signal setup.sh to exec the user's login shell for config reload.
+        sys.exit(7)
 
 
 if __name__ == "__main__":

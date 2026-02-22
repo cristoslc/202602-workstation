@@ -189,20 +189,26 @@ class BootstrapPasswordScreen(Screen):
         self.query_one("#run", Button).disabled = True
         self.query_one("#sudo-password", Input).disabled = True
         self.query_one("#password-error", Static).update(
-            "[dim]Verifying sudo password...[/dim]"
+            "[dim]Verifying sudo password… "
+            "(may take ~15 s if fingerprint auth is active)[/dim]"
         )
         self._validate_sudo(password)
 
     @work(thread=True)
     def _validate_sudo(self, password: str) -> None:
-        """Test the sudo password before starting the bootstrap run."""
+        """Test the sudo password before starting the bootstrap run.
+
+        pam_fprintd (if present) blocks for up to 15 s waiting for a
+        fingerprint before falling through to pam_unix.  We use a 20 s
+        timeout so the password is still validated correctly.
+        """
         try:
             proc = subprocess.run(
                 ["sudo", "-kS", "true"],
                 input=password + "\n",
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=20,
             )
             if proc.returncode == 0:
                 logger.debug("Sudo password validated successfully")
@@ -214,8 +220,12 @@ class BootstrapPasswordScreen(Screen):
                 logger.warning("Sudo password validation failed (exit %d)", proc.returncode)
                 self.app.call_from_thread(self._show_password_error)
         except subprocess.TimeoutExpired:
-            logger.warning("Sudo password validation timed out")
-            self.app.call_from_thread(self._show_password_error)
+            # Even 20 s wasn't enough — proceed anyway and let
+            # ansible-playbook validate the password at runtime.
+            logger.warning(
+                "Sudo validation timed out after 20 s; skipping validation"
+            )
+            self.app.call_from_thread(self._show_timeout_warning, password)
 
     def _show_password_error(self) -> None:
         """Reset the form and show an error message for wrong password."""
@@ -227,6 +237,16 @@ class BootstrapPasswordScreen(Screen):
         password_input.disabled = False
         password_input.focus()
         self.query_one("#run", Button).disabled = False
+
+    def _show_timeout_warning(self, password: str) -> None:
+        """Sudo timed out (likely fingerprint auth). Proceed with a warning."""
+        self.query_one("#password-error", Static).update(
+            "[bold yellow]Sudo timed out[/bold yellow] — fingerprint auth may "
+            "be interfering.\nProceeding; Ansible will verify the password."
+        )
+        self.app.push_screen(
+            BootstrapRunScreen(self.mode, self.phases, password),
+        )
 
 
 class BootstrapRunScreen(Screen):
@@ -244,6 +264,7 @@ class BootstrapRunScreen(Screen):
         self.phases = phases
         self.become_pass = become_pass
         self._finished = False
+        self._success = False
         self._log_file = None
 
     def compose(self) -> ComposeResult:
@@ -320,8 +341,8 @@ class BootstrapRunScreen(Screen):
             self.app.call_from_thread(
                 self._log,
                 "\n[bold green]Bootstrap complete![/bold green]\n"
-                "[dim]Some changes may require a shell restart "
-                "or system reboot.[/dim]\n"
+                "[dim]Shell configs will reload automatically "
+                "when you press Done.[/dim]\n"
                 f"[dim]Log: {log_path}[/dim]\n"
             )
         else:
@@ -342,6 +363,7 @@ class BootstrapRunScreen(Screen):
         self._log_file.close()
         self._log_file = None
         self._finished = True
+        self._success = success
         self.app.call_from_thread(self._enable_done_buttons)
 
     def _step_prereqs(
@@ -497,7 +519,7 @@ class BootstrapRunScreen(Screen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "done":
-            self.app.exit()
+            self.app.exit(result="reload_shell" if self._success else None)
         elif event.button.id == "back":
             # Pop all bootstrap screens back to welcome.
             from .welcome import WelcomeScreen
