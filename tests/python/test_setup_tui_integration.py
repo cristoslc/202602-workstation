@@ -508,7 +508,7 @@ class TestBootstrapPhaseScreen:
     """BootstrapPhaseScreen should render checkboxes for each phase."""
 
     @pytest.mark.asyncio
-    async def test_phase_screen_renders_checkboxes(self, personalized_state):
+    async def test_phase_screen_renders_selections(self, personalized_state):
         async with _AppTestContext(
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
@@ -517,10 +517,10 @@ class TestBootstrapPhaseScreen:
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
 
-            # Should have 5 checkboxes for the 5 phases.
-            from textual.widgets import Checkbox
-            checkboxes = ctx.app.screen.query(Checkbox)
-            assert len(checkboxes) == 5
+            # Should have 5 options in the SelectionList for the 5 phases.
+            from textual.widgets import SelectionList
+            selection_list = ctx.app.screen.query_one(SelectionList)
+            assert selection_list.option_count == 5
 
     @pytest.mark.asyncio
     async def test_fresh_mode_selects_all_phases(self, personalized_state):
@@ -532,9 +532,9 @@ class TestBootstrapPhaseScreen:
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
 
-            from textual.widgets import Checkbox
-            checkboxes = ctx.app.screen.query(Checkbox)
-            assert all(cb.value for cb in checkboxes)
+            from textual.widgets import SelectionList
+            selection_list = ctx.app.screen.query_one(SelectionList)
+            assert len(selection_list.selected) == 5
 
     @pytest.mark.asyncio
     async def test_next_navigates_to_password_screen(self, personalized_state):

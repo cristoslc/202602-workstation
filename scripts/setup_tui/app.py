@@ -102,6 +102,11 @@ Screen {
     width: 40;
     margin: 1 0;
 }
+
+#password-error {
+    height: auto;
+    margin: 0 0 1 0;
+}
 """
 
 

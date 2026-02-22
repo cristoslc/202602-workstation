@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import subprocess
+
 from textual import work
 from textual.app import ComposeResult
 from textual.containers import Vertical
@@ -9,7 +12,10 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, OptionList, Static
 from textual.widgets.option_list import Option
 
+from ..lib.runner import REPO_ROOT
 from ..lib.state import detect_resume_state
+
+logger = logging.getLogger("setup")
 
 
 class WelcomeScreen(Screen):
@@ -57,6 +63,7 @@ class WelcomeScreen(Screen):
             )
             menu.add_options([
                 Option("Start First-Run Setup", id="first-run"),
+                Option("Update and Relaunch", id="update"),
                 Option("Quit", id="quit"),
             ])
         else:
@@ -90,6 +97,7 @@ class WelcomeScreen(Screen):
                 Option("Bootstrap This Machine", id="bootstrap"),
                 Option("Edit Secrets", id="edit-secrets"),
                 Option("Re-Run First-Time Setup", id="first-run"),
+                Option("Update and Relaunch", id="update"),
                 Option("Quit", id="quit"),
             ])
 
@@ -111,6 +119,61 @@ class WelcomeScreen(Screen):
             self.app.push_screen(FirstRunPlaceholderScreen())
         elif option_id == "edit-secrets":
             self.app.push_screen(SecretsPlaceholderScreen())
+        elif option_id == "update":
+            self._run_update()
+
+    @work(thread=True)
+    def _run_update(self) -> None:
+        """Pull latest changes and signal the app to relaunch."""
+        status = self.query_one("#status", Static)
+        menu = self.query_one("#menu", OptionList)
+        self.app.call_from_thread(menu.__setattr__, "display", False)
+        self.app.call_from_thread(
+            status.update,
+            "[bold]Workstation Setup[/bold]\n\n"
+            "[dim]Pulling latest changes...[/dim]"
+        )
+
+        try:
+            result = subprocess.run(
+                ["git", "pull", "--ff-only"],
+                capture_output=True, text=True,
+                cwd=str(REPO_ROOT), timeout=30,
+            )
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                logger.info("git pull: %s", output)
+                if "Already up to date" in output:
+                    self.app.call_from_thread(
+                        status.update,
+                        "[bold]Workstation Setup[/bold]\n\n"
+                        "[green]Already up to date.[/green] Relaunching..."
+                    )
+                else:
+                    self.app.call_from_thread(
+                        status.update,
+                        "[bold]Workstation Setup[/bold]\n\n"
+                        f"[green]Updated.[/green]\n[dim]{output}[/dim]\n\n"
+                        "Relaunching..."
+                    )
+                # Signal main() to re-exec after Textual exits.
+                self.app.exit(result="relaunch")
+            else:
+                logger.warning("git pull failed: %s", result.stderr.strip())
+                self.app.call_from_thread(
+                    status.update,
+                    "[bold]Workstation Setup[/bold]\n\n"
+                    f"[red]Update failed:[/red]\n{result.stderr.strip()}"
+                )
+                self.app.call_from_thread(menu.__setattr__, "display", True)
+        except subprocess.TimeoutExpired:
+            logger.warning("git pull timed out")
+            self.app.call_from_thread(
+                status.update,
+                "[bold]Workstation Setup[/bold]\n\n"
+                "[red]Update timed out.[/red] Check your network connection."
+            )
+            self.app.call_from_thread(menu.__setattr__, "display", True)
 
 
 # Placeholder screens — will be replaced in Phase 3.

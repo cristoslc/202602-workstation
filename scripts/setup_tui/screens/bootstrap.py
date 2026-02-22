@@ -167,6 +167,7 @@ class BootstrapPasswordScreen(Screen):
                 password=True,
                 id="sudo-password",
             )
+            yield Static("", id="password-error")
             yield Button("Run Bootstrap", id="run", variant="primary")
         yield Footer()
 
@@ -184,9 +185,48 @@ class BootstrapPasswordScreen(Screen):
         password = self.query_one("#sudo-password", Input).value
         if not password:
             return
-        self.app.push_screen(
-            BootstrapRunScreen(self.mode, self.phases, password)
+        # Disable controls while validating.
+        self.query_one("#run", Button).disabled = True
+        self.query_one("#sudo-password", Input).disabled = True
+        self.query_one("#password-error", Static).update(
+            "[dim]Verifying sudo password...[/dim]"
         )
+        self._validate_sudo(password)
+
+    @work(thread=True)
+    def _validate_sudo(self, password: str) -> None:
+        """Test the sudo password before starting the bootstrap run."""
+        try:
+            proc = subprocess.run(
+                ["sudo", "-kS", "true"],
+                input=password + "\n",
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if proc.returncode == 0:
+                logger.debug("Sudo password validated successfully")
+                self.app.call_from_thread(
+                    self.app.push_screen,
+                    BootstrapRunScreen(self.mode, self.phases, password),
+                )
+            else:
+                logger.warning("Sudo password validation failed (exit %d)", proc.returncode)
+                self.app.call_from_thread(self._show_password_error)
+        except subprocess.TimeoutExpired:
+            logger.warning("Sudo password validation timed out")
+            self.app.call_from_thread(self._show_password_error)
+
+    def _show_password_error(self) -> None:
+        """Reset the form and show an error message for wrong password."""
+        self.query_one("#password-error", Static).update(
+            "[bold red]Wrong password.[/bold red] Please try again."
+        )
+        password_input = self.query_one("#sudo-password", Input)
+        password_input.value = ""
+        password_input.disabled = False
+        password_input.focus()
+        self.query_one("#run", Button).disabled = False
 
 
 class BootstrapRunScreen(Screen):

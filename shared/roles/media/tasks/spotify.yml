@@ -26,9 +26,17 @@
       become: true
 
     - name: Dearmor Spotify GPG key
-      ansible.builtin.shell: gpg --batch --yes --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg /tmp/spotify-key.asc
+      ansible.builtin.shell: |
+        old_hash=""
+        [ -f /usr/share/keyrings/spotify-archive-keyring.gpg ] && old_hash=$(sha256sum /usr/share/keyrings/spotify-archive-keyring.gpg | cut -d' ' -f1)
+        gpg --batch --yes --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg /tmp/spotify-key.asc
+        new_hash=$(sha256sum /usr/share/keyrings/spotify-archive-keyring.gpg | cut -d' ' -f1)
+        [ "$old_hash" != "$new_hash" ] && echo "CHANGED" || echo "OK"
+      args:
+        executable: /bin/bash
       become: true
-      changed_when: true
+      register: _spotify_dearmor
+      changed_when: "'CHANGED' in _spotify_dearmor.stdout"
 
     - name: Clean up Spotify key temp file
       ansible.builtin.file:

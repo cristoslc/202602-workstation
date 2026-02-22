@@ -29,7 +29,11 @@ def main() -> None:
     from setup_tui.app import SetupApp
 
     app = SetupApp(debug=args.debug, start_screen="bootstrap" if args.bootstrap else None)
-    app.run()
+    result = app.run()
+
+    if result == "relaunch":
+        # Re-exec through the same entry point after Textual restores the terminal.
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 if __name__ == "__main__":

@@ -43,12 +43,23 @@
             path: /tmp/espanso.deb
             state: absent
 
+    - name: Check if Espanso systemd service exists
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.config/systemd/user/espanso.service"
+      register: _espanso_service_file
+
     - name: Register Espanso systemd service
       ansible.builtin.command: espanso service register
+      when: not _espanso_service_file.stat.exists
+      changed_when: true
+
+    - name: Check if Espanso service is running
+      ansible.builtin.command: systemctl --user is-active espanso.service
+      register: _espanso_active
       changed_when: false
       failed_when: false
 
     - name: Start Espanso service
       ansible.builtin.command: espanso service start
-      changed_when: false
-      failed_when: false
+      when: _espanso_active.rc != 0
+      changed_when: true

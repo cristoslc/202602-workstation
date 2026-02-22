@@ -15,6 +15,39 @@
     recurse: false
   register: stow_packages
 
+- name: "Resolve {{ stow_label }} stow conflicts"
+  when: stow_dir_stat.stat.exists and stow_packages.files | length > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    # Dry-run stow to find conflicting real files.
+    conflicts=$(stow --no-folding \
+      -d "{{ stow_dir }}" \
+      -t "{{ ansible_env.HOME }}" \
+      -n --restow \
+      "{{ item.path | basename }}" 2>&1 || true)
+
+    # Extract paths of conflicting real files.
+    echo "$conflicts" | grep 'existing target is neither a link nor a directory:' | \
+      sed 's/.*existing target is neither a link nor a directory: //' | \
+      while IFS= read -r relpath; do
+        target="{{ ansible_env.HOME }}/$relpath"
+        if [ -f "$target" ] && [ ! -L "$target" ]; then
+          backup_dir="{{ ansible_env.HOME }}/.workstation-backup/stow-conflicts"
+          backup_path="$backup_dir/$relpath"
+          mkdir -p "$(dirname "$backup_path")"
+          cp "$target" "$backup_path"
+          rm "$target"
+          echo "RESOLVED: $relpath"
+        fi
+      done
+  args:
+    executable: /bin/bash
+  loop: "{{ stow_packages.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: _stow_conflicts
+  changed_when: "'RESOLVED' in _stow_conflicts.stdout"
+
 - name: "Stow {{ stow_label }} packages"
   when: stow_dir_stat.stat.exists and stow_packages.files | length > 0
   ansible.builtin.command: >

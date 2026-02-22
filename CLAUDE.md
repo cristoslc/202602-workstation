@@ -18,11 +18,11 @@ Cross-platform (macOS + Linux) workstation provisioning using Ansible, GNU Stow,
 
 ## Commit discipline
 
-**The personalization commit is always the final commit on the branch.** Every commit before it is clean, reusable template code. This is the upstream — anyone can fork the repo and every commit up to (but not including) personalization works out of the box.
+This is a personalized fork of a template repo. Personalized content (age keys, repo URLs, encrypted secrets) is mixed into the history. A future re-templatization pass will clean this up once the feature set stabilizes. Until then, just commit normally — no reordering needed.
 
 ### What is personalization?
 
-These files — and ONLY these files — contain personalized content:
+These files contain personalized content:
 
 | File | Personalized content |
 |------|---------------------|
@@ -30,25 +30,6 @@ These files — and ONLY these files — contain personalized content:
 | `bootstrap.sh` | Real GitHub repo URL (replaces `${GITHUB_REPO_URL}`) |
 | `README.md` | Real repo URL, username, repo name |
 | `*/secrets/*.sops.*` | Encrypted with real age key |
-
-Everything else is template code.
-
-### Commit procedure (MUST follow for every commit)
-
-1. **Classify your change.** If it touches ANY file not in the table above, it is a template change.
-2. **Commit the template change.** Write the commit as normal.
-3. **Reorder before pushing.** After every template commit, reorder so personalization is last:
-   ```
-   git reset --hard <hash-of-your-new-template-commit>
-   git cherry-pick <personalization-commit-hash>
-   git push --force-with-lease
-   ```
-   To find the personalization commit: `git log --oneline --all | grep "Initialize personalized"`
-4. **Never push with personalization buried in the middle of the history.** If you realize template commits are stacked after personalization, stop and reorder before pushing.
-
-### Why this matters
-
-The commit history before personalization IS the template. If personalized content (age keys, repo URLs, encrypted secrets) appears in a template-position commit, it leaks into upstream and every future fork inherits someone else's config.
 
 ## Key conventions
 
