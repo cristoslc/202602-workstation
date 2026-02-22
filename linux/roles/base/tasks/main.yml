@@ -47,12 +47,11 @@
     expected_sha256: "{{ dust_sha256 }}"
     tool_name: dust
 
-- name: Extract dust binary
+- name: Install dust .deb
   when: dust_installed.rc != 0
-  ansible.builtin.shell: >
-    tar xzf "{{ _verified_download.path }}"
-    --strip-components=1 -C /usr/local/bin --wildcards '*/dust'
-  changed_when: true
+  ansible.builtin.apt:
+    deb: "{{ _verified_download.path }}"
+    state: present
   become: true
 
 - name: Clean up dust temp file
@@ -96,41 +95,29 @@
     path: "{{ _verified_download.path }}"
     state: absent
 
-# --- eza (modern ls) ---
-- name: Check eza version
-  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
-  vars:
-    tool_name: eza
-    tool_repo: eza-community/eza
-    pinned_version: "{{ eza_version }}"
-
-- name: Check if eza is installed at correct version
-  ansible.builtin.shell: eza --version 2>/dev/null | grep -qF '{{ eza_version }}'
-  register: eza_installed
-  changed_when: false
-  failed_when: false
-
-- name: Download and verify eza
-  when: eza_installed.rc != 0
-  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
-  vars:
-    download_url: "{{ eza_url }}"
-    expected_sha256: "{{ eza_sha256 }}"
-    tool_name: eza
-
-- name: Extract eza binary
-  when: eza_installed.rc != 0
-  ansible.builtin.unarchive:
-    src: "{{ _verified_download.path }}"
-    dest: /usr/local/bin
-    remote_src: true
-    include:
-      - eza
+# --- eza (modern ls — installed via apt repo) ---
+- name: Ensure apt keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
     mode: "0755"
   become: true
 
-- name: Clean up eza temp file
-  when: eza_installed.rc != 0 and _verified_download is defined
-  ansible.builtin.file:
-    path: "{{ _verified_download.path }}"
-    state: absent
+- name: Download eza GPG key
+  ansible.builtin.get_url:
+    url: "{{ eza_gpg_url }}"
+    dest: /etc/apt/keyrings/eza.asc
+    mode: "0644"
+  become: true
+
+- name: Add eza apt repository
+  ansible.builtin.apt_repository:
+    repo: "{{ eza_apt_repo }}"
+    filename: eza
+  become: true
+
+- name: Install eza
+  ansible.builtin.apt:
+    name: eza
+    state: present
+  become: true

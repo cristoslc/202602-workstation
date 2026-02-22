@@ -31,8 +31,8 @@ setup: ## Setup wizard (Textual TUI — replaces first-run + bootstrap)
 first-run: ## One-time repo setup (age key, encrypt secrets, GitHub remote)
 	./first-run.sh
 
-bootstrap: ## Run full bootstrap for this platform
-	./bootstrap.sh $(WORKSTATION_DIR)
+bootstrap: ## Run full bootstrap for this platform (via TUI)
+	./setup.sh --bootstrap
 
 lint: ## Run all linters (yamllint, shellcheck, ansible-lint, collisions)
 	./scripts/lint.sh

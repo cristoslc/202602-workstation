@@ -4,7 +4,8 @@ umask 077
 
 # Unified entry point: installs minimal prerequisites (python3, uv), then
 # hands off to the Textual TUI for all interactive logic.
-# Usage: ./setup.sh [--debug]
+# Usage: ./setup.sh [--debug] [--bootstrap]
+#   --bootstrap  Skip menu, go straight to bootstrap flow
 #   Or via curl one-liner:
 #     bash <(curl -fsSL https://raw.githubusercontent.com/.../setup.sh)
 

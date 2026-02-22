@@ -20,11 +20,15 @@ def main() -> None:
         description="Workstation setup wizard (Textual TUI)"
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument(
+        "--bootstrap", action="store_true",
+        help="Skip the welcome menu and go straight to bootstrap",
+    )
     args = parser.parse_args()
 
     from setup_tui.app import SetupApp
 
-    app = SetupApp(debug=args.debug)
+    app = SetupApp(debug=args.debug, start_screen="bootstrap" if args.bootstrap else None)
     app.run()
 
 

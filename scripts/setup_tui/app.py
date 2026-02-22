@@ -115,9 +115,12 @@ class SetupApp(App):
         ("q", "quit", "Quit"),
     ]
 
-    def __init__(self, *, debug: bool = False) -> None:
+    def __init__(
+        self, *, debug: bool = False, start_screen: str | None = None
+    ) -> None:
         super().__init__()
         self._debug_mode = debug
+        self._start_screen = start_screen
         self.runner = ToolRunner(debug=debug)
         self.platform = os.environ.get("PLATFORM") or (
             "macos" if sys.platform == "darwin" else "linux"
@@ -127,4 +130,9 @@ class SetupApp(App):
 
     def on_mount(self) -> None:
         setup_logging(debug=self._debug_mode)
-        self.push_screen(WelcomeScreen())
+        if self._start_screen == "bootstrap":
+            from .screens.bootstrap import BootstrapModeScreen
+
+            self.push_screen(BootstrapModeScreen())
+        else:
+            self.push_screen(WelcomeScreen())
