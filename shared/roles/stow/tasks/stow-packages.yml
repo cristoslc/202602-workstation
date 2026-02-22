@@ -27,19 +27,24 @@
       "{{ item.path | basename }}" 2>&1 || true)
 
     # Extract paths of conflicting real files.
-    echo "$conflicts" | grep 'existing target is neither a link nor a directory:' | \
-      sed 's/.*existing target is neither a link nor a directory: //' | \
-      while IFS= read -r relpath; do
-        target="{{ ansible_env.HOME }}/$relpath"
-        if [ -f "$target" ] && [ ! -L "$target" ]; then
-          backup_dir="{{ ansible_env.HOME }}/.workstation-backup/stow-conflicts"
-          backup_path="$backup_dir/$relpath"
-          mkdir -p "$(dirname "$backup_path")"
-          cp "$target" "$backup_path"
-          rm "$target"
-          echo "RESOLVED: $relpath"
-        fi
-      done
+    # grep is isolated from the pipeline so pipefail doesn't kill
+    # the script when there are no conflicts (grep rc=1 on no match).
+    matching=$(echo "$conflicts" | grep 'existing target is neither a link nor a directory:' || true)
+    if [ -n "$matching" ]; then
+      echo "$matching" | \
+        sed 's/.*existing target is neither a link nor a directory: //' | \
+        while IFS= read -r relpath; do
+          target="{{ ansible_env.HOME }}/$relpath"
+          if [ -f "$target" ] && [ ! -L "$target" ]; then
+            backup_dir="{{ ansible_env.HOME }}/.workstation-backup/stow-conflicts"
+            backup_path="$backup_dir/$relpath"
+            mkdir -p "$(dirname "$backup_path")"
+            cp "$target" "$backup_path"
+            rm "$target"
+            echo "RESOLVED: $relpath"
+          fi
+        done
+    fi
   args:
     executable: /bin/bash
   loop: "{{ stow_packages.files }}"
