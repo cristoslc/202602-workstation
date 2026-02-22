@@ -22,8 +22,8 @@ export PATH := $(HOME)/.local/bin:$(PATH)
         check-collisions test test-bats test-python check apply decrypt \
         clean-secrets status \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
-        export-key import-key send-key receive-key \
-        send-log receive-log
+        key-export key-import key-send key-receive \
+        log-send log-receive
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -105,21 +105,21 @@ test: lint test-bats test-python ## Run all linters and tests
 
 check: shellcheck yamllint check-collisions test-bats test-python ## Quick local verification (no ansible-lint)
 
-send-key: ## Send age key to another machine via Magic Wormhole
+key-send: ## Send age key to another machine via Magic Wormhole
 	./scripts/transfer-key.sh send
 
-receive-key: ## Receive age key from another machine via Magic Wormhole
+key-receive: ## Receive age key from another machine via Magic Wormhole
 	./scripts/transfer-key.sh receive
 
-export-key: ## Export age key as passphrase-encrypted blob (for AirDrop/paste)
+key-export: ## Export age key as passphrase-encrypted blob (for AirDrop/paste)
 	./scripts/transfer-key.sh export
 
-import-key: ## Import age key from passphrase-encrypted blob
+key-import: ## Import age key from passphrase-encrypted blob
 	./scripts/transfer-key.sh import
 
-send-log: ## Send bootstrap.log to another machine via Magic Wormhole
+log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 	@test -f bootstrap.log || { echo "No bootstrap.log found. Run make bootstrap first."; exit 1; }
 	uv run --with magic-wormhole wormhole send bootstrap.log
 
-receive-log: ## Receive bootstrap.log from another machine via Magic Wormhole
+log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log

@@ -158,13 +158,13 @@ resolve_age_key() {
       if command -v uv &>/dev/null; then
         import_method=$(gum choose \
           --header "Import age key from another machine?" \
-          "Receive via Magic Wormhole (run 'make send-key' on source)" \
-          "Paste encrypted blob (run 'make export-key' on source)" \
+          "Receive via Magic Wormhole (run 'make key-send' on source)" \
+          "Paste encrypted blob (run 'make key-export' on source)" \
           "Skip — I'll set it up later")
       else
         import_method=$(gum choose \
           --header "Import age key from another machine?" \
-          "Paste encrypted blob (run 'make export-key' on source)" \
+          "Paste encrypted blob (run 'make key-export' on source)" \
           "Skip — I'll set it up later")
       fi
 
@@ -185,7 +185,7 @@ resolve_age_key() {
   warn "Age key not available. Secrets will not be decrypted."
   warn "To enable secrets, place your age private key at:"
   warn "  $key_path"
-  warn "Or on another machine with the key, run: make send-key"
+  warn "Or on another machine with the key, run: make key-send"
   warn "Then re-run setup."
   return 1
 }

@@ -224,7 +224,7 @@ export_key() {
   echo "-----END AGE KEY TRANSFER-----"
   echo ""
   info "On the destination machine, run:"
-  info "  make import-key"
+  info "  make key-import"
   info "Then paste the blob above (including the age-encryption.org header)."
 }
 
