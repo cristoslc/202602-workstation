@@ -13,6 +13,7 @@ bootstrap.log
 
 # Ansible
 *.retry
+.become-*
 
 # Local override files (composable dotfiles — user-created, never stowed)
 local.zsh

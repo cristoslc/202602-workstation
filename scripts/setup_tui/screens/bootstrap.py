@@ -340,28 +340,42 @@ class BootstrapRunScreen(Screen):
     def _step_ansible(
         self, platform: str, platform_dir: str, apply_system_roles: bool
     ) -> None:
+        import tempfile
+
         ansible_cfg = REPO_ROOT / platform_dir / "ansible.cfg"
         playbook = REPO_ROOT / platform_dir / "site.yml"
 
-        cmd = [
-            "ansible-playbook", str(playbook),
-            "-e", f"workstation_dir={REPO_ROOT}",
-            "-e", f"bootstrap_mode={self.mode}",
-            "-e", f"apply_system_roles={str(apply_system_roles).lower()}",
-            "-e", f"platform={platform}",
-            "-e", f"platform_dir={platform_dir}",
-        ]
+        # Write become password to a temp file for ansible-playbook.
+        # The ANSIBLE_BECOME_PASSWORD env var is unreliable across
+        # ansible-core versions; --become-password-file is robust.
+        pass_fd, pass_path = tempfile.mkstemp(prefix=".become-", dir=str(REPO_ROOT))
+        try:
+            os.write(pass_fd, self.become_pass.encode())
+            os.close(pass_fd)
+            os.chmod(pass_path, 0o600)
 
-        if platform == "macos":
-            apply_defaults = "true" if self.mode != "existing_account" else "false"
-            cmd.extend(["-e", f"apply_macos_defaults={apply_defaults}"])
+            cmd = [
+                "ansible-playbook", str(playbook),
+                "--become-password-file", pass_path,
+                "-e", f"workstation_dir={REPO_ROOT}",
+                "-e", f"bootstrap_mode={self.mode}",
+                "-e", f"apply_system_roles={str(apply_system_roles).lower()}",
+                "-e", f"platform={platform}",
+                "-e", f"platform_dir={platform_dir}",
+            ]
 
-        env_extra = {
-            "ANSIBLE_CONFIG": str(ansible_cfg),
-            "ANSIBLE_BECOME_PASSWORD": self.become_pass,
-        }
+            if platform == "macos":
+                apply_defaults = "true" if self.mode != "existing_account" else "false"
+                cmd.extend(["-e", f"apply_macos_defaults={apply_defaults}"])
 
-        self._run_streaming(cmd, env_extra=env_extra)
+            env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
+            self._run_streaming(cmd, env_extra=env_extra)
+        finally:
+            # Always remove the password file, even on failure.
+            try:
+                os.unlink(pass_path)
+            except OSError:
+                pass
 
     def _run_streaming(
         self,
