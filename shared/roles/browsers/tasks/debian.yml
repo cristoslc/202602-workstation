@@ -53,6 +53,7 @@
   ansible.builtin.file:
     path: /tmp/google-chrome-key.pub
     state: absent
+  become: true
 
 - name: Add Google Chrome apt repository
   ansible.builtin.apt_repository:

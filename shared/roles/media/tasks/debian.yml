@@ -19,6 +19,7 @@
   ansible.builtin.file:
     path: /tmp/spotify-key.gpg
     state: absent
+  become: true
 
 - name: Add Spotify apt repository
   ansible.builtin.apt_repository:

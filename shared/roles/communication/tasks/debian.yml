@@ -42,6 +42,7 @@
   ansible.builtin.file:
     path: /tmp/signal-key.asc
     state: absent
+  become: true
 
 - name: Add Signal apt repository
   ansible.builtin.apt_repository:

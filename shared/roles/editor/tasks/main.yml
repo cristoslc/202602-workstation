@@ -27,6 +27,7 @@
       ansible.builtin.file:
         path: /tmp/microsoft-key.asc
         state: absent
+      become: true
 
     - name: Add VS Code repository
       ansible.builtin.apt_repository:
