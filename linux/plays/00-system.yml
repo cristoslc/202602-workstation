@@ -9,42 +9,52 @@
         that: ansible_os_family == "Debian"
         fail_msg: "This playbook is for Debian-based Linux only."
 
-    # Remove ALL apt source files that reference repos whose Signed-By
-    # values conflict (e.g. VS Code creates its own source with a different
-    # keyring than our Ansible role). Content-based matching catches every
-    # variant regardless of filename or format (.list / .sources).
-    - name: Find conflicting VS Code apt sources
-      ansible.builtin.find:
-        paths: /etc/apt/sources.list.d
-        patterns: ["*.list", "*.sources"]
-        contains: "packages\\.microsoft\\.com/repos/code"
-      register: _stale_vscode_sources
-      become: true
-
+    # Remove apt source entries that reference repos whose Signed-By
+    # values conflict. ansible.builtin.find with `contains` missed these
+    # (possibly in /etc/apt/sources.list or files without .list/.sources
+    # extensions), so we use grep -rl to search ALL files under /etc/apt/.
     - name: Remove conflicting VS Code apt sources
-      ansible.builtin.file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ _stale_vscode_sources.files }}"
-      loop_control:
-        label: "{{ item.path | basename }}"
-      become: true
-
-    - name: Find conflicting 1Password apt sources
-      ansible.builtin.find:
-        paths: /etc/apt/sources.list.d
-        patterns: ["*.list", "*.sources"]
-        contains: "downloads\\.1password\\.com"
-      register: _stale_1password_sources
+      ansible.builtin.shell: |
+        set -euo pipefail
+        found=0
+        # Remove any file in sources.list.d containing the VS Code repo URL
+        for f in $(grep -rl 'packages\.microsoft\.com/repos/code' /etc/apt/sources.list.d/ 2>/dev/null || true); do
+          echo "Removing $f"
+          rm -f "$f"
+          found=1
+        done
+        # Also strip matching lines from /etc/apt/sources.list itself
+        if grep -q 'packages\.microsoft\.com/repos/code' /etc/apt/sources.list 2>/dev/null; then
+          echo "Cleaning /etc/apt/sources.list"
+          sed -i '/packages\.microsoft\.com\/repos\/code/d' /etc/apt/sources.list
+          found=1
+        fi
+        [ "$found" -eq 1 ] && echo "CHANGED" || echo "OK"
+      args:
+        executable: /bin/bash
+      register: _vscode_cleanup
+      changed_when: "'CHANGED' in _vscode_cleanup.stdout"
       become: true
 
     - name: Remove conflicting 1Password apt sources
-      ansible.builtin.file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ _stale_1password_sources.files }}"
-      loop_control:
-        label: "{{ item.path | basename }}"
+      ansible.builtin.shell: |
+        set -euo pipefail
+        found=0
+        for f in $(grep -rl 'downloads\.1password\.com' /etc/apt/sources.list.d/ 2>/dev/null || true); do
+          echo "Removing $f"
+          rm -f "$f"
+          found=1
+        done
+        if grep -q 'downloads\.1password\.com' /etc/apt/sources.list 2>/dev/null; then
+          echo "Cleaning /etc/apt/sources.list"
+          sed -i '/downloads\.1password\.com/d' /etc/apt/sources.list
+          found=1
+        fi
+        [ "$found" -eq 1 ] && echo "CHANGED" || echo "OK"
+      args:
+        executable: /bin/bash
+      register: _1password_cleanup
+      changed_when: "'CHANGED' in _1password_cleanup.stdout"
       become: true
 
   roles:
