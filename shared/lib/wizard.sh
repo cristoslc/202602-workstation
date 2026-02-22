@@ -152,7 +152,7 @@ resolve_age_key() {
       warn "Unexpected transfer script path: $transfer_script. Skipping import."
     elif [ -f "$transfer_script" ]; then
       local import_method
-      if command -v wormhole &>/dev/null; then
+      if command -v uv &>/dev/null; then
         import_method=$(gum choose \
           --header "Import age key from another machine?" \
           "Receive via Magic Wormhole (run 'make send-key' on source)" \

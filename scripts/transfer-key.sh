@@ -43,13 +43,44 @@ trap _cleanup EXIT INT TERM HUP
 # Helpers
 # ---------------------------------------------------------------------------
 
-require_age() {
-  if ! command -v age &>/dev/null; then
-    error "age is not installed. Install it first:"
+ensure_age() {
+  if command -v age &>/dev/null; then
+    return 0
+  fi
+
+  info "age is not installed. Installing..."
+  if command -v brew &>/dev/null; then
+    brew install age
+  elif command -v apt-get &>/dev/null; then
+    sudo apt-get install -y age
+  else
+    error "Cannot auto-install age. Install it manually:"
     error "  macOS: brew install age"
     error "  Linux: sudo apt install age"
     exit 1
   fi
+}
+
+ensure_uv() {
+  if command -v uv &>/dev/null; then
+    return 0
+  fi
+
+  info "uv is not installed. Installing..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # shellcheck source=/dev/null
+  source "$HOME/.local/bin/env" 2>/dev/null || true
+
+  if ! command -v uv &>/dev/null; then
+    error "uv installation failed. Install manually:"
+    error "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+    exit 1
+  fi
+}
+
+# Run magic-wormhole via uv (no global install needed).
+run_wormhole() {
+  uv run --with magic-wormhole wormhole "$@"
 }
 
 require_key_exists() {
@@ -121,14 +152,8 @@ install_decrypted_key() {
 
 send_key() {
   require_key_exists
-  require_age
-
-  if ! command -v wormhole &>/dev/null; then
-    error "Magic Wormhole is not installed. Install it first:"
-    error "  macOS: brew install magic-wormhole"
-    error "  Linux: pip install magic-wormhole  (or: sudo apt install magic-wormhole)"
-    exit 1
-  fi
+  ensure_age
+  ensure_uv
 
   echo ""
   info "Encrypting key with a passphrase before sending..."
@@ -147,19 +172,13 @@ send_key() {
   info "Give the wormhole code to the recipient."
   echo ""
 
-  wormhole send "$tmpfile"
+  run_wormhole send "$tmpfile"
 }
 
 receive_key() {
-  require_age
+  ensure_age
   confirm_overwrite
-
-  if ! command -v wormhole &>/dev/null; then
-    error "Magic Wormhole is not installed. Install it first:"
-    error "  macOS: brew install magic-wormhole"
-    error "  Linux: pip install magic-wormhole  (or: sudo apt install magic-wormhole)"
-    exit 1
-  fi
+  ensure_uv
 
   local tmpfile
   tmpfile="$(mktemp)"
@@ -169,7 +188,7 @@ receive_key() {
   info "Enter the wormhole code from the sender."
   echo ""
 
-  wormhole receive -o "$tmpfile" --accept-file
+  run_wormhole receive -o "$tmpfile" --accept-file
 
   echo ""
   info "Decrypting... (enter the passphrase from the sender)"
@@ -186,7 +205,7 @@ receive_key() {
 
 export_key() {
   require_key_exists
-  require_age
+  ensure_age
 
   echo ""
   info "Encrypting age key with a passphrase..."
@@ -210,7 +229,7 @@ export_key() {
 }
 
 import_key() {
-  require_age
+  ensure_age
   confirm_overwrite
 
   echo ""
@@ -250,6 +269,7 @@ usage() {
   echo "Magic Wormhole (preferred — cross-platform, e2e encrypted):"
   echo "  send      Encrypt and send the age key via Magic Wormhole"
   echo "  receive   Receive and decrypt the age key via Magic Wormhole"
+  echo "  (magic-wormhole is provided automatically via uv — no install needed)"
   echo ""
   echo "Manual transfer (AirDrop, paste, email):"
   echo "  export    Encrypt and display the age key as a pasteable blob"
