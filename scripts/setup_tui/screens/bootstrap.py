@@ -217,6 +217,7 @@ class BootstrapRunScreen(Screen):
         with Horizontal(id="run-footer-buttons"):
             yield Button("Done", id="done", variant="primary", disabled=True)
             yield Button("Back to Menu", id="back", disabled=True)
+            yield Button("Send Log", id="send-log", disabled=True)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -452,6 +453,7 @@ class BootstrapRunScreen(Screen):
     def _enable_done_buttons(self) -> None:
         self.query_one("#done", Button).disabled = False
         self.query_one("#back", Button).disabled = False
+        self.query_one("#send-log", Button).disabled = False
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "done":
@@ -461,6 +463,42 @@ class BootstrapRunScreen(Screen):
             while not isinstance(self.app.screen, BootstrapModeScreen):
                 self.app.pop_screen()
             self.app.pop_screen()
+        elif event.button.id == "send-log":
+            self._send_log()
+
+    @work(thread=True)
+    def _send_log(self) -> None:
+        """Send bootstrap.log via Magic Wormhole."""
+        if not BOOTSTRAP_LOG.exists():
+            self.app.call_from_thread(
+                self._log,
+                "[bold red]No bootstrap.log found.[/bold red]"
+            )
+            return
+
+        send_btn = self.query_one("#send-log", Button)
+        self.app.call_from_thread(setattr, send_btn, "disabled", True)
+        self.app.call_from_thread(
+            self._log,
+            "\n[bold cyan]>>> Sending bootstrap.log via Magic Wormhole...[/bold cyan]\n"
+        )
+
+        try:
+            self._run_streaming(
+                ["uv", "run", "--with", "magic-wormhole",
+                 "wormhole", "send", str(BOOTSTRAP_LOG)],
+            )
+            self.app.call_from_thread(
+                self._log,
+                "\n[bold green]Log sent successfully.[/bold green]\n"
+            )
+        except RuntimeError:
+            self.app.call_from_thread(
+                self._log,
+                "\n[bold red]Failed to send log.[/bold red]\n"
+            )
+        finally:
+            self.app.call_from_thread(setattr, send_btn, "disabled", False)
 
     def action_confirm_quit(self) -> None:
         if self._finished:
