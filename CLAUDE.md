@@ -2,16 +2,19 @@
 
 ## Project overview
 
-Cross-platform (macOS + Linux) workstation provisioning using Ansible, GNU Stow, and SOPS/age for secrets management. This is a **template repo** — users fork it, run `first-run.sh` to personalize, then `bootstrap.sh` to provision.
+Cross-platform (macOS + Linux) workstation provisioning using Ansible, GNU Stow, and SOPS/age for secrets management. This is a **template repo** — users fork it, run `make setup` to personalize, then bootstrap to provision. A Textual TUI (`scripts/setup_tui/`) provides the interactive wizard for both flows.
 
 ## Repo structure
 
 - `shared/` — cross-platform roles, dotfiles, tasks, and library scripts
 - `linux/`, `macos/` — platform-specific plays, roles, dotfiles, and secrets
-- `scripts/` — lint, decrypt, diff, and collision-check utilities
+- `scripts/setup_tui/` — Textual TUI app (screens, lib modules)
+- `scripts/` — lint, decrypt, diff, transfer, and collision-check utilities
 - `tests/bats/` — shell unit tests (bats-core)
-- `first-run.sh` — one-time template personalization wizard
-- `bootstrap.sh` → `{linux,macos}/bootstrap.sh` — full provisioning entry point
+- `tests/python/` — Python unit tests (first-run wizard + setup TUI)
+- `setup.sh` — unified entry point (bash shim → `uv run` → Textual app)
+- `first-run.sh` — legacy one-time personalization (being replaced by TUI)
+- `bootstrap.sh` → `{linux,macos}/bootstrap.sh` — legacy provisioning (being replaced by TUI)
 
 ## Commit discipline
 
@@ -54,14 +57,21 @@ The commit history before personalization IS the template. If personalized conte
 - **Pre-commit hooks**: SOPS encryption check, gitleaks, yamllint, shellcheck. The SOPS hook excludes `.sops.yaml` (the config file, not a secret).
 - **Ansible module preference**: Use `ansible.builtin.unarchive` + `ansible.builtin.file: absent` instead of `shell: tar ... && rm`. Use `ansible.builtin.copy`/`apt_repository` instead of raw `.deb` downloads where apt repos are available.
 - **Secrets hygiene**: `no_log: true` on any task that handles tokens/keys. Log rotation in `01-security.yml` pre_tasks. `HIST_IGNORE_SPACE` in `.zshrc`.
+- **`apt_repository` must set `filename:`**: Without it, Ansible auto-generates filenames from the repo URL. If a package's own installer creates a different filename, apt sees duplicate sources. Always set `filename:` to a short stable name (e.g., `filename: docker`).
+- **GPG key resilience**: Use `force: true` on `get_url` + `gpg --batch --yes --dearmor` (not `creates:` guard) so re-runs pick up rotated keys automatically. Clean up temp `.asc` files after dearmoring.
+- **Stale apt source cleanup**: When adding `filename:` to an existing role, add a task to remove the old auto-generated source file (e.g., `packages_microsoft_com_repos_code.list`) so machines with prior runs don't have duplicates.
+- **Linux Mint codename**: `lsb_release -cs` and `ansible_distribution_release` return Mint codenames (e.g., `zena`), not Ubuntu base codenames (`noble`). For apt repos that use Ubuntu codenames, read `UBUNTU_CODENAME` from `/etc/os-release` with fallback: `. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"`.
+- **Ansible roles are tool-based**: Each role (e.g., `docker`, `vpn`, `editor`) has OS-specific task files (`debian.yml`, `darwin.yml`) included from `main.yml` via `when:` conditions. Sub-tools within a role (e.g., `tailscale.yml`, `surfshark.yml` inside `vpn`) get their own task files.
+- **Make target naming**: Noun-first convention (`key-send`, `log-receive`, not `send-key`, `receive-log`) so related targets group under tab completion.
 
 ## Running checks
 
 ```
-make check       # fast: shellcheck, yamllint, stow collisions, bats tests
+make check       # fast: shellcheck, yamllint, stow collisions, bats, python tests
 make lint        # full: above + ansible-lint (needs ansible-core installed)
-make test        # lint + bats
+make test        # lint + bats + python
 make test-bats   # just bats tests
+make test-python # just python tests (first-run + setup TUI)
 ```
 
 ## Common gotchas
@@ -70,3 +80,6 @@ make test-bats   # just bats tests
 - `bash -c 'script' arg0 arg1` — `arg0` becomes `$0`, not part of `$@`. Always use `_` as a dummy `$0` placeholder.
 - `first-run.sh` must be idempotent. Guard against: existing age key, already-encrypted secrets, existing GitHub repo, SSH vs HTTPS origin URLs, empty git commits.
 - `gh repo create --remote origin` sets SSH URLs. `GITHUB_REPO_URL` is HTTPS. Never compare these as strings — match on `owner/repo` instead.
+- Dotfiles without shebangs (`.zshrc`, `completion.zsh`, etc.) need `# shellcheck shell=bash` directive for shellcheck pre-commit hooks.
+- SOPS age key path on macOS: SOPS uses `~/Library/Application Support/` but we store at `~/.config/sops/age/keys.txt` (XDG). Every `sops` call site must set `SOPS_AGE_KEY_FILE`.
+- Textual TUI logging: Never use `exec > >(tee)` — it breaks `isatty()`. Python `logging` module writes to `~/.local/log/setup.log`; Textual widgets handle console display.
