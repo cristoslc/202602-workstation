@@ -28,6 +28,7 @@
     - name: Add Brave browser apt repository
       ansible.builtin.apt_repository:
         repo: "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"
+        filename: brave-browser
         state: present
       become: true
 

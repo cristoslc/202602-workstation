@@ -27,14 +27,16 @@
     state: absent
   become: true
 
-- name: Get Ubuntu codename for Docker repo
-  ansible.builtin.command: lsb_release -cs
-  register: ubuntu_codename
+- name: Detect Ubuntu base codename
+  ansible.builtin.shell:
+    cmd: . /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+  register: _ubuntu_codename
   changed_when: false
 
 - name: Add Docker repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ ubuntu_codename.stdout }} stable"
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ _ubuntu_codename.stdout }} stable"
+    filename: docker
     state: present
   become: true
 

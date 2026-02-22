@@ -8,9 +8,16 @@
     mode: "0644"
   become: true
 
+- name: Detect Ubuntu base codename
+  ansible.builtin.shell:
+    cmd: . /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+  register: _ubuntu_codename
+  changed_when: false
+
 - name: Add Tailscale apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main"
+    repo: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu {{ _ubuntu_codename.stdout }} main"
+    filename: tailscale
     state: present
   become: true
 
@@ -31,6 +38,7 @@
 - name: Add Surfshark apt repository
   ansible.builtin.apt_repository:
     repo: "{{ surfshark_apt_repo }}"
+    filename: surfshark
     state: present
   become: true
 

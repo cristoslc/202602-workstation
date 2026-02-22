@@ -39,6 +39,7 @@
     - name: Add Spotify apt repository
       ansible.builtin.apt_repository:
         repo: "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] https://repository.spotify.com stable non-free"
+        filename: spotify
         state: present
       become: true
 

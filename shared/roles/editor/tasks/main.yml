@@ -32,6 +32,7 @@
     - name: Add VS Code repository
       ansible.builtin.apt_repository:
         repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main"
+        filename: vscode
         state: present
       become: true
 

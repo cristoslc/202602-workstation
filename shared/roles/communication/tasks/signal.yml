@@ -39,6 +39,7 @@
     - name: Add Signal apt repository
       ansible.builtin.apt_repository:
         repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main"
+        filename: signal
         state: present
       become: true
 
