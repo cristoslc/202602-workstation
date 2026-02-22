@@ -9,7 +9,7 @@
   when: uv_check.rc != 0
   block:
     - name: "uv — download and verify installer"
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
       vars:
         tool_name: uv
         download_url: "https://astral.sh/uv/{{ uv_version }}/install.sh"

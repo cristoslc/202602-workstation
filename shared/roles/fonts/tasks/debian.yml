@@ -17,7 +17,7 @@
   when: _installed_fonts.files | length == 0
   block:
     - name: "Download and verify {{ item.name }}"
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
       vars:
         tool_name: "nerd-font-{{ item.name }}"
         download_url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v{{ nerd_fonts_version }}/{{ item.name }}.zip"

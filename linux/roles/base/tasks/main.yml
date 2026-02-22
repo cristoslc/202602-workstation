@@ -27,7 +27,7 @@
 
 # --- dust (du replacement) ---
 - name: Check dust version
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
   vars:
     tool_name: dust
     tool_repo: bootandy/dust
@@ -41,7 +41,7 @@
 
 - name: Download and verify dust
   when: dust_installed.rc != 0
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
   vars:
     download_url: "{{ dust_url }}"
     expected_sha256: "{{ dust_sha256 }}"
@@ -63,7 +63,7 @@
 
 # --- duf (df replacement) ---
 - name: Check duf version
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
   vars:
     tool_name: duf
     tool_repo: muesli/duf
@@ -77,7 +77,7 @@
 
 - name: Download and verify duf
   when: duf_installed.rc != 0
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
   vars:
     download_url: "{{ duf_url }}"
     expected_sha256: "{{ duf_sha256 }}"
@@ -98,7 +98,7 @@
 
 # --- eza (modern ls) ---
 - name: Check eza version
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
   vars:
     tool_name: eza
     tool_repo: eza-community/eza
@@ -112,7 +112,7 @@
 
 - name: Download and verify eza
   when: eza_installed.rc != 0
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
   vars:
     download_url: "{{ eza_url }}"
     expected_sha256: "{{ eza_sha256 }}"

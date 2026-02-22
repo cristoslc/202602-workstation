@@ -10,7 +10,7 @@
   when: ansible_os_family == "Debian"
   block:
     - name: Check delta version
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
       vars:
         tool_name: delta
         tool_repo: dandavison/delta
@@ -24,7 +24,7 @@
 
     - name: Download and verify delta
       when: delta_installed.rc != 0
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
       vars:
         download_url: "{{ delta_url }}"
         expected_sha256: "{{ delta_sha256 }}"

@@ -6,7 +6,7 @@
   failed_when: false
 
 - name: "fnm — check for newer version on GitHub"
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
   vars:
     tool_name: fnm
     tool_repo: Schniz/fnm
@@ -21,7 +21,7 @@
         _fnm_sha256: "{{ fnm_sha256_darwin if ansible_os_family == 'Darwin' else fnm_sha256_linux }}"
 
     - name: "fnm — download and verify"
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
       vars:
         tool_name: fnm
         download_url: "https://github.com/Schniz/fnm/releases/download/v{{ fnm_version }}/fnm-{{ _fnm_arch }}.zip"

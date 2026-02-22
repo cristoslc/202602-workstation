@@ -3,7 +3,7 @@
 # Installs from .deb with version pinning and checksum verification.
 
 - name: OpenDeck version check
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/version-check.yml"
+  ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
   vars:
     tool_name: OpenDeck
     tool_repo: nekename/OpenDeck
@@ -19,7 +19,7 @@
   when: _opendeck_installed.rc != 0 or opendeck_version not in _opendeck_installed.stdout
   block:
     - name: Download and verify OpenDeck .deb
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../shared/tasks/download-and-verify.yml"
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
       vars:
         tool_name: OpenDeck
         download_url: "{{ opendeck_url }}"
