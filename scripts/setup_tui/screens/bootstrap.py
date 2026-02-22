@@ -460,9 +460,18 @@ class BootstrapRunScreen(Screen):
             self.app.exit()
         elif event.button.id == "back":
             # Pop all bootstrap screens back to welcome.
-            while not isinstance(self.app.screen, BootstrapModeScreen):
+            from .welcome import WelcomeScreen
+
+            while not isinstance(
+                self.app.screen, (BootstrapModeScreen, WelcomeScreen)
+            ):
                 self.app.pop_screen()
-            self.app.pop_screen()
+            if isinstance(self.app.screen, BootstrapModeScreen):
+                self.app.pop_screen()
+            # If no WelcomeScreen in the stack (e.g. --start-screen bootstrap),
+            # push a fresh one so the user doesn't land on a blank screen.
+            if not isinstance(self.app.screen, WelcomeScreen):
+                self.app.push_screen(WelcomeScreen())
         elif event.button.id == "send-log":
             self._send_log()
 

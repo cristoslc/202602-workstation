@@ -6,7 +6,6 @@
   ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
 
 - name: Create backup directory for pre-existing files
-  when: bootstrap_mode == "existing_account"
   ansible.builtin.file:
     path: "{{ backup_dir }}"
     state: directory
@@ -15,7 +14,6 @@
     backup_dir: "{{ ansible_env.HOME }}/.workstation-backup/{{ ansible_date_time.iso8601_basic_short }}"
 
 - name: Backup and migrate pre-existing dotfiles
-  when: bootstrap_mode == "existing_account"
   ansible.builtin.include_tasks: backup-existing.yml
 
 - name: Ensure SSH directories exist with restrictive permissions
