@@ -20,15 +20,15 @@
   ansible.builtin.shell: |
     conflicts=$(stow --no-folding \
       -d "{{ stow_dir }}" \
-      -t "{{ ansible_env.HOME }}" \
+      -t "{{ ansible_facts.env.HOME }}" \
       -n --restow \
       "{{ item.path | basename }}" 2>&1 || true)
     echo "$conflicts" | grep 'existing target is neither a link nor a directory:' | \
       sed 's/.*existing target is neither a link nor a directory: //' | \
       while IFS= read -r relpath; do
-        target="{{ ansible_env.HOME }}/$relpath"
+        target="{{ ansible_facts.env.HOME }}/$relpath"
         if [ -f "$target" ] && [ ! -L "$target" ]; then
-          backup_dir="{{ ansible_env.HOME }}/.workstation-backup/stow-conflicts"
+          backup_dir="{{ ansible_facts.env.HOME }}/.workstation-backup/stow-conflicts"
           backup_path="$backup_dir/$relpath"
           mkdir -p "$(dirname "$backup_path")"
           cp "$target" "$backup_path"
@@ -50,7 +50,7 @@
   ansible.builtin.command: >
     stow --no-folding
     -d "{{ stow_dir }}"
-    -t "{{ ansible_env.HOME }}"
+    -t "{{ ansible_facts.env.HOME }}"
     --restow
     "{{ item.path | basename }}"
   loop: "{{ stow_packages.files }}"

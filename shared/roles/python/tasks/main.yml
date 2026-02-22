@@ -18,7 +18,7 @@
     - name: Run uv installer
       ansible.builtin.command: "sh {{ _verified_download.path }}"
       args:
-        creates: "{{ ansible_env.HOME }}/.local/bin/uv"
+        creates: "{{ ansible_facts.env.HOME }}/.local/bin/uv"
 
     - name: Clean up uv installer
       ansible.builtin.file:
@@ -26,6 +26,6 @@
         state: absent
 
 - name: Install default Python via uv
-  ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv python install {{ python_version }}"
+  ansible.builtin.command: "{{ ansible_facts.env.HOME }}/.local/bin/uv python install {{ python_version }}"
   register: python_install
   changed_when: "'Installed' in python_install.stdout"

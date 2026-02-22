@@ -1,7 +1,7 @@
 ---
 # Signal sub-task
 - name: Install Signal (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   block:
     - name: Verify Signal is installed
       ansible.builtin.command: brew list --cask signal
@@ -15,7 +15,7 @@
         msg: "Signal not installed. Add 'signal' to Brewfile and run brew bundle."
 
 - name: Install Signal (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Check if Signal keyring exists
       ansible.builtin.stat:

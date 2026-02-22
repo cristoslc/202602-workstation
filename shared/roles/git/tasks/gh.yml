@@ -1,13 +1,13 @@
 ---
 # GitHub CLI sub-task
 - name: Install GitHub CLI (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   community.general.homebrew:
     name: gh
     state: present
 
 - name: Install GitHub CLI (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Add GitHub CLI GPG key
       ansible.builtin.shell: |

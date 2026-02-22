@@ -3,13 +3,13 @@
 
 - name: Ensure fonts directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/share/fonts"
+    path: "{{ ansible_facts.env.HOME }}/.local/share/fonts"
     state: directory
     mode: "0755"
 
 - name: Check installed Nerd Fonts
   ansible.builtin.find:
-    paths: "{{ ansible_env.HOME }}/.local/share/fonts"
+    paths: "{{ ansible_facts.env.HOME }}/.local/share/fonts"
     patterns: "*NerdFont*"
   register: _installed_fonts
 
@@ -29,7 +29,7 @@
     - name: "Extract {{ item.name }}"
       ansible.builtin.unarchive:
         src: "{{ _verified_download.path }}"
-        dest: "{{ ansible_env.HOME }}/.local/share/fonts/"
+        dest: "{{ ansible_facts.env.HOME }}/.local/share/fonts/"
         remote_src: true
       loop: "{{ nerd_fonts }}"
       loop_control:

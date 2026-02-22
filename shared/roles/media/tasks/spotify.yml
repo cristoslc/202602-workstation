@@ -1,7 +1,7 @@
 ---
 # Spotify sub-task
 - name: Install Spotify (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   block:
     - name: Verify Spotify is installed
       ansible.builtin.command: brew list --cask spotify
@@ -15,7 +15,7 @@
         msg: "Spotify not installed. Add 'spotify' to Brewfile and run brew bundle."
 
 - name: Install Spotify (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Check if Spotify keyring exists
       ansible.builtin.stat:

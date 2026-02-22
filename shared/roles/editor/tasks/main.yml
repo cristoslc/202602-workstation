@@ -2,13 +2,13 @@
 # Editor role: VS Code installation and extensions
 
 - name: Install VS Code (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   community.general.homebrew_cask:
     name: visual-studio-code
     state: present
 
 - name: Install VS Code (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Check if Microsoft keyring exists
       ansible.builtin.stat:

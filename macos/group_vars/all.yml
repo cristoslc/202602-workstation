@@ -21,4 +21,4 @@ platform_dir: macos
 homebrew_prefix: /opt/homebrew
 
 # Workstation directory
-workstation_dir: "{{ ansible_env.HOME }}/.workstation"
+workstation_dir: "{{ ansible_facts.env.HOME }}/.workstation"

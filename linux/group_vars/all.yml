@@ -18,4 +18,4 @@ platform: linux
 platform_dir: linux
 
 # Workstation directory (overridden by bootstrap.sh -e)
-workstation_dir: "{{ ansible_env.HOME }}/.workstation"
+workstation_dir: "{{ ansible_facts.env.HOME }}/.workstation"

@@ -1,13 +1,13 @@
 ---
 # delta (git diff pager) sub-task
 - name: Install delta (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   community.general.homebrew:
     name: delta
     state: present
 
 - name: Install delta (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Check delta version
       ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"

@@ -3,7 +3,7 @@
 # Handles backup of pre-existing files, shared → secrets → platform overlay ordering.
 
 - name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
 
 - name: Create backup directory for pre-existing files
   ansible.builtin.file:
@@ -11,7 +11,7 @@
     state: directory
     mode: "0700"
   vars:
-    backup_dir: "{{ ansible_env.HOME }}/.workstation-backup/{{ ansible_date_time.iso8601_basic_short }}"
+    backup_dir: "{{ ansible_facts.env.HOME }}/.workstation-backup/{{ ansible_facts.date_time.iso8601_basic_short }}"
 
 - name: Backup and migrate pre-existing dotfiles
   ansible.builtin.include_tasks: backup-existing.yml
@@ -20,11 +20,11 @@
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ ansible_facts.user_id }}"
     mode: "{{ item.mode }}"
   loop:
-    - { path: "{{ ansible_env.HOME }}/.ssh", mode: "0700" }
-    - { path: "{{ ansible_env.HOME }}/.ssh/config.d", mode: "0700" }
+    - { path: "{{ ansible_facts.env.HOME }}/.ssh", mode: "0700" }
+    - { path: "{{ ansible_facts.env.HOME }}/.ssh/config.d", mode: "0700" }
   loop_control:
     label: "{{ item.path }}"
 

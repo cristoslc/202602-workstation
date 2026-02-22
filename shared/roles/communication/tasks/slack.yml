@@ -1,7 +1,7 @@
 ---
 # Slack sub-task
 - name: Install Slack (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   block:
     - name: Verify Slack is installed
       ansible.builtin.command: brew list --cask slack
@@ -15,7 +15,7 @@
         msg: "Slack not installed. Add 'slack' to Brewfile and run brew bundle."
 
 - name: Install Slack (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Create temp file for Slack download
       ansible.builtin.tempfile:

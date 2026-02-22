@@ -1,7 +1,7 @@
 ---
 # Espanso sub-task
 - name: Install Espanso (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   block:
     - name: Install Espanso via Homebrew
       community.general.homebrew_cask:
@@ -15,7 +15,7 @@
           Grant access in System Settings → Privacy & Security → Accessibility.
 
 - name: Install Espanso (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     - name: Check if Espanso is installed
       ansible.builtin.command: dpkg-query -W -f='${Status}' espanso
@@ -45,7 +45,7 @@
 
     - name: Check if Espanso systemd service exists
       ansible.builtin.stat:
-        path: "{{ ansible_env.HOME }}/.config/systemd/user/espanso.service"
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user/espanso.service"
       register: _espanso_service_file
 
     - name: Register Espanso systemd service

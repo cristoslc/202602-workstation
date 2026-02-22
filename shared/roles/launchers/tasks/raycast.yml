@@ -1,7 +1,7 @@
 ---
 # Raycast sub-task (macOS only — installed via Brewfile)
 - name: Install Raycast (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   block:
     - name: Check if Raycast settings export exists
       ansible.builtin.stat:

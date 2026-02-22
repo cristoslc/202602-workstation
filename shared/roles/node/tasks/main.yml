@@ -1,6 +1,6 @@
 ---
 - name: Check if fnm is installed
-  ansible.builtin.command: "{{ ansible_env.HOME }}/.local/share/fnm/fnm --version"
+  ansible.builtin.command: "{{ ansible_facts.env.HOME }}/.local/share/fnm/fnm --version"
   register: fnm_check
   changed_when: false
   failed_when: false
@@ -17,8 +17,8 @@
   block:
     - name: Set fnm platform vars
       ansible.builtin.set_fact:
-        _fnm_arch: "{{ 'macos' if ansible_os_family == 'Darwin' else 'linux' }}"
-        _fnm_sha256: "{{ fnm_sha256_darwin if ansible_os_family == 'Darwin' else fnm_sha256_linux }}"
+        _fnm_arch: "{{ 'macos' if ansible_facts.os_family == 'Darwin' else 'linux' }}"
+        _fnm_sha256: "{{ fnm_sha256_darwin if ansible_facts.os_family == 'Darwin' else fnm_sha256_linux }}"
 
     - name: "fnm — download and verify"
       ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
@@ -29,14 +29,14 @@
 
     - name: Create fnm directory
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.local/share/fnm"
+        path: "{{ ansible_facts.env.HOME }}/.local/share/fnm"
         state: directory
         mode: "0755"
 
     - name: Extract fnm binary
       ansible.builtin.unarchive:
         src: "{{ _verified_download.path }}"
-        dest: "{{ ansible_env.HOME }}/.local/share/fnm"
+        dest: "{{ ansible_facts.env.HOME }}/.local/share/fnm"
         remote_src: true
         mode: "0755"
 
@@ -47,7 +47,7 @@
 
 - name: Install Node LTS via fnm
   ansible.builtin.shell: |
-    export PATH="{{ ansible_env.HOME }}/.local/share/fnm:$PATH"
+    export PATH="{{ ansible_facts.env.HOME }}/.local/share/fnm:$PATH"
     eval "$(fnm env)"
     fnm install --lts
     fnm default lts-latest

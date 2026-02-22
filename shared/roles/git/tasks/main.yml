@@ -3,7 +3,7 @@
 # Sub-tasks carry tool-level tags for selective runs.
 
 - name: Include OS-specific git install
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
 
 - name: Configure git user name
   community.general.git_config:

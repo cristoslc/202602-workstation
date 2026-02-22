@@ -1,7 +1,7 @@
 ---
 # Brave browser sub-task
 - name: Install Brave (macOS)
-  when: ansible_os_family == "Darwin"
+  when: ansible_facts.os_family == "Darwin"
   block:
     - name: Verify Brave is installed
       ansible.builtin.command: brew list --cask brave-browser
@@ -15,7 +15,7 @@
         msg: "Brave not installed. Add 'brave-browser' to Brewfile and run brew bundle."
 
 - name: Install Brave (Debian)
-  when: ansible_os_family == "Debian"
+  when: ansible_facts.os_family == "Debian"
   block:
     # Brave key is already in gpg binary format — download directly to keyrings
     - name: Download Brave browser GPG key
