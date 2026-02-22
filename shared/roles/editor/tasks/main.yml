@@ -29,14 +29,6 @@
         state: absent
       become: true
 
-    - name: Remove stale VS Code apt source files
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/apt/sources.list.d/packages_microsoft_com_repos_code.list
-      become: true
-
     - name: Add VS Code repository
       ansible.builtin.apt_repository:
         repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"

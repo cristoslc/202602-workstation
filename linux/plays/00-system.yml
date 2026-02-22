@@ -9,6 +9,18 @@
         that: ansible_os_family == "Debian"
         fail_msg: "This playbook is for Debian-based Linux only."
 
+    # Clean up auto-generated apt source files from prior bootstrap runs
+    # that didn't set filename: on apt_repository. These can conflict with
+    # files created by package installers (e.g. VS Code's dpkg post-install).
+    - name: Remove stale auto-generated apt source files
+      ansible.builtin.file:
+        path: "/etc/apt/sources.list.d/{{ item }}"
+        state: absent
+      loop:
+        - packages_microsoft_com_repos_code.list
+        - downloads_1password_com_linux_debian_amd64.list
+      become: true
+
   roles:
     - role: base
       tags: [base, system]
