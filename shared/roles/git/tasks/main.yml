@@ -19,11 +19,18 @@
     value: "{{ git_user_email }}"
   when: git_user_email is defined
 
+- name: Check git default branch setting
+  ansible.builtin.command: git config --global init.defaultBranch
+  register: _git_default_branch
+  changed_when: false
+  failed_when: false
+
 - name: Configure git default branch
   community.general.git_config:
     name: init.defaultBranch
     scope: global
     value: main
+  when: _git_default_branch.stdout != "main"
 
 - name: Install GitHub CLI
   ansible.builtin.include_tasks: gh.yml

@@ -8,24 +8,30 @@
     state: present
   become: true
 
-- name: Download Docker GPG key
-  ansible.builtin.get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    dest: /tmp/docker-key.gpg
-    mode: "0644"
-  become: true
+- name: Check if Docker keyring exists
+  ansible.builtin.stat:
+    path: /usr/share/keyrings/docker-archive-keyring.gpg
+  register: _docker_keyring
 
-- name: Dearmor Docker GPG key
-  ansible.builtin.command: gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg /tmp/docker-key.gpg
-  args:
-    creates: /usr/share/keyrings/docker-archive-keyring.gpg
-  become: true
+- name: Install Docker GPG key
+  when: not _docker_keyring.stat.exists
+  block:
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /tmp/docker-key.gpg
+        mode: "0644"
+      become: true
 
-- name: Clean up Docker key temp file
-  ansible.builtin.file:
-    path: /tmp/docker-key.gpg
-    state: absent
-  become: true
+    - name: Dearmor Docker GPG key
+      ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg /tmp/docker-key.gpg
+      become: true
+
+    - name: Clean up Docker key temp file
+      ansible.builtin.file:
+        path: /tmp/docker-key.gpg
+        state: absent
+      become: true
 
 - name: Detect Ubuntu base codename
   ansible.builtin.shell:

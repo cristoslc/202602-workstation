@@ -17,32 +17,30 @@
 - name: Install Signal (Debian)
   when: ansible_os_family == "Debian"
   block:
-    - name: Download and refresh Signal GPG key
-      ansible.builtin.get_url:
-        url: https://updates.signal.org/desktop/apt/keys.asc
-        dest: /tmp/signal-key.asc
-        mode: "0644"
-        force: true
-      become: true
+    - name: Check if Signal keyring exists
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/signal-desktop-keyring.gpg
+      register: _signal_keyring
 
-    - name: Dearmor Signal GPG key
-      ansible.builtin.shell: |
-        old_hash=""
-        [ -f /usr/share/keyrings/signal-desktop-keyring.gpg ] && old_hash=$(sha256sum /usr/share/keyrings/signal-desktop-keyring.gpg | cut -d' ' -f1)
-        gpg --batch --yes --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg /tmp/signal-key.asc
-        new_hash=$(sha256sum /usr/share/keyrings/signal-desktop-keyring.gpg | cut -d' ' -f1)
-        [ "$old_hash" != "$new_hash" ] && echo "CHANGED" || echo "OK"
-      args:
-        executable: /bin/bash
-      become: true
-      register: _signal_dearmor
-      changed_when: "'CHANGED' in _signal_dearmor.stdout"
+    - name: Install Signal GPG key
+      when: not _signal_keyring.stat.exists
+      block:
+        - name: Download Signal GPG key
+          ansible.builtin.get_url:
+            url: https://updates.signal.org/desktop/apt/keys.asc
+            dest: /tmp/signal-key.asc
+            mode: "0644"
+          become: true
 
-    - name: Clean up Signal key temp file
-      ansible.builtin.file:
-        path: /tmp/signal-key.asc
-        state: absent
-      become: true
+        - name: Dearmor Signal GPG key
+          ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg /tmp/signal-key.asc
+          become: true
+
+        - name: Clean up Signal key temp file
+          ansible.builtin.file:
+            path: /tmp/signal-key.asc
+            state: absent
+          become: true
 
     - name: Add Signal apt repository
       ansible.builtin.apt_repository:

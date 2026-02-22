@@ -18,13 +18,13 @@
   when: ansible_os_family == "Debian"
   block:
     - name: Check if Espanso is installed
-      ansible.builtin.command: espanso --version
+      ansible.builtin.command: dpkg-query -W -f='${Status}' espanso
       register: espanso_check
       changed_when: false
       failed_when: false
 
     - name: Install Espanso
-      when: espanso_check.rc != 0
+      when: "'install ok installed' not in espanso_check.stdout"
       block:
         - name: Download Espanso .deb
           ansible.builtin.get_url:
@@ -53,13 +53,13 @@
       when: not _espanso_service_file.stat.exists
       changed_when: true
 
-    - name: Check if Espanso service is running
-      ansible.builtin.command: systemctl --user is-active espanso.service
-      register: _espanso_active
+    - name: Check if Espanso process is running
+      ansible.builtin.command: pgrep -x espanso
+      register: _espanso_process
       changed_when: false
       failed_when: false
 
     - name: Start Espanso service
       ansible.builtin.command: espanso service start
-      when: _espanso_active.rc != 0
+      when: _espanso_process.rc != 0
       changed_when: true

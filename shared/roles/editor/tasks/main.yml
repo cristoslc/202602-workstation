@@ -10,32 +10,30 @@
 - name: Install VS Code (Debian)
   when: ansible_os_family == "Debian"
   block:
-    - name: Download Microsoft GPG key
-      ansible.builtin.get_url:
-        url: https://packages.microsoft.com/keys/microsoft.asc
-        dest: /tmp/microsoft-key.asc
-        mode: "0644"
-        force: true
-      become: true
+    - name: Check if Microsoft keyring exists
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/microsoft.gpg
+      register: _microsoft_keyring
 
-    - name: Dearmor Microsoft GPG key
-      ansible.builtin.shell: |
-        old_hash=""
-        [ -f /usr/share/keyrings/microsoft.gpg ] && old_hash=$(sha256sum /usr/share/keyrings/microsoft.gpg | cut -d' ' -f1)
-        gpg --batch --yes --dearmor -o /usr/share/keyrings/microsoft.gpg /tmp/microsoft-key.asc
-        new_hash=$(sha256sum /usr/share/keyrings/microsoft.gpg | cut -d' ' -f1)
-        [ "$old_hash" != "$new_hash" ] && echo "CHANGED" || echo "OK"
-      args:
-        executable: /bin/bash
-      become: true
-      register: _microsoft_dearmor
-      changed_when: "'CHANGED' in _microsoft_dearmor.stdout"
+    - name: Install Microsoft GPG key
+      when: not _microsoft_keyring.stat.exists
+      block:
+        - name: Download Microsoft GPG key
+          ansible.builtin.get_url:
+            url: https://packages.microsoft.com/keys/microsoft.asc
+            dest: /tmp/microsoft-key.asc
+            mode: "0644"
+          become: true
 
-    - name: Clean up Microsoft key temp file
-      ansible.builtin.file:
-        path: /tmp/microsoft-key.asc
-        state: absent
-      become: true
+        - name: Dearmor Microsoft GPG key
+          ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/microsoft.gpg /tmp/microsoft-key.asc
+          become: true
+
+        - name: Clean up Microsoft key temp file
+          ansible.builtin.file:
+            path: /tmp/microsoft-key.asc
+            state: absent
+          become: true
 
     - name: Add VS Code repository
       ansible.builtin.apt_repository:

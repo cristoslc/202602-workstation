@@ -17,25 +17,30 @@
 - name: Install Chrome (Debian)
   when: ansible_os_family == "Debian"
   block:
-    # Chrome key is ASCII armored — download then dearmor
-    - name: Download Google Chrome GPG key
-      ansible.builtin.get_url:
-        url: https://dl.google.com/linux/linux_signing_key.pub
-        dest: /tmp/google-chrome-key.pub
-        mode: "0644"
-      become: true
+    - name: Check if Chrome keyring exists
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/google-chrome-keyring.gpg
+      register: _chrome_keyring
 
-    - name: Dearmor Google Chrome GPG key
-      ansible.builtin.command: gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg /tmp/google-chrome-key.pub
-      args:
-        creates: /usr/share/keyrings/google-chrome-keyring.gpg
-      become: true
+    - name: Install Google Chrome GPG key
+      when: not _chrome_keyring.stat.exists
+      block:
+        - name: Download Google Chrome GPG key
+          ansible.builtin.get_url:
+            url: https://dl.google.com/linux/linux_signing_key.pub
+            dest: /tmp/google-chrome-key.pub
+            mode: "0644"
+          become: true
 
-    - name: Clean up Chrome key temp file
-      ansible.builtin.file:
-        path: /tmp/google-chrome-key.pub
-        state: absent
-      become: true
+        - name: Dearmor Google Chrome GPG key
+          ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg /tmp/google-chrome-key.pub
+          become: true
+
+        - name: Clean up Chrome key temp file
+          ansible.builtin.file:
+            path: /tmp/google-chrome-key.pub
+            state: absent
+          become: true
 
     - name: Add Google Chrome apt repository
       ansible.builtin.apt_repository:
