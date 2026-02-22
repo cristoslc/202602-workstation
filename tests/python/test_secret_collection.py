@@ -155,6 +155,24 @@ class TestEditSecrets:
             assert sf.doc_url, f"{sf.key} should have a doc_url"
             assert sf.doc_url.startswith("https://"), f"{sf.key} doc_url should be HTTPS"
 
+    def test_all_fields_have_used_by(self):
+        """Every SecretField should declare which roles/tools consume it."""
+        for sf in first_run.SHARED_ANSIBLE_VARS + first_run.SHELL_SECRETS:
+            assert sf.used_by, f"{sf.key} should have a used_by"
+
+    def test_mask_value_short(self):
+        """Short values should be fully masked."""
+        assert first_run._mask_value("abc") == "***"
+        assert first_run._mask_value("1234567890") == "**********"
+
+    def test_mask_value_long(self):
+        """Long values should show first 4 and last 4 chars."""
+        result = first_run._mask_value("sk-ant-abcdef12345xyz")
+        assert result.startswith("sk-a")
+        assert result.endswith("5xyz")
+        assert "*" in result
+        assert len(result) == len("sk-ant-abcdef12345xyz")
+
     def test_platform_awareness_macos(
         self, tmp_repo, mock_runner, mock_ui, monkeypatch
     ):

@@ -776,6 +776,7 @@ class SecretField:
     label: str            # Human-readable label for the prompt
     placeholder: str      # Example value shown in empty field
     description: str      # What this secret is used for
+    used_by: str          # Which roles/tools consume this secret
     doc_url: str = ""     # URL to docs on how to obtain this secret
     password: bool = False  # Mask input
 
@@ -786,13 +787,15 @@ SHARED_ANSIBLE_VARS: list[SecretField] = [
         key="git_user_email",
         label="Git email",
         placeholder="you@example.com",
-        description="Used by the git role for git config user.email",
+        description="Sets git config user.email globally",
+        used_by="git role",
     ),
     SecretField(
         key="git_user_name",
         label="Git display name",
         placeholder="Your Name",
-        description="Used by the git role for git config user.name",
+        description="Sets git config user.name globally",
+        used_by="git role",
     ),
 ]
 
@@ -803,7 +806,8 @@ SHELL_SECRETS: list[SecretField] = [
         key="ANTHROPIC_API_KEY",
         label="Anthropic API key",
         placeholder="sk-ant-...",
-        description="For Claude CLI and API access",
+        description="API access for Claude CLI and SDK",
+        used_by="claude-code role, Claude CLI",
         doc_url="https://console.anthropic.com/settings/keys",
         password=True,
     ),
@@ -812,6 +816,7 @@ SHELL_SECRETS: list[SecretField] = [
         label="GitHub token for Homebrew",
         placeholder="ghp_...",
         description="Avoids GitHub API rate limits during brew install",
+        used_by="homebrew role (macOS)",
         doc_url="https://github.com/settings/tokens",
         password=True,
     ),
@@ -831,16 +836,18 @@ def _show_secret_overview(ui: WizardUI, plat: str) -> None:
     table.add_column("#", style="cyan", width=3, justify="right")
     table.add_column("Variable", style="bold")
     table.add_column("Purpose")
+    table.add_column("Used By", style="dim italic")
     table.add_column("Docs", style="dim")
 
     n = 0
     for sf in SHARED_ANSIBLE_VARS:
         n += 1
-        table.add_row(str(n), sf.key, sf.description, sf.doc_url or "-")
+        doc_cell = f"[link={sf.doc_url}]{sf.doc_url}[/link]" if sf.doc_url else ""
+        table.add_row(str(n), sf.key, sf.description, sf.used_by, doc_cell)
     for sf in SHELL_SECRETS:
         n += 1
-        doc_cell = f"[link={sf.doc_url}]{sf.doc_url}[/link]" if sf.doc_url else "-"
-        table.add_row(str(n), sf.key, sf.description, doc_cell)
+        doc_cell = f"[link={sf.doc_url}]{sf.doc_url}[/link]" if sf.doc_url else ""
+        table.add_row(str(n), sf.key, sf.description, sf.used_by, doc_cell)
 
     ui.console.print()
     ui.console.print(table)
@@ -855,13 +862,20 @@ def _show_secret_overview(ui: WizardUI, plat: str) -> None:
     )
 
 
+def _mask_value(value: str) -> str:
+    """Show first 4 and last 4 chars of a secret for confirmation."""
+    if len(value) <= 10:
+        return "*" * len(value)
+    return value[:4] + "*" * (len(value) - 8) + value[-4:]
+
+
 def _prompt_for_field(
     ui: WizardUI, sf: SecretField, current: str = ""
 ) -> str:
-    """Prompt for a single secret field with context."""
+    """Prompt for a single secret field with context and confirmation."""
     ui.console.print()
     ui.console.print(f"  [bold]{sf.label}[/bold] [dim]({sf.key})[/dim]")
-    ui.console.print(f"  [dim]{sf.description}[/dim]")
+    ui.console.print(f"  [dim]{sf.description} \u2014 used by: {sf.used_by}[/dim]")
     if sf.doc_url:
         ui.console.print(f"  [dim]Docs:[/dim] [link={sf.doc_url}]{sf.doc_url}[/link]")
 
@@ -869,9 +883,18 @@ def _prompt_for_field(
     if current and not sf.password:
         label += f" [{current}]"
     elif current and sf.password:
-        label += " [current: ***]"
+        label += f" [current: {_mask_value(current)}]"
 
-    return ui.prompt(label, default=current, password=sf.password)
+    value = ui.prompt(label, default=current, password=sf.password)
+
+    # Show confirmation so user can verify what was captured.
+    if value and sf.password:
+        ui.console.print(
+            f"  [green]\u2713[/green] [dim]{_mask_value(value)} "
+            f"({len(value)} chars)[/dim]"
+        )
+
+    return value
 
 
 def edit_secrets(
