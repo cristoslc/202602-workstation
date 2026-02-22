@@ -105,34 +105,15 @@ class WelcomeScreen(Screen):
         if option_id == "quit":
             self.app.exit()
         elif option_id == "bootstrap":
-            self.app.push_screen(BootstrapPlaceholderScreen())
+            from .bootstrap import BootstrapModeScreen
+            self.app.push_screen(BootstrapModeScreen())
         elif option_id == "first-run":
             self.app.push_screen(FirstRunPlaceholderScreen())
         elif option_id == "edit-secrets":
             self.app.push_screen(SecretsPlaceholderScreen())
 
 
-# Placeholder screens for Phase 1 — will be replaced in Phases 2-3.
-
-
-class BootstrapPlaceholderScreen(Screen):
-    """Temporary placeholder until Phase 2 implements the full bootstrap flow."""
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        with Vertical(id="main-content"):
-            yield Static(
-                "[bold]Bootstrap[/bold]\n\n"
-                "The full bootstrap TUI is coming in Phase 2.\n"
-                "For now, exit and run the platform bootstrap script directly:\n\n"
-                "  [cyan]make bootstrap[/cyan]"
-            )
-            yield Button("Back", id="back")
-        yield Footer()
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "back":
-            self.app.pop_screen()
+# Placeholder screens — will be replaced in Phase 3.
 
 
 class FirstRunPlaceholderScreen(Screen):

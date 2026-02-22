@@ -27,8 +27,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"
 
 from setup_tui.app import SetupApp
 from setup_tui.lib.state import ResumeState
+from setup_tui.screens.bootstrap import (
+    BootstrapModeScreen,
+    BootstrapPasswordScreen,
+    BootstrapPhaseScreen,
+    BootstrapRunScreen,
+)
 from setup_tui.screens.welcome import (
-    BootstrapPlaceholderScreen,
     FirstRunPlaceholderScreen,
     SecretsPlaceholderScreen,
     WelcomeScreen,
@@ -338,7 +343,7 @@ class TestWelcomeScreenWithPendingSteps:
         """User must be able to bootstrap even with pending first-run steps."""
         async with _AppTestContext(partial_state) as ctx:
             await _select_option(ctx, "bootstrap")
-            assert isinstance(ctx.app.screen, BootstrapPlaceholderScreen)
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
 
 
 # ===========================================================================
@@ -360,7 +365,7 @@ class TestNavigation:
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
             await _select_option(ctx, "bootstrap")
-            assert isinstance(ctx.app.screen, BootstrapPlaceholderScreen)
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
 
     @pytest.mark.asyncio
     async def test_edit_secrets_option_navigates(self, personalized_state):
@@ -371,14 +376,14 @@ class TestNavigation:
             assert isinstance(ctx.app.screen, SecretsPlaceholderScreen)
 
     @pytest.mark.asyncio
-    async def test_back_from_bootstrap(self, personalized_state):
+    async def test_back_from_bootstrap_mode(self, personalized_state):
         async with _AppTestContext(
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
             await _select_option(ctx, "bootstrap")
-            assert isinstance(ctx.app.screen, BootstrapPlaceholderScreen)
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
 
-            await ctx.pilot.click("#back")
+            await ctx.pilot.press("escape")
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, WelcomeScreen)
 
@@ -445,20 +450,224 @@ class TestNavigation:
 
 
 # ===========================================================================
+# Bootstrap screens — mode, phase, password selection
+# ===========================================================================
+
+class TestBootstrapModeScreen:
+    """BootstrapModeScreen should render radio buttons and navigate forward."""
+
+    @pytest.mark.asyncio
+    async def test_mode_screen_renders(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
+
+            # Should have a RadioSet with 3 options.
+            from textual.widgets import RadioSet
+            radio_set = ctx.app.screen.query_one("#mode-select", RadioSet)
+            assert radio_set is not None
+
+    @pytest.mark.asyncio
+    async def test_mode_screen_has_next_button(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            next_btn = ctx.app.screen.query_one("#next")
+            assert next_btn is not None
+
+    @pytest.mark.asyncio
+    async def test_next_navigates_to_phase_screen(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
+
+            # Click Next with default "fresh" selected.
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+    @pytest.mark.asyncio
+    async def test_escape_goes_back(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
+
+            await ctx.pilot.press("escape")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, WelcomeScreen)
+
+
+class TestBootstrapPhaseScreen:
+    """BootstrapPhaseScreen should render checkboxes for each phase."""
+
+    @pytest.mark.asyncio
+    async def test_phase_screen_renders_checkboxes(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+            # Should have 5 checkboxes for the 5 phases.
+            from textual.widgets import Checkbox
+            checkboxes = ctx.app.screen.query(Checkbox)
+            assert len(checkboxes) == 5
+
+    @pytest.mark.asyncio
+    async def test_fresh_mode_selects_all_phases(self, personalized_state):
+        """Fresh install should default to all phases selected."""
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+
+            from textual.widgets import Checkbox
+            checkboxes = ctx.app.screen.query(Checkbox)
+            assert all(cb.value for cb in checkboxes)
+
+    @pytest.mark.asyncio
+    async def test_next_navigates_to_password_screen(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+    @pytest.mark.asyncio
+    async def test_escape_goes_back_to_mode(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+            await ctx.pilot.press("escape")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapModeScreen)
+
+
+class TestBootstrapPasswordScreen:
+    """BootstrapPasswordScreen should collect sudo password."""
+
+    @pytest.mark.asyncio
+    async def test_password_screen_renders(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+            password_input = ctx.app.screen.query_one("#sudo-password")
+            assert password_input is not None
+
+    @pytest.mark.asyncio
+    async def test_password_screen_shows_summary(self, personalized_state):
+        """Should show the selected mode and phases."""
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+
+            status = ctx.app.screen.query_one("#main-content Static")
+            text = str(status.content)
+            assert "Fresh install" in text
+
+    @pytest.mark.asyncio
+    async def test_escape_goes_back_to_phases(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+            await ctx.pilot.press("escape")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+    @pytest.mark.asyncio
+    async def test_empty_password_does_not_proceed(self, personalized_state):
+        """Clicking Run with empty password should stay on screen."""
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+            await ctx.pilot.click("#run")
+            await ctx.pilot.pause()
+            # Should still be on password screen.
+            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+
+class TestBootstrapRunScreen:
+    """BootstrapRunScreen should render with output log and step sidebar."""
+
+    @pytest.mark.asyncio
+    async def test_run_screen_renders(self, personalized_state):
+        """Directly push a BootstrapRunScreen to verify it composes."""
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            # Patch the bootstrap steps to avoid running real commands.
+            with patch.object(
+                BootstrapRunScreen, "_run_bootstrap", lambda self: None
+            ):
+                ctx.app.push_screen(
+                    BootstrapRunScreen("fresh", ["dotfiles"], "testpass")
+                )
+                await ctx.pilot.pause()
+                assert isinstance(ctx.app.screen, BootstrapRunScreen)
+
+                # Should have output log and step sidebar.
+                from textual.widgets import RichLog
+                output = ctx.app.screen.query_one("#output", RichLog)
+                assert output is not None
+
+                step_list = ctx.app.screen.query_one("#step-list")
+                assert step_list is not None
+
+
+# ===========================================================================
 # Placeholder screens — verify they compose without errors
 # ===========================================================================
 
 class TestPlaceholderScreensRender:
-    """Each placeholder screen should mount and show a back button."""
-
-    @pytest.mark.asyncio
-    async def test_bootstrap_placeholder_has_back(self, unpersonalized_state):
-        async with _AppTestContext(unpersonalized_state) as ctx:
-            ctx.app.push_screen(BootstrapPlaceholderScreen())
-            await ctx.pilot.pause()
-
-            assert isinstance(ctx.app.screen, BootstrapPlaceholderScreen)
-            assert ctx.app.screen.query_one("#back") is not None
+    """Remaining placeholder screens should mount and show a back button."""
 
     @pytest.mark.asyncio
     async def test_first_run_placeholder_has_back(self, unpersonalized_state):
@@ -477,13 +686,3 @@ class TestPlaceholderScreensRender:
 
             assert isinstance(ctx.app.screen, SecretsPlaceholderScreen)
             assert ctx.app.screen.query_one("#back") is not None
-
-    @pytest.mark.asyncio
-    async def test_bootstrap_placeholder_content(self, unpersonalized_state):
-        async with _AppTestContext(unpersonalized_state) as ctx:
-            ctx.app.push_screen(BootstrapPlaceholderScreen())
-            await ctx.pilot.pause()
-
-            status = ctx.app.screen.query_one("#main-content Static")
-            text = str(status.content)
-            assert "Phase 2" in text or "bootstrap" in text.lower()

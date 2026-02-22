@@ -19,6 +19,7 @@
     url: "{{ download_url }}"
     dest: "{{ _download_tmp.path }}"
     mode: "0644"
+    force: true
   become: true
 
 - name: "{{ tool_name }} — compute SHA-256 checksum"

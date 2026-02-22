@@ -60,6 +60,48 @@ Screen {
     max-height: 12;
     margin: 1 0;
 }
+
+#run-layout {
+    width: 1fr;
+    height: 1fr;
+}
+
+#step-sidebar {
+    width: 36;
+    padding: 1 2;
+    border-right: solid $primary-background;
+}
+
+#run-main {
+    width: 1fr;
+    height: 1fr;
+    padding: 1 2;
+}
+
+#output {
+    width: 1fr;
+    height: 1fr;
+}
+
+#run-footer-buttons {
+    height: auto;
+    padding: 0 2;
+    align-horizontal: center;
+}
+
+#run-footer-buttons Button {
+    margin: 0 1;
+}
+
+#phase-checkboxes {
+    height: auto;
+    padding: 0 0 1 0;
+}
+
+#sudo-password {
+    width: 40;
+    margin: 1 0;
+}
 """
 
 
