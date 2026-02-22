@@ -67,8 +67,14 @@ jobs:
       - name: check-stow-collisions
         run: ./scripts/check-stow-collisions.sh
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: bats tests
         run: bats tests/bats/
+
+      - name: Python tests (first-run wizard)
+        run: uv run --with rich,pyyaml,pytest pytest tests/python/ -v
 
       - name: gitleaks
         uses: gitleaks/gitleaks-action@v2

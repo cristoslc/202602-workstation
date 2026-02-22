@@ -16,7 +16,8 @@ SOPS_AGE_KEY_FILE ?= $(HOME)/.config/sops/age/keys.txt
 export SOPS_AGE_KEY_FILE
 
 .PHONY: help first-run bootstrap lint shellcheck yamllint ansible-lint \
-        check-collisions test test-bats check apply decrypt clean-secrets status \
+        check-collisions test test-bats test-python check apply decrypt \
+        clean-secrets status \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         export-key import-key send-key receive-key
 
@@ -89,9 +90,12 @@ check-collisions: ## Check for stow filename collisions between layers
 test-bats: ## Run bats shell unit tests
 	bats tests/bats/
 
-test: lint test-bats ## Run all linters and tests
+test-python: ## Run Python unit tests (first-run wizard)
+	uv run --with rich,pyyaml,pytest pytest tests/python/ -v
 
-check: shellcheck yamllint check-collisions test-bats ## Quick local verification (no ansible-lint)
+test: lint test-bats test-python ## Run all linters and tests
+
+check: shellcheck yamllint check-collisions test-bats test-python ## Quick local verification (no ansible-lint)
 
 send-key: ## Send age key to another machine via Magic Wormhole
 	./scripts/transfer-key.sh send
