@@ -8,6 +8,8 @@ keys.txt
 
 # Logs
 first-run.log
+bootstrap.log
+*.log
 
 # Ansible
 *.retry
