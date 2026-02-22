@@ -81,6 +81,7 @@ resolve_age_key || true  # Non-fatal: secrets just won't decrypt
 
 # --- Phase 6: Run Ansible ---
 
+mkdir -p "$HOME/.local/log"
 info "Running Ansible playbook..."
 export ANSIBLE_CONFIG="$SCRIPT_DIR/ansible.cfg"
 cd "$SCRIPT_DIR"
