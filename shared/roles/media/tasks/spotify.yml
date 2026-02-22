@@ -17,22 +17,22 @@
 - name: Install Spotify (Debian)
   when: ansible_os_family == "Debian"
   block:
-    - name: Download Spotify GPG key
+    - name: Download and refresh Spotify GPG key
       ansible.builtin.get_url:
-        url: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
-        dest: /tmp/spotify-key.gpg
+        url: https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc
+        dest: /tmp/spotify-key.asc
         mode: "0644"
+        force: true
       become: true
 
     - name: Dearmor Spotify GPG key
-      ansible.builtin.command: gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg /tmp/spotify-key.gpg
-      args:
-        creates: /usr/share/keyrings/spotify-archive-keyring.gpg
+      ansible.builtin.shell: gpg --batch --yes --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg /tmp/spotify-key.asc
       become: true
+      changed_when: true
 
     - name: Clean up Spotify key temp file
       ansible.builtin.file:
-        path: /tmp/spotify-key.gpg
+        path: /tmp/spotify-key.asc
         state: absent
       become: true
 
