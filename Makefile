@@ -15,6 +15,9 @@ export ANSIBLE_CONFIG
 SOPS_AGE_KEY_FILE ?= $(HOME)/.config/sops/age/keys.txt
 export SOPS_AGE_KEY_FILE
 
+# Ensure uv and other ~/.local/bin tools are on PATH (uv installs there).
+export PATH := $(HOME)/.local/bin:$(PATH)
+
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions test test-bats test-python check apply decrypt \
         clean-secrets status \
