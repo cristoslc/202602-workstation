@@ -2,7 +2,6 @@
 set -euo pipefail
 umask 077
 
-WORKSTATION_DIR="${1:-$HOME/.workstation}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PLATFORM="macos"
 
@@ -81,7 +80,7 @@ cd "$SCRIPT_DIR"
 
 ansible-playbook site.yml \
   --ask-become-pass \
-  -e "workstation_dir=$WORKSTATION_DIR" \
+  -e "workstation_dir=$(dirname "$SCRIPT_DIR")" \
   -e "bootstrap_mode=$BOOTSTRAP_MODE" \
   -e "apply_system_roles=$APPLY_SYSTEM_ROLES" \
   -e "apply_macos_defaults=${APPLY_MACOS_DEFAULTS:-true}" \
