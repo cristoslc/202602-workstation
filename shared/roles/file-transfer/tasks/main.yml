@@ -1,10 +1,10 @@
 ---
-# File Transfer role: Cyberduck (macOS) / Filezilla (Linux)
+# File Transfer role: Cyberduck (macOS) + Filezilla (Linux)
 
-- name: Verify Cyberduck (macOS)
-  when: ansible_os_family == "Darwin"
-  ansible.builtin.include_tasks: darwin.yml
+- name: Install Cyberduck
+  ansible.builtin.include_tasks: cyberduck.yml
+  tags: [cyberduck]
 
-- name: Install Filezilla (Debian)
-  when: ansible_os_family == "Debian"
-  ansible.builtin.include_tasks: debian.yml
+- name: Install Filezilla
+  ansible.builtin.include_tasks: filezilla.yml
+  tags: [filezilla]

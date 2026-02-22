@@ -1,0 +1,54 @@
+---
+# Espanso sub-task
+- name: Install Espanso (macOS)
+  when: ansible_os_family == "Darwin"
+  block:
+    - name: Install Espanso via Homebrew
+      community.general.homebrew_cask:
+        name: espanso
+        state: present
+
+    - name: Note about Espanso accessibility
+      ansible.builtin.debug:
+        msg: >
+          Espanso requires accessibility permissions on macOS.
+          Grant access in System Settings → Privacy & Security → Accessibility.
+
+- name: Install Espanso (Debian)
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Check if Espanso is installed
+      ansible.builtin.command: espanso --version
+      register: espanso_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Espanso
+      when: espanso_check.rc != 0
+      block:
+        - name: Download Espanso .deb
+          ansible.builtin.get_url:
+            url: "https://github.com/espanso/espanso/releases/latest/download/espanso-debian-x11-amd64.deb"
+            dest: /tmp/espanso.deb
+            mode: "0644"
+
+        - name: Install Espanso .deb
+          ansible.builtin.apt:
+            deb: /tmp/espanso.deb
+            state: present
+          become: true
+
+        - name: Clean up .deb
+          ansible.builtin.file:
+            path: /tmp/espanso.deb
+            state: absent
+
+    - name: Register Espanso systemd service
+      ansible.builtin.command: espanso service register
+      changed_when: false
+      failed_when: false
+
+    - name: Start Espanso service
+      ansible.builtin.command: espanso service start
+      changed_when: false
+      failed_when: false

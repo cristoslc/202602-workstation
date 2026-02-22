@@ -1,10 +1,14 @@
 ---
-# Media role: Spotify + VLC
+# Media role: Spotify, VLC, Downie
 
-- name: Install media apps (macOS)
-  when: ansible_os_family == "Darwin"
-  ansible.builtin.include_tasks: darwin.yml
+- name: Install Spotify
+  ansible.builtin.include_tasks: spotify.yml
+  tags: [spotify]
 
-- name: Install media apps (Debian)
-  when: ansible_os_family == "Debian"
-  ansible.builtin.include_tasks: debian.yml
+- name: Install VLC
+  ansible.builtin.include_tasks: vlc.yml
+  tags: [vlc]
+
+- name: Install Downie
+  ansible.builtin.include_tasks: downie.yml
+  tags: [downie]

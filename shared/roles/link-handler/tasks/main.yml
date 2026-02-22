@@ -1,7 +1,10 @@
 ---
-# Link handler role: file and URL routing to the correct application.
-# macOS: OpenIn (Setapp-managed).
-# Linux: xdg-open + custom MIME associations, or Junction as GUI alternative.
+# Link Handler role: OpenIn (macOS) + xdg-mime (Linux)
 
-- name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+- name: Install OpenIn
+  ansible.builtin.include_tasks: openin.yml
+  tags: [openin]
+
+- name: Configure MIME associations
+  ansible.builtin.include_tasks: xdg-mime.yml
+  tags: [xdg-mime]

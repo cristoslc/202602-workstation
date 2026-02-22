@@ -1,0 +1,28 @@
+---
+# Vicinae sub-task (Debian only)
+- name: Install Vicinae (Debian)
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Check if Vicinae is installed
+      ansible.builtin.command: which vicinae
+      register: vicinae_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Vicinae
+      when: vicinae_check.rc != 0
+      ansible.builtin.debug:
+        msg: >
+          Vicinae must be installed manually. Visit https://vicinae.app for install instructions.
+          After installation, re-run this role to configure keyboard shortcuts.
+
+    - name: Install Vicinae URL handler
+      ansible.builtin.copy:
+        src: vicinae-url-handler.desktop
+        dest: "{{ ansible_env.HOME }}/.local/share/applications/vicinae-url-handler.desktop"
+        mode: "0644"
+
+    - name: Register Vicinae URL handler
+      ansible.builtin.command: xdg-mime default vicinae-url-handler.desktop x-scheme-handler/vicinae
+      changed_when: false
+      failed_when: false

@@ -1,5 +1,10 @@
 ---
-# Utilities role: Keka (macOS) / archive tools (Linux)
+# Utilities role: Keka (macOS) + archive tools (Linux)
 
-- name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+- name: Install Keka
+  ansible.builtin.include_tasks: keka.yml
+  tags: [keka]
+
+- name: Install archive tools
+  ansible.builtin.include_tasks: archive-tools.yml
+  tags: [archive-tools]

@@ -1,7 +1,6 @@
 ---
-# Screenshots role: screen capture and annotation tools.
-# macOS: CleanShot X (Setapp-managed).
-# Linux: TBD — Flameshot or Shutter are candidates.
+# Screenshots role: CleanShot X (macOS, Setapp-managed)
 
-- name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+- name: Install CleanShot X
+  ansible.builtin.include_tasks: cleanshot.yml
+  tags: [cleanshot]

@@ -1,13 +1,17 @@
 ---
-# Browsers role: install all browsers, set daily driver default.
+# Browsers role: Firefox, Brave, Chrome + daily driver default
 
-- name: Install browsers (macOS)
-  when: ansible_os_family == "Darwin"
-  ansible.builtin.include_tasks: darwin.yml
+- name: Install Firefox
+  ansible.builtin.include_tasks: firefox.yml
+  tags: [firefox]
 
-- name: Install browsers (Debian)
-  when: ansible_os_family == "Debian"
-  ansible.builtin.include_tasks: debian.yml
+- name: Install Brave
+  ansible.builtin.include_tasks: brave.yml
+  tags: [brave]
+
+- name: Install Chrome
+  ansible.builtin.include_tasks: chrome.yml
+  tags: [chrome]
 
 - name: Set daily driver browser (Linux)
   when: ansible_os_family == "Debian"

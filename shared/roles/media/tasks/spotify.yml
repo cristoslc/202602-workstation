@@ -1,0 +1,50 @@
+---
+# Spotify sub-task
+- name: Install Spotify (macOS)
+  when: ansible_os_family == "Darwin"
+  block:
+    - name: Verify Spotify is installed
+      ansible.builtin.command: brew list --cask spotify
+      register: spotify_check
+      changed_when: false
+      failed_when: false
+
+    - name: Note about Spotify
+      when: spotify_check.rc != 0
+      ansible.builtin.debug:
+        msg: "Spotify not installed. Add 'spotify' to Brewfile and run brew bundle."
+
+- name: Install Spotify (Debian)
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Download Spotify GPG key
+      ansible.builtin.get_url:
+        url: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
+        dest: /tmp/spotify-key.gpg
+        mode: "0644"
+      become: true
+
+    - name: Dearmor Spotify GPG key
+      ansible.builtin.command: gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg /tmp/spotify-key.gpg
+      args:
+        creates: /usr/share/keyrings/spotify-archive-keyring.gpg
+      become: true
+
+    - name: Clean up Spotify key temp file
+      ansible.builtin.file:
+        path: /tmp/spotify-key.gpg
+        state: absent
+      become: true
+
+    - name: Add Spotify apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] https://repository.spotify.com stable non-free"
+        state: present
+      become: true
+
+    - name: Install Spotify
+      ansible.builtin.apt:
+        name: spotify-client
+        state: present
+        update_cache: true
+      become: true

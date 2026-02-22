@@ -1,10 +1,10 @@
 ---
 # Communication role: Slack + Signal
 
-- name: Install communication apps (macOS)
-  when: ansible_os_family == "Darwin"
-  ansible.builtin.include_tasks: darwin.yml
+- name: Install Slack
+  ansible.builtin.include_tasks: slack.yml
+  tags: [slack]
 
-- name: Install communication apps (Debian)
-  when: ansible_os_family == "Debian"
-  ansible.builtin.include_tasks: debian.yml
+- name: Install Signal
+  ansible.builtin.include_tasks: signal.yml
+  tags: [signal]

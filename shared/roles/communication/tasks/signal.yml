@@ -1,0 +1,50 @@
+---
+# Signal sub-task
+- name: Install Signal (macOS)
+  when: ansible_os_family == "Darwin"
+  block:
+    - name: Verify Signal is installed
+      ansible.builtin.command: brew list --cask signal
+      register: signal_check
+      changed_when: false
+      failed_when: false
+
+    - name: Note about Signal
+      when: signal_check.rc != 0
+      ansible.builtin.debug:
+        msg: "Signal not installed. Add 'signal' to Brewfile and run brew bundle."
+
+- name: Install Signal (Debian)
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Download and refresh Signal GPG key
+      ansible.builtin.get_url:
+        url: https://updates.signal.org/desktop/apt/keys.asc
+        dest: /tmp/signal-key.asc
+        mode: "0644"
+        force: true
+      become: true
+
+    - name: Dearmor Signal GPG key
+      ansible.builtin.shell: gpg --batch --yes --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg /tmp/signal-key.asc
+      become: true
+      changed_when: true
+
+    - name: Clean up Signal key temp file
+      ansible.builtin.file:
+        path: /tmp/signal-key.asc
+        state: absent
+      become: true
+
+    - name: Add Signal apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main"
+        state: present
+      become: true
+
+    - name: Install Signal Desktop
+      ansible.builtin.apt:
+        name: signal-desktop
+        state: present
+        update_cache: true
+      become: true

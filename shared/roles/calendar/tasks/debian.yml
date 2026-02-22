@@ -1,7 +1,0 @@
----
-# Linux: calendar app not yet selected.
-# Placeholder — GNOME Calendar or Thunderbird are candidates.
-
-- name: Calendar app placeholder
-  ansible.builtin.debug:
-    msg: "No Linux calendar app selected yet. Consider GNOME Calendar or Thunderbird."

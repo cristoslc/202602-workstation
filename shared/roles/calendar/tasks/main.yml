@@ -1,7 +1,10 @@
 ---
-# Calendar role: calendar and notification apps.
-# macOS: Dato + BusyCal (Setapp-managed, verify presence).
-# Linux: TBD — placeholder for now.
+# Calendar role: Dato + BusyCal (macOS, Setapp-managed)
 
-- name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+- name: Install Dato
+  ansible.builtin.include_tasks: dato.yml
+  tags: [dato]
+
+- name: Install BusyCal
+  ansible.builtin.include_tasks: busycal.yml
+  tags: [busycal]

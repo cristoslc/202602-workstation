@@ -1,5 +1,6 @@
 ---
-# Text Expansion role: Espanso (both platforms)
+# Text Expansion role: Espanso
 
-- name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_os_family | lower }}.yml"
+- name: Install Espanso
+  ansible.builtin.include_tasks: espanso.yml
+  tags: [espanso]

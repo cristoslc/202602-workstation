@@ -1,8 +1,0 @@
----
-# Linux: Filezilla for SFTP
-
-- name: Install Filezilla
-  ansible.builtin.apt:
-    name: filezilla
-    state: present
-  become: true
