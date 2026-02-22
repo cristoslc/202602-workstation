@@ -14,13 +14,13 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import (
     Button,
-    Checkbox,
     Footer,
     Header,
     Input,
     RadioButton,
     RadioSet,
     RichLog,
+    SelectionList,
     Static,
 )
 
@@ -105,15 +105,16 @@ class BootstrapPhaseScreen(Screen):
         with Vertical(id="main-content"):
             yield Static(
                 "[bold]Bootstrap — Step 2 of 3[/bold]\n\n"
-                "Which role groups should run?"
+                "Which role groups should run?\n"
+                "[dim]Arrow keys to move, Space to toggle, Tab to jump to Next[/dim]"
             )
-            with Vertical(id="phase-checkboxes"):
-                for phase_id, label, description in PHASES:
-                    yield Checkbox(
-                        f"{label}  [dim]{description}[/dim]",
-                        id=f"phase-{phase_id}",
-                        value=phase_id in defaults,
-                    )
+            yield SelectionList[str](
+                *[
+                    (f"{label}  [dim]{description}[/dim]", phase_id, phase_id in defaults)
+                    for phase_id, label, description in PHASES
+                ],
+                id="phase-list",
+            )
             yield Button("Next", id="next", variant="primary")
         yield Footer()
 
@@ -122,11 +123,8 @@ class BootstrapPhaseScreen(Screen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "next":
-            selected = []
-            for phase_id, _, _ in PHASES:
-                cb = self.query_one(f"#phase-{phase_id}", Checkbox)
-                if cb.value:
-                    selected.append(phase_id)
+            phase_list = self.query_one("#phase-list", SelectionList)
+            selected = list(phase_list.selected)
             if not selected:
                 return
             self.app.push_screen(
