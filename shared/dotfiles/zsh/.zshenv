@@ -25,6 +25,11 @@ if [ -d "$HOME/.local/share/uv/python" ]; then
   unset _uv_python_bin
 fi
 
+# Claude Code
+if [ -d "$HOME/.claude/local/bin" ]; then
+  export PATH="$HOME/.claude/local/bin:$PATH"
+fi
+
 # SOPS age key (macOS defaults to ~/Library/Application Support/; we use ~/.config/)
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
