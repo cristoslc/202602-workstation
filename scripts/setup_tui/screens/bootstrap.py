@@ -213,7 +213,7 @@ class BootstrapRunScreen(Screen):
                 yield Static("[bold]Steps[/bold]", id="sidebar-title")
                 yield Static("", id="step-list")
             with Vertical(id="run-main"):
-                yield RichLog(id="output", highlight=True, markup=True)
+                yield RichLog(id="output", highlight=True, markup=True, wrap=True)
         with Horizontal(id="run-footer-buttons"):
             yield Button("Done", id="done", variant="primary", disabled=True)
             yield Button("Back to Menu", id="back", disabled=True)

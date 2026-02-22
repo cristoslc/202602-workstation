@@ -15,13 +15,13 @@
         url: https://packages.microsoft.com/keys/microsoft.asc
         dest: /tmp/microsoft-key.asc
         mode: "0644"
+        force: true
       become: true
 
     - name: Dearmor Microsoft GPG key
-      ansible.builtin.command: gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg /tmp/microsoft-key.asc
-      args:
-        creates: /usr/share/keyrings/microsoft-archive-keyring.gpg
+      ansible.builtin.shell: gpg --batch --yes --dearmor -o /usr/share/keyrings/microsoft.gpg /tmp/microsoft-key.asc
       become: true
+      changed_when: true
 
     - name: Clean up Microsoft key temp file
       ansible.builtin.file:
@@ -29,9 +29,17 @@
         state: absent
       become: true
 
+    - name: Remove stale VS Code apt source files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/packages_microsoft_com_repos_code.list
+      become: true
+
     - name: Add VS Code repository
       ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main"
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
         filename: vscode
         state: present
       become: true
