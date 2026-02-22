@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Shared bootstrap wizard logic using gum.
-# Sourced by platform-specific bootstrap scripts.
-# Requires: gum is installed before sourcing this file.
+# Sourced by platform-specific bootstrap scripts and scripts/transfer-key.sh.
+#
+# NOTE: setup_logging() was removed intentionally — the exec > >(tee) approach
+# breaks gum's isatty() check, making the TUI unusable. Bootstrap logging will
+# move to the Textual TUI (setup.sh → setup_tui/) in a future phase.
 
 # Colors for non-gum output
 RED='\033[0;31m'
@@ -12,17 +15,6 @@ NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
-# Set up bootstrap logging.
-# Tees stdout+stderr to ~/.local/log/bootstrap.log while preserving stdin
-# on the terminal (so gum menus and --ask-become-pass still work).
-setup_logging() {
-  local log_dir="$HOME/.local/log"
-  local log_file="$log_dir/bootstrap.log"
-  mkdir -p "$log_dir"
-  printf '\n%s\n' "=== bootstrap: $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$log_file"
-  exec > >(tee -a "$log_file") 2>&1
-}
 
 # Run the bootstrap wizard. Sets exported variables:
 #   BOOTSTRAP_MODE: fresh | new_account | existing_account
@@ -194,7 +186,7 @@ resolve_age_key() {
   warn "To enable secrets, place your age private key at:"
   warn "  $key_path"
   warn "Or on another machine with the key, run: make send-key"
-  warn "Then re-run bootstrap."
+  warn "Then re-run setup."
   return 1
 }
 

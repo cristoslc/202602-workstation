@@ -15,7 +15,7 @@ export ANSIBLE_CONFIG
 SOPS_AGE_KEY_FILE ?= $(HOME)/.config/sops/age/keys.txt
 export SOPS_AGE_KEY_FILE
 
-.PHONY: help first-run bootstrap lint shellcheck yamllint ansible-lint \
+.PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions test test-bats test-python check apply decrypt \
         clean-secrets status \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
@@ -24,6 +24,9 @@ export SOPS_AGE_KEY_FILE
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+setup: ## Setup wizard (Textual TUI — replaces first-run + bootstrap)
+	./setup.sh
 
 first-run: ## One-time repo setup (age key, encrypt secrets, GitHub remote)
 	./first-run.sh
@@ -39,7 +42,8 @@ yamllint: ## Run yamllint on all YAML files
 
 shellcheck: ## Run shellcheck on all shell scripts
 	shellcheck --severity=warning \
-		bootstrap.sh first-run.sh linux/bootstrap.sh macos/bootstrap.sh \
+		setup.sh bootstrap.sh first-run.sh \
+		linux/bootstrap.sh macos/bootstrap.sh \
 		shared/lib/wizard.sh scripts/*.sh
 
 ansible-lint: ## Run ansible-lint on all playbooks (SOPS disabled)
@@ -90,8 +94,8 @@ check-collisions: ## Check for stow filename collisions between layers
 test-bats: ## Run bats shell unit tests
 	bats tests/bats/
 
-test-python: ## Run Python unit tests (first-run wizard)
-	uv run --with rich,pyyaml,pytest pytest tests/python/ -v
+test-python: ## Run Python unit tests (first-run wizard + setup TUI)
+	uv run --with rich,pyyaml,textual,pytest,pytest-asyncio pytest tests/python/ -v
 
 test: lint test-bats test-python ## Run all linters and tests
 

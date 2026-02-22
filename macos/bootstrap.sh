@@ -10,7 +10,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Source shared wizard
 source "$SCRIPT_DIR/../shared/lib/wizard.sh"
-setup_logging
 
 trap 'error "Bootstrap failed. Re-run after fixing the issue above."' ERR
 
