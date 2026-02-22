@@ -403,7 +403,7 @@ class BootstrapRunScreen(Screen):
 
         for line in proc.stdout:
             stripped = line.rstrip("\n")
-            self.app.call_from_thread(self._log, stripped)
+            self.app.call_from_thread(self._log_output, stripped)
             logger.debug(stripped)
 
         proc.wait()
@@ -413,7 +413,7 @@ class BootstrapRunScreen(Screen):
             )
 
     def _log(self, text: str) -> None:
-        """Write a line to the RichLog widget and bootstrap.log file."""
+        """Write a Rich-markup line to the RichLog widget and log file."""
         import re
 
         log_widget = self.query_one("#output", RichLog)
@@ -423,6 +423,17 @@ class BootstrapRunScreen(Screen):
             # Strip Rich markup tags for the plain-text log file.
             plain = re.sub(r"\[/?[^\]]*\]", "", text)
             self._log_file.write(plain + "\n")
+            self._log_file.flush()
+
+    def _log_output(self, text: str) -> None:
+        """Write subprocess output verbatim (no Rich markup parsing)."""
+        from rich.text import Text
+
+        log_widget = self.query_one("#output", RichLog)
+        log_widget.write(Text(text))
+
+        if self._log_file and not self._log_file.closed:
+            self._log_file.write(text + "\n")
             self._log_file.flush()
 
     def _update_sidebar(
