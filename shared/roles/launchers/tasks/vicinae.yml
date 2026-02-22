@@ -9,12 +9,46 @@
       changed_when: false
       failed_when: false
 
-    - name: Install Vicinae
+    - name: Generate Vicinae install instructions
       when: vicinae_check.rc != 0
-      ansible.builtin.debug:
-        msg: >
-          Vicinae must be installed manually. Visit https://vicinae.app for install instructions.
-          After installation, re-run this role to configure keyboard shortcuts.
+      block:
+        - name: Ensure manual-install directory exists
+          ansible.builtin.file:
+            path: "{{ ansible_facts.env.HOME }}/Desktop/workstation-setup"
+            state: directory
+            mode: "0755"
+
+        - name: Write Vicinae install guide
+          ansible.builtin.copy:
+            dest: "{{ ansible_facts.env.HOME }}/Desktop/workstation-setup/install-vicinae.md"
+            content: |
+              # Install Vicinae
+
+              Vicinae provides clipboard history, emoji picker, and app launcher for Linux.
+
+              ## Installation
+
+              1. Visit https://vicinae.app
+              2. Download the latest .deb package
+              3. Install: sudo apt install ./vicinae-*.deb
+              4. Re-run bootstrap to configure keyboard shortcuts
+
+              ## Keyboard shortcuts (configured by bootstrap)
+
+              - Super+V — Clipboard history
+              - Super+E — Emoji picker
+              - Super+Space — App launcher
+
+              ## After installation
+
+              Run bootstrap again to apply shortcuts:
+                cd ~/Documents/202602-workstation && make bootstrap
+            mode: "0644"
+
+        - name: Open Vicinae install guide
+          ansible.builtin.command: xdg-open "{{ ansible_facts.env.HOME }}/Desktop/workstation-setup/install-vicinae.md"
+          changed_when: false
+          failed_when: false
 
     - name: Install Vicinae URL handler
       ansible.builtin.copy:

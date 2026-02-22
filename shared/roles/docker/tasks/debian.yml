@@ -46,43 +46,62 @@
     state: present
   become: true
 
-- name: Install Docker Engine
+- name: Remove Docker Engine if present (replaced by Docker Desktop)
   ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
-    state: present
-    update_cache: true
+    state: absent
+    purge: true
   become: true
+  register: _docker_engine_removed
 
-- name: Configure Docker daemon security constraints
-  ansible.builtin.copy:
-    dest: /etc/docker/daemon.json
-    content: |
-      {
-        "no-new-privileges": true,
-        "log-driver": "json-file",
-        "log-opts": {
-          "max-size": "10m",
-          "max-file": "3"
-        }
-      }
-    mode: "0644"
+- name: Stop Docker Engine service before Desktop install
+  when: _docker_engine_removed.changed
+  ansible.builtin.systemd:
+    name: docker
+    state: stopped
+    enabled: false
   become: true
-  notify: Restart Docker
+  failed_when: false
+
+- name: Check if Docker Desktop is installed
+  ansible.builtin.command: dpkg-query -W docker-desktop
+  register: _docker_desktop_check
+  changed_when: false
+  failed_when: false
+
+- name: Download and install Docker Desktop
+  when: _docker_desktop_check.rc != 0
+  block:
+    - name: Create temp file for Docker Desktop download
+      ansible.builtin.tempfile:
+        suffix: .deb
+      register: _docker_desktop_tmp
+
+    - name: Download Docker Desktop .deb
+      ansible.builtin.get_url:
+        url: https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb
+        dest: "{{ _docker_desktop_tmp.path }}"
+        mode: "0644"
+
+    - name: Install Docker Desktop .deb
+      ansible.builtin.apt:
+        deb: "{{ _docker_desktop_tmp.path }}"
+        state: present
+        update_cache: true
+      become: true
+
+    - name: Clean up Docker Desktop temp file
+      ansible.builtin.file:
+        path: "{{ _docker_desktop_tmp.path }}"
+        state: absent
 
 - name: Add user to docker group
   ansible.builtin.user:
     name: "{{ ansible_facts.user_id }}"
     groups: docker
     append: true
-  become: true
-
-- name: Enable Docker service
-  ansible.builtin.systemd:
-    name: docker
-    enabled: true
-    state: started
   become: true
