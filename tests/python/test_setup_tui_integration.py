@@ -301,26 +301,25 @@ class TestWelcomeScreenPersonalized:
 
 
 # ===========================================================================
-# WelcomeScreen — partial first-run (resume)
+# WelcomeScreen — personalized with pending steps (e.g. bootstrap machine)
 # ===========================================================================
 
-class TestWelcomeScreenPartialFirstRun:
-    """Partially completed first-run — should show resume + start over."""
+class TestWelcomeScreenWithPendingSteps:
+    """Personalized repo with pending steps should still show full menu."""
 
     @pytest.mark.asyncio
-    async def test_shows_resume_option(self, partial_state):
+    async def test_shows_full_menu_not_resume(self, partial_state):
+        """Pending steps must NOT block access to bootstrap."""
         async with _AppTestContext(partial_state) as ctx:
             ids = _menu_option_ids(ctx.app)
-            assert "resume" in ids
-
-    @pytest.mark.asyncio
-    async def test_shows_start_over_option(self, partial_state):
-        async with _AppTestContext(partial_state) as ctx:
-            ids = _menu_option_ids(ctx.app)
+            assert "bootstrap" in ids
+            assert "edit-secrets" in ids
             assert "first-run" in ids
+            assert "quit" in ids
+            assert "resume" not in ids
 
     @pytest.mark.asyncio
-    async def test_shows_pending_steps_in_status(self, partial_state):
+    async def test_pending_steps_shown_as_warning(self, partial_state):
         async with _AppTestContext(partial_state) as ctx:
             status = ctx.app.screen.query_one("#status")
             text = str(status.content)
@@ -328,11 +327,18 @@ class TestWelcomeScreenPartialFirstRun:
             assert "pre-commit" in text
 
     @pytest.mark.asyncio
-    async def test_shows_not_finished_message(self, partial_state):
+    async def test_still_shows_personalized(self, partial_state):
         async with _AppTestContext(partial_state) as ctx:
             status = ctx.app.screen.query_one("#status")
             text = str(status.content)
-            assert "not finished" in text.lower() or "started but" in text.lower()
+            assert "personalized" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_can_bootstrap_with_pending_steps(self, partial_state):
+        """User must be able to bootstrap even with pending first-run steps."""
+        async with _AppTestContext(partial_state) as ctx:
+            await _select_option(ctx, "bootstrap")
+            assert isinstance(ctx.app.screen, BootstrapPlaceholderScreen)
 
 
 # ===========================================================================
@@ -363,12 +369,6 @@ class TestNavigation:
         ) as ctx:
             await _select_option(ctx, "edit-secrets")
             assert isinstance(ctx.app.screen, SecretsPlaceholderScreen)
-
-    @pytest.mark.asyncio
-    async def test_resume_option_navigates(self, partial_state):
-        async with _AppTestContext(partial_state) as ctx:
-            await _select_option(ctx, "resume")
-            assert isinstance(ctx.app.screen, FirstRunPlaceholderScreen)
 
     @pytest.mark.asyncio
     async def test_back_from_bootstrap(self, personalized_state):

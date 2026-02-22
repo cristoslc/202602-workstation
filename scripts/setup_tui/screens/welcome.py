@@ -59,21 +59,8 @@ class WelcomeScreen(Screen):
                 Option("Start First-Run Setup", id="first-run"),
                 Option("Quit", id="quit"),
             ])
-        elif state.pending:
-            # Partially completed first-run.
-            pending_text = "\n".join(f"  - {p}" for p in state.pending)
-            status.update(
-                "[bold]Workstation Setup[/bold]\n\n"
-                "[yellow]First-run was started but not finished.[/yellow]\n"
-                f"Remaining steps:\n{pending_text}"
-            )
-            menu.add_options([
-                Option("Resume First-Run", id="resume"),
-                Option("Start Over", id="first-run"),
-                Option("Quit", id="quit"),
-            ])
         else:
-            # Personalized — show full menu.
+            # Personalized — show full menu regardless of pending steps.
             origin_info = ""
             result = self.app.runner.git(
                 "remote", "get-url", "origin", check=False
@@ -81,9 +68,15 @@ class WelcomeScreen(Screen):
             if result.returncode == 0:
                 origin_info = f"\n[dim]Origin: {result.stdout.strip()}[/dim]"
 
-            placeholder_note = ""
+            notes = ""
+            if state.pending:
+                pending_text = ", ".join(state.pending)
+                notes += (
+                    f"\n[yellow]Incomplete first-run steps: "
+                    f"{pending_text}[/yellow]"
+                )
             if state.has_placeholder_secrets:
-                placeholder_note = (
+                notes += (
                     "\n[yellow]Secrets contain placeholders — "
                     "use Edit Secrets to fill them in.[/yellow]"
                 )
@@ -91,7 +84,7 @@ class WelcomeScreen(Screen):
             status.update(
                 "[bold]Workstation Setup[/bold]\n\n"
                 f"[green]Repo is personalized.[/green]{origin_info}"
-                f"{placeholder_note}"
+                f"{notes}"
             )
             menu.add_options([
                 Option("Bootstrap This Machine", id="bootstrap"),
@@ -113,7 +106,7 @@ class WelcomeScreen(Screen):
             self.app.exit()
         elif option_id == "bootstrap":
             self.app.push_screen(BootstrapPlaceholderScreen())
-        elif option_id in ("first-run", "resume"):
+        elif option_id == "first-run":
             self.app.push_screen(FirstRunPlaceholderScreen())
         elif option_id == "edit-secrets":
             self.app.push_screen(SecretsPlaceholderScreen())
