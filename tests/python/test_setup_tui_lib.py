@@ -95,6 +95,14 @@ def tmp_repo(tmp_path):
     )
     setup_sh.chmod(0o755)
 
+    bootstrap_sh = tmp_path / "bootstrap.sh"
+    bootstrap_sh.write_text(
+        '#!/usr/bin/env bash\n'
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+        'git clone "${GITHUB_REPO_URL}" ~/.workstation\n'
+    )
+    bootstrap_sh.chmod(0o755)
+
     readme = tmp_path / "README.md"
     readme.write_text(
         "# ${REPO_NAME}\n\n"
@@ -262,7 +270,8 @@ class TestAgeToken:
 class TestReplaceTokens:
     def test_substitutes_age_key(self, tmp_repo, sample_config, monkeypatch):
         monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
-        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
         monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
 
         msgs = replace_tokens(sample_config)
@@ -270,11 +279,12 @@ class TestReplaceTokens:
         content = (tmp_repo / ".sops.yaml").read_text()
         assert "${AGE_PUBLIC_KEY}" not in content
         assert sample_config.age_public_key in content
-        assert len(msgs) == 3  # one per file
+        assert len(msgs) == 4  # one per file
 
     def test_substitutes_readme_tokens(self, tmp_repo, sample_config, monkeypatch):
         monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
-        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
         monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
 
         replace_tokens(sample_config)
@@ -288,7 +298,8 @@ class TestReplaceTokens:
 
     def test_preserves_bash_variables(self, tmp_repo, sample_config, monkeypatch):
         monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
-        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
         monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
 
         replace_tokens(sample_config)
@@ -300,7 +311,8 @@ class TestReplaceTokens:
         self, tmp_repo, sample_config, monkeypatch
     ):
         monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
-        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
         monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
 
         replace_tokens(sample_config)
@@ -308,9 +320,26 @@ class TestReplaceTokens:
         mode = (tmp_repo / "setup.sh").stat().st_mode
         assert mode & 0o755 == 0o755
 
+    def test_substitutes_bootstrap_sh_url(
+        self, tmp_repo, sample_config, monkeypatch
+    ):
+        monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
+
+        replace_tokens(sample_config)
+
+        content = (tmp_repo / "bootstrap.sh").read_text()
+        assert "${GITHUB_REPO_URL}" not in content
+        assert sample_config.github_repo_url in content
+        mode = (tmp_repo / "bootstrap.sh").stat().st_mode
+        assert mode & 0o755 == 0o755
+
     def test_returns_status_messages(self, tmp_repo, sample_config, monkeypatch):
         monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
-        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
         monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
 
         msgs = replace_tokens(sample_config)
@@ -319,11 +348,13 @@ class TestReplaceTokens:
         assert all(isinstance(m, str) for m in msgs)
         assert any(".sops.yaml" in m for m in msgs)
         assert any("setup.sh" in m for m in msgs)
+        assert any("bootstrap.sh" in m for m in msgs)
         assert any("README.md" in m for m in msgs)
 
     def test_idempotent(self, tmp_repo, sample_config, monkeypatch):
         monkeypatch.setattr("setup_tui.lib.tokens.SOPS_YAML", tmp_repo / ".sops.yaml")
-        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.SETUP_SH", tmp_repo / "setup.sh")
+        monkeypatch.setattr("setup_tui.lib.tokens.BOOTSTRAP_SH", tmp_repo / "bootstrap.sh")
         monkeypatch.setattr("setup_tui.lib.tokens.README_MD", tmp_repo / "README.md")
 
         replace_tokens(sample_config)
@@ -551,7 +582,7 @@ class TestExtractResumeConfig:
             '#!/usr/bin/env bash\n'
             'git clone "https://github.com/myuser/my-ws.git" ~/.workstation\n'
         )
-        monkeypatch.setattr("setup_tui.lib.state.BOOTSTRAP_SH", setup_sh)
+        monkeypatch.setattr("setup_tui.lib.state.SETUP_SH", setup_sh)
         monkeypatch.setattr("setup_tui.lib.state.AGE_KEY_PATH", tmp_repo / "nokey")
 
         mock_runner.age_public_key_from_file = MagicMock(return_value="")
@@ -570,7 +601,7 @@ class TestExtractResumeConfig:
     def test_falls_back_to_git_remote(self, tmp_repo, mock_runner, monkeypatch):
         setup_sh = tmp_repo / "setup.sh"
         setup_sh.write_text("#!/usr/bin/env bash\necho hello\n")  # no URL
-        monkeypatch.setattr("setup_tui.lib.state.BOOTSTRAP_SH", setup_sh)
+        monkeypatch.setattr("setup_tui.lib.state.SETUP_SH", setup_sh)
         monkeypatch.setattr("setup_tui.lib.state.AGE_KEY_PATH", tmp_repo / "nokey")
 
         mock_runner.age_public_key_from_file = MagicMock(return_value="")
@@ -595,7 +626,7 @@ class TestExtractResumeConfig:
     def test_raises_if_no_url_found(self, tmp_repo, mock_runner, monkeypatch):
         setup_sh = tmp_repo / "setup.sh"
         setup_sh.write_text("#!/usr/bin/env bash\necho hello\n")
-        monkeypatch.setattr("setup_tui.lib.state.BOOTSTRAP_SH", setup_sh)
+        monkeypatch.setattr("setup_tui.lib.state.SETUP_SH", setup_sh)
         monkeypatch.setattr("setup_tui.lib.state.AGE_KEY_PATH", tmp_repo / "nokey")
 
         mock_runner.age_public_key_from_file = MagicMock(return_value="")
@@ -622,7 +653,7 @@ class TestExtractResumeConfig:
         setup_sh.write_text(
             'git clone "https://github.com/u/r.git" ~/.workstation\n'
         )
-        monkeypatch.setattr("setup_tui.lib.state.BOOTSTRAP_SH", setup_sh)
+        monkeypatch.setattr("setup_tui.lib.state.SETUP_SH", setup_sh)
 
         mock_runner.age_public_key_from_file = MagicMock(return_value="age1pubkey")
 
@@ -775,8 +806,8 @@ class TestCommitAndPush:
         assert isinstance(msgs, list)
         assert len(msgs) > 0
 
-    def test_stages_setup_sh_not_bootstrap(self, mock_runner, tmp_repo, monkeypatch):
-        """New module stages setup.sh instead of bootstrap.sh."""
+    def test_stages_personalized_files(self, mock_runner, tmp_repo, monkeypatch):
+        """Commit stages all personalized config files."""
         monkeypatch.setattr("setup_tui.lib.git_ops.REPO_ROOT", tmp_repo)
 
         def git_side_effect(*args, **kwargs):
@@ -797,7 +828,7 @@ class TestCommitAndPush:
         commit_and_push(mock_runner)
 
         mock_runner.git.assert_any_call(
-            "add", ".sops.yaml", "setup.sh", "README.md"
+            "add", ".sops.yaml", "setup.sh", "bootstrap.sh", "README.md"
         )
 
     def test_nothing_to_commit(self, mock_runner, tmp_repo, monkeypatch):

@@ -96,7 +96,7 @@ def commit_and_push(runner: ToolRunner) -> list[str]:
         runner.git("branch", "-M", "main")
 
     runner.git("add", "-u")
-    runner.git("add", ".sops.yaml", "setup.sh", "README.md")
+    runner.git("add", ".sops.yaml", "setup.sh", "bootstrap.sh", "README.md")
 
     diff_check = runner.git("diff", "--cached", "--quiet", check=False)
     if diff_check.returncode == 0:

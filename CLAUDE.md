@@ -27,6 +27,7 @@ These files contain personalized content:
 | File | Personalized content |
 |------|---------------------|
 | `.sops.yaml` | Real age public key (replaces `${AGE_PUBLIC_KEY}`) |
+| `setup.sh` | Real GitHub repo URL (replaces `${GITHUB_REPO_URL}`) |
 | `bootstrap.sh` | Real GitHub repo URL (replaces `${GITHUB_REPO_URL}`) |
 | `README.md` | Real repo URL, username, repo name |
 | `*/secrets/*.sops.*` | Encrypted with real age key |

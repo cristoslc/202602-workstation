@@ -87,6 +87,15 @@ def tmp_repo(tmp_path):
         "    age: '${AGE_PUBLIC_KEY}'\n"
     )
 
+    # setup.sh with template token.
+    setup_sh = tmp_path / "setup.sh"
+    setup_sh.write_text(
+        '#!/usr/bin/env bash\n'
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+        'git clone "${GITHUB_REPO_URL}" ~/.workstation\n'
+    )
+    setup_sh.chmod(0o755)
+
     # bootstrap.sh with template token.
     bootstrap = tmp_path / "bootstrap.sh"
     bootstrap.write_text(

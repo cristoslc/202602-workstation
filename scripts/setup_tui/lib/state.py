@@ -10,7 +10,8 @@ from .runner import REPO_ROOT, ToolRunner
 
 AGE_KEY_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
 SOPS_YAML = REPO_ROOT / ".sops.yaml"
-BOOTSTRAP_SH = REPO_ROOT / "setup.sh"
+SETUP_SH = REPO_ROOT / "setup.sh"
+BOOTSTRAP_SH = REPO_ROOT / "bootstrap.sh"
 README_MD = REPO_ROOT / "README.md"
 
 # Token that indicates first-run has NOT been performed.
@@ -60,7 +61,7 @@ def detect_resume_state(runner: ToolRunner) -> ResumeState:
     state.has_precommit = precommit_hook.exists()
 
     diff_result = runner.git(
-        "diff", "--quiet", "--", ".sops.yaml", "setup.sh", "README.md",
+        "diff", "--quiet", "--", ".sops.yaml", "setup.sh", "bootstrap.sh", "README.md",
         check=False,
     )
     diff_secrets = runner.git(
@@ -109,8 +110,8 @@ def extract_resume_config(runner: ToolRunner) -> RepoConfig:
         ).stdout.strip()
 
     repo_url = ""
-    bootstrap_content = BOOTSTRAP_SH.read_text()
-    match = re.search(r'https://github\.com/[^"\s]*\.git', bootstrap_content)
+    setup_content = SETUP_SH.read_text()
+    match = re.search(r'https://github\.com/[^"\s]*\.git', setup_content)
     if match:
         repo_url = match.group(0)
     if not repo_url:

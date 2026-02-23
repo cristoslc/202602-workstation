@@ -20,7 +20,7 @@ export PATH := $(HOME)/.local/bin:$(PATH)
 
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions test test-bats test-python check apply decrypt \
-        clean-secrets status \
+        clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
         log-send log-receive
@@ -123,3 +123,6 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
+
+template-export: ## Export clean template repo (no personal data, fresh history)
+	./scripts/templatize.sh
