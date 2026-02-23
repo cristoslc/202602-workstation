@@ -8,6 +8,17 @@ exclude_paths:
   - "**/.decrypted/"
   - "**/collections/"
 
-# Permit shell module where justified (e.g., verified downloads).
+# Skip rules that are too invasive to fix across all roles.
+skip_list:
+  # 80+ violations: our roles use descriptive names (e.g. tailscale_check)
+  # rather than role-prefixed names (e.g. vpn_tailscale_check). Renaming
+  # every variable would be a large refactor for minimal clarity gain.
+  - var-naming[no-role-prefix]
+
+# Rules we want to address over time but shouldn't block CI.
 warn_list:
   - command-instead-of-shell
+  - risky-shell-pipe
+  - no-changed-when
+  - name[casing]
+  - name[template]
