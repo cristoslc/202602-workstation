@@ -47,6 +47,22 @@ DEFAULT_PHASES = {
     "existing_account": ["security", "dev-tools", "desktop", "dotfiles"],
 }
 
+# Phase dependencies — values are auto-included when the key is selected.
+# security decrypts secret dotfiles that the stow role needs.
+PHASE_DEPS: dict[str, list[str]] = {
+    "dotfiles": ["security"],
+}
+
+
+def _resolve_phase_deps(selected: list[str]) -> list[str]:
+    """Add missing dependencies and return phases in PHASES order."""
+    phase_order = [pid for pid, _, _ in PHASES]
+    full = set(selected)
+    for phase in selected:
+        for dep in PHASE_DEPS.get(phase, []):
+            full.add(dep)
+    return [p for p in phase_order if p in full]
+
 
 class BootstrapModeScreen(Screen):
     """Step 1: Select bootstrap mode."""
@@ -128,6 +144,7 @@ class BootstrapPhaseScreen(Screen):
             selected = list(phase_list.selected)
             if not selected:
                 return
+            selected = _resolve_phase_deps(selected)
             self.app.push_screen(
                 BootstrapPasswordScreen(self.mode, selected)
             )
@@ -433,6 +450,10 @@ class BootstrapRunScreen(Screen):
             if platform == "macos":
                 apply_defaults = "true" if self.mode != "existing_account" else "false"
                 cmd.extend(["-e", f"apply_macos_defaults={apply_defaults}"])
+
+            # Filter playbook to only the selected phases.
+            if self.phases:
+                cmd.extend(["--tags", ",".join(self.phases)])
 
             env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
             self._run_streaming(cmd, env_extra=env_extra)

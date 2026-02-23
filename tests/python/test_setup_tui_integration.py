@@ -21,6 +21,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from textual.widgets import Button
 
 # Add scripts/ to path so setup_tui package is importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
@@ -33,9 +34,9 @@ from setup_tui.screens.bootstrap import (
     BootstrapPhaseScreen,
     BootstrapRunScreen,
 )
+from setup_tui.screens.secrets import SecretsScreen
 from setup_tui.screens.welcome import (
     FirstRunPlaceholderScreen,
-    SecretsPlaceholderScreen,
     WelcomeScreen,
 )
 
@@ -369,11 +370,18 @@ class TestNavigation:
 
     @pytest.mark.asyncio
     async def test_edit_secrets_option_navigates(self, personalized_state):
-        async with _AppTestContext(
-            personalized_state, runner_git_return=_ok_result()
-        ) as ctx:
-            await _select_option(ctx, "edit-secrets")
-            assert isinstance(ctx.app.screen, SecretsPlaceholderScreen)
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(
+                personalized_state, runner_git_return=_ok_result()
+            ) as ctx:
+                await _select_option(ctx, "edit-secrets")
+                assert isinstance(ctx.app.screen, SecretsScreen)
 
     @pytest.mark.asyncio
     async def test_back_from_bootstrap_mode(self, personalized_state):
@@ -399,15 +407,22 @@ class TestNavigation:
 
     @pytest.mark.asyncio
     async def test_back_from_secrets(self, personalized_state):
-        async with _AppTestContext(
-            personalized_state, runner_git_return=_ok_result()
-        ) as ctx:
-            await _select_option(ctx, "edit-secrets")
-            assert isinstance(ctx.app.screen, SecretsPlaceholderScreen)
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(
+                personalized_state, runner_git_return=_ok_result()
+            ) as ctx:
+                await _select_option(ctx, "edit-secrets")
+                assert isinstance(ctx.app.screen, SecretsScreen)
 
-            await ctx.pilot.click("#back")
-            await ctx.pilot.pause()
-            assert isinstance(ctx.app.screen, WelcomeScreen)
+                await ctx.pilot.press("escape")
+                await ctx.pilot.pause()
+                assert isinstance(ctx.app.screen, WelcomeScreen)
 
     @pytest.mark.asyncio
     async def test_quit_option(self, unpersonalized_state):
@@ -680,10 +695,179 @@ class TestPlaceholderScreensRender:
             assert ctx.app.screen.query_one("#back") is not None
 
     @pytest.mark.asyncio
-    async def test_secrets_placeholder_has_back(self, unpersonalized_state):
+    async def test_first_run_placeholder_back_navigates(self, unpersonalized_state):
         async with _AppTestContext(unpersonalized_state) as ctx:
-            ctx.app.push_screen(SecretsPlaceholderScreen())
+            ctx.app.push_screen(FirstRunPlaceholderScreen())
             await ctx.pilot.pause()
 
-            assert isinstance(ctx.app.screen, SecretsPlaceholderScreen)
-            assert ctx.app.screen.query_one("#back") is not None
+            await ctx.pilot.click("#back")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, WelcomeScreen)
+
+
+# ===========================================================================
+# SecretsScreen — form rendering, pre-fill, save, and navigation
+# ===========================================================================
+
+class TestSecretsScreen:
+    """SecretsScreen should render inputs, pre-fill, mask passwords, and save."""
+
+    @pytest.mark.asyncio
+    async def test_form_renders_all_inputs(self, unpersonalized_state):
+        """All 5 secret fields should appear as Input widgets."""
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                from textual.widgets import Input as TInput
+                for key in [
+                    "git_user_email",
+                    "git_user_name",
+                    "git_signing_key",
+                    "ANTHROPIC_API_KEY",
+                    "HOMEBREW_GITHUB_API_TOKEN",
+                ]:
+                    widget = ctx.app.screen.query_one(f"#field-{key}", TInput)
+                    assert widget is not None
+
+    @pytest.mark.asyncio
+    async def test_existing_values_prefill(self, unpersonalized_state):
+        """Decrypted values should pre-fill the corresponding Input widgets."""
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={"git_user_email": "me@example.com", "git_user_name": "Me"},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={"ANTHROPIC_API_KEY": "sk-ant-test"},
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                from textual.widgets import Input as TInput
+                assert ctx.app.screen.query_one("#field-git_user_email", TInput).value == "me@example.com"
+                assert ctx.app.screen.query_one("#field-git_user_name", TInput).value == "Me"
+                assert ctx.app.screen.query_one("#field-ANTHROPIC_API_KEY", TInput).value == "sk-ant-test"
+
+    @pytest.mark.asyncio
+    async def test_password_fields_masked(self, unpersonalized_state):
+        """ANTHROPIC_API_KEY and HOMEBREW_GITHUB_API_TOKEN should be password inputs."""
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                from textual.widgets import Input as TInput
+                assert ctx.app.screen.query_one("#field-ANTHROPIC_API_KEY", TInput).password is True
+                assert ctx.app.screen.query_one("#field-HOMEBREW_GITHUB_API_TOKEN", TInput).password is True
+                assert ctx.app.screen.query_one("#field-git_user_email", TInput).password is False
+
+    @pytest.mark.asyncio
+    async def test_back_button_pops_screen(self, unpersonalized_state):
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                # Button may be off-screen; use .press() directly.
+                ctx.app.screen.query_one("#back", Button).press()
+                await ctx.pilot.pause()
+                assert isinstance(ctx.app.screen, WelcomeScreen)
+
+    @pytest.mark.asyncio
+    async def test_escape_pops_screen(self, unpersonalized_state):
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                await ctx.pilot.press("escape")
+                await ctx.pilot.pause()
+                assert isinstance(ctx.app.screen, WelcomeScreen)
+
+    @pytest.mark.asyncio
+    async def test_save_calls_both_save_functions(self, unpersonalized_state):
+        mock_save_ansible = MagicMock()
+        mock_save_shell = MagicMock()
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.save_ansible_vars",
+            mock_save_ansible,
+        ), patch(
+            "setup_tui.screens.secrets.save_shell_exports",
+            mock_save_shell,
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                # Fill in one field so we can verify collected values.
+                from textual.widgets import Input as TInput
+                ctx.app.screen.query_one("#field-git_user_email", TInput).value = "test@test.com"
+
+                # Button may be off-screen; use .press() directly.
+                ctx.app.screen.query_one("#save", Button).press()
+                await ctx.pilot.pause()
+
+                mock_save_ansible.assert_called_once()
+                ansible_args = mock_save_ansible.call_args[0]
+                assert ansible_args[1]["git_user_email"] == "test@test.com"
+                # Empty ansible vars should become PLACEHOLDER.
+                assert ansible_args[1]["git_user_name"] == "PLACEHOLDER"
+
+                mock_save_shell.assert_called_once()
+                # Empty shell secrets should be omitted.
+                shell_args = mock_save_shell.call_args[0]
+                assert shell_args[1] == {}
+
+    @pytest.mark.asyncio
+    async def test_load_failure_still_shows_form(self, unpersonalized_state):
+        """If decryption fails, the form should still appear for fresh entry."""
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            side_effect=RuntimeError("no age key"),
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(unpersonalized_state) as ctx:
+                ctx.app.push_screen(SecretsScreen())
+                await ctx.pilot.pause()
+
+                # Form should be visible despite load failure.
+                form = ctx.app.screen.query_one("#secrets-form")
+                assert form.display is True
+                # Status should mention the error.
+                status = ctx.app.screen.query_one("#secrets-status")
+                status_text = str(status.content)
+                assert "no age key" in status_text

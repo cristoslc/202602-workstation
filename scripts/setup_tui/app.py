@@ -107,6 +107,33 @@ Screen {
     height: auto;
     margin: 0 0 1 0;
 }
+
+#secrets-form {
+    padding: 1 0;
+}
+
+#secrets-form Input {
+    width: 60;
+    margin: 0 0 1 0;
+}
+
+.section-header {
+    margin: 1 0 0 0;
+}
+
+#secrets-buttons {
+    height: auto;
+    margin: 1 0;
+}
+
+#secrets-buttons Button {
+    margin: 0 1;
+}
+
+#secrets-result {
+    height: auto;
+    margin: 1 0;
+}
 """
 
 

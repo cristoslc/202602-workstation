@@ -125,7 +125,8 @@ class WelcomeScreen(Screen):
         elif option_id == "first-run":
             self.app.push_screen(FirstRunPlaceholderScreen())
         elif option_id == "edit-secrets":
-            self.app.push_screen(SecretsPlaceholderScreen())
+            from .secrets import SecretsScreen
+            self.app.push_screen(SecretsScreen())
         elif option_id == "update":
             self._run_update()
 
@@ -207,22 +208,3 @@ class FirstRunPlaceholderScreen(Screen):
             self.app.pop_screen()
 
 
-class SecretsPlaceholderScreen(Screen):
-    """Temporary placeholder until Phase 3 implements secrets editing."""
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        with Vertical(id="main-content"):
-            yield Static(
-                "[bold]Edit Secrets[/bold]\n\n"
-                "The secrets TUI is coming in Phase 3.\n"
-                "For now, exit and run:\n\n"
-                "  [cyan]make edit-secrets-shared[/cyan]\n\n"
-                "[dim]Tab to reach Back, Enter to press[/dim]"
-            )
-            yield Button("Back", id="back")
-        yield Footer()
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "back":
-            self.app.pop_screen()

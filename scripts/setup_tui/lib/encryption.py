@@ -55,7 +55,11 @@ def write_and_encrypt(
     target_dir = target.parent
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    fd, tmppath = tempfile.mkstemp(prefix=".tmp.", dir=str(target_dir))
+    # Suffix must match the target so SOPS detects the file type correctly
+    # (e.g. .yml → structured YAML encryption, not a single "data" blob).
+    fd, tmppath = tempfile.mkstemp(
+        prefix=".tmp.", suffix=target.suffix, dir=str(target_dir)
+    )
     try:
         os.write(fd, (content + "\n").encode())
         os.close(fd)
