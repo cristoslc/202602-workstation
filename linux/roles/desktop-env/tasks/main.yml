@@ -61,3 +61,64 @@
     key: "/org/cinnamon/desktop/keybindings/custom-list"
     value: "['custom0', 'custom1', 'custom2']"
     state: present
+
+# --- Screen-inhibit Cinnamon applet ---
+
+- name: Ensure Cinnamon applets directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/cinnamon/applets"
+    state: directory
+    mode: "0755"
+
+- name: Check if screen-inhibit applet is installed
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/cinnamon/applets/screen-inhibit@mtwebster"
+  register: _screen_inhibit_dir
+
+- name: Install screen-inhibit applet
+  when: not _screen_inhibit_dir.stat.exists
+  block:
+    - name: Create temp file for screen-inhibit zip
+      ansible.builtin.tempfile:
+        suffix: .zip
+      register: _screen_inhibit_tmp
+
+    - name: Download screen-inhibit applet
+      ansible.builtin.get_url:
+        url: https://cinnamon-spices.linuxmint.com/files/applets/screen-inhibit@mtwebster.zip
+        dest: "{{ _screen_inhibit_tmp.path }}"
+        mode: "0644"
+        force: true
+
+    - name: Extract screen-inhibit applet
+      ansible.builtin.unarchive:
+        src: "{{ _screen_inhibit_tmp.path }}"
+        dest: "{{ ansible_facts.env.HOME }}/.local/share/cinnamon/applets"
+        remote_src: true
+
+    - name: Clean up screen-inhibit temp file
+      ansible.builtin.file:
+        path: "{{ _screen_inhibit_tmp.path }}"
+        state: absent
+
+- name: Check if screen-inhibit is in enabled applets
+  ansible.builtin.shell:
+    cmd: dconf read /org/cinnamon/enabled-applets | grep -q 'screen-inhibit@mtwebster'
+  register: _screen_inhibit_enabled
+  changed_when: false
+  failed_when: false
+
+- name: Add screen-inhibit to enabled applets
+  when: _screen_inhibit_enabled.rc != 0
+  ansible.builtin.shell:
+    cmd: |
+      current=$(dconf read /org/cinnamon/enabled-applets)
+      # Find the highest existing applet ID and increment
+      max_id=$(echo "$current" | grep -oP ':\K\d+(?='\'')')  # extract trailing IDs
+      next_id=$(( $(echo "$max_id" | sort -n | tail -1) + 1 ))
+      # Append screen-inhibit entry before the closing bracket
+      new_entry="'panel1:right:1:screen-inhibit@mtwebster:${next_id}'"
+      updated=$(echo "$current" | sed "s/]$/, ${new_entry}]/")
+      dconf write /org/cinnamon/enabled-applets "$updated"
+    executable: /bin/bash
+  changed_when: true

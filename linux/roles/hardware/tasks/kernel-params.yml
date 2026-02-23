@@ -1,0 +1,27 @@
+---
+# Merge hardware_kernel_params into GRUB_CMDLINE_LINUX_DEFAULT without
+# clobbering existing params (quiet splash, etc.).
+
+- name: Read current GRUB_CMDLINE_LINUX_DEFAULT
+  ansible.builtin.shell:
+    cmd: >-
+      . /etc/default/grub &&
+      echo "${GRUB_CMDLINE_LINUX_DEFAULT}"
+  args:
+    executable: /bin/bash
+  register: _grub_cmdline
+  changed_when: false
+
+- name: Compute merged kernel parameters
+  ansible.builtin.set_fact:
+    _merged_cmdline: >-
+      {{ (_grub_cmdline.stdout.split() | union(hardware_kernel_params)) | join(' ') }}
+
+- name: Write merged GRUB_CMDLINE_LINUX_DEFAULT
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="{{ _merged_cmdline }}"'
+    state: present
+  become: true
+  notify: update-grub

@@ -1,0 +1,16 @@
+---
+# Disable spurious wakeup sources (touchpad, TrackPoint, sleep button)
+# that cause the T14 Gen5 to wake immediately after suspend.
+
+- name: Install udev rules to disable wakeup sources
+  ansible.builtin.copy:
+    dest: /etc/udev/rules.d/90-thinkpad-wakeup.rules
+    mode: "0644"
+    content: |
+      # Managed by Ansible — do not edit.
+      # Disable ELAN0676 touchpad wakeup (i2c bus)
+      SUBSYSTEM=="i2c", DRIVERS=="i2c_hid_acpi", ATTRS{name}=="ELAN0676:00 04F3:3195", ATTR{power/wakeup}="disabled"
+      # Disable sleep button / TrackPoint wakeup
+      SUBSYSTEM=="acpi", DRIVERS=="button", ATTRS{hid}=="PNP0C0E", ATTR{power/wakeup}="disabled"
+  become: true
+  notify: reload-udev-rules

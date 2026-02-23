@@ -1,0 +1,22 @@
+---
+# Hardware role tunables (ThinkPad T14 Gen5 AMD)
+
+# Kernel boot parameters appended to GRUB_CMDLINE_LINUX_DEFAULT.
+hardware_kernel_params:
+  - acpi.ec_no_wakeup=1
+  - amdgpu.dcdebugmask=0x10
+  - amd_pstate=active
+
+# TLP charge thresholds (percent).
+hardware_charge_start_threshold: 75
+hardware_charge_stop_threshold: 80
+
+# Platform energy profile on AC / battery.
+hardware_platform_profile_ac: performance
+hardware_platform_profile_battery: low-power
+
+# Seconds before suspend-then-hibernate transitions to hibernate.
+hardware_hibernate_delay_sec: 7200
+
+# Wi-Fi kernel module (for suspend/resume workaround on kernels < 6.16).
+hardware_wifi_module: ath11k_pci

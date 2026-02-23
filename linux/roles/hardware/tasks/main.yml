@@ -1,0 +1,31 @@
+---
+# Hardware role: ThinkPad-specific firmware, power, and sleep fixes.
+# Silently skips on non-Lenovo hardware.
+
+- name: Apply ThinkPad hardware fixes
+  when: ansible_system_vendor == "LENOVO"
+  block:
+    - name: Configure kernel boot parameters
+      ansible.builtin.include_tasks: kernel-params.yml
+
+    - name: Configure TLP power management
+      ansible.builtin.include_tasks: power.yml
+
+    - name: Configure firmware updates
+      ansible.builtin.include_tasks: firmware.yml
+
+    - name: Configure sleep and hibernate
+      ansible.builtin.include_tasks: sleep.yml
+
+    - name: Fix spurious wakeup sources
+      ansible.builtin.include_tasks: wakeup-fixes.yml
+
+    - name: Fix Wi-Fi suspend/resume
+      ansible.builtin.include_tasks: wifi-suspend.yml
+
+- name: Install AMD microcode updates
+  ansible.builtin.apt:
+    name: amd64-microcode
+    state: present
+  become: true
+  when: ansible_processor | select('match', '.*AMD.*') | list | length > 0

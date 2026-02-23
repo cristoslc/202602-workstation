@@ -1,0 +1,27 @@
+---
+# macOS power settings via pmset.
+
+- name: Set AC display sleep
+  ansible.builtin.command: pmset -c displaysleep {{ power_macos_display_sleep_ac }}
+  become: true
+  changed_when: false
+
+- name: Set AC system sleep
+  ansible.builtin.command: pmset -c sleep {{ power_macos_system_sleep_ac }}
+  become: true
+  changed_when: false
+
+- name: Set battery display sleep
+  ansible.builtin.command: pmset -b displaysleep {{ power_macos_display_sleep_battery }}
+  become: true
+  changed_when: false
+
+- name: Set battery system sleep
+  ansible.builtin.command: pmset -b sleep {{ power_macos_system_sleep_battery }}
+  become: true
+  changed_when: false
+
+- name: Set wake on LAN
+  ansible.builtin.command: pmset -a womp {{ power_macos_wake_on_lan | ternary(1, 0) }}
+  become: true
+  changed_when: false

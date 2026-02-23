@@ -77,3 +77,7 @@
     - role: system
       tags: [system]
       when: apply_system_roles | default(true) | bool
+
+    - role: hardware
+      tags: [hardware, thinkpad, system]
+      when: apply_system_roles | default(true) | bool

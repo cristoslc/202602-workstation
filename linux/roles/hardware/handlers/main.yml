@@ -1,0 +1,14 @@
+---
+- name: update-grub
+  ansible.builtin.command: update-grub
+  become: true
+
+- name: restart-tlp
+  ansible.builtin.systemd:
+    name: tlp
+    state: restarted
+  become: true
+
+- name: reload-udev-rules
+  ansible.builtin.command: udevadm control --reload-rules
+  become: true

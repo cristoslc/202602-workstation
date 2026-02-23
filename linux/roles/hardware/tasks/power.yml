@@ -1,0 +1,39 @@
+---
+# TLP power management for ThinkPad battery longevity.
+
+- name: Install TLP packages
+  ansible.builtin.apt:
+    name:
+      - tlp
+      - tlp-rdw
+    state: present
+  become: true
+
+- name: Mask power-profiles-daemon (conflicts with TLP)
+  ansible.builtin.systemd:
+    name: power-profiles-daemon
+    masked: true
+    state: stopped
+  become: true
+  failed_when: false
+
+- name: Drop ThinkPad TLP config
+  ansible.builtin.copy:
+    dest: /etc/tlp.d/01-thinkpad.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible — do not edit.
+      START_CHARGE_THRESH_BAT0={{ hardware_charge_start_threshold }}
+      STOP_CHARGE_THRESH_BAT0={{ hardware_charge_stop_threshold }}
+      PLATFORM_PROFILE_ON_AC={{ hardware_platform_profile_ac }}
+      PLATFORM_PROFILE_ON_BAT={{ hardware_platform_profile_battery }}
+      NMI_WATCHDOG=0
+  become: true
+  notify: restart-tlp
+
+- name: Enable and start TLP
+  ansible.builtin.systemd:
+    name: tlp
+    enabled: true
+    state: started
+  become: true

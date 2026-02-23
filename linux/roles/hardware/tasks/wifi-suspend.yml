@@ -1,0 +1,70 @@
+---
+# Workaround for ath11k_pci Wi-Fi crashes on resume (kernels < 6.16).
+# Unloads the module before sleep and reloads after resume.
+
+- name: Check if Wi-Fi module exists
+  ansible.builtin.command: modinfo {{ hardware_wifi_module }}
+  register: _wifi_modinfo
+  changed_when: false
+  failed_when: false
+
+- name: Install Wi-Fi suspend workaround
+  when:
+    - _wifi_modinfo.rc == 0
+    - ansible_kernel is version('6.16', '<')
+  block:
+    - name: Create wifi-suspend systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/wifi-suspend.service
+        mode: "0644"
+        content: |
+          # Managed by Ansible — do not edit.
+          [Unit]
+          Description=Unload {{ hardware_wifi_module }} before sleep
+          Before=sleep.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/sbin/modprobe -r {{ hardware_wifi_module }}
+
+          [Install]
+          WantedBy=sleep.target
+      become: true
+      register: _wifi_suspend_unit
+
+    - name: Create wifi-resume systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/wifi-resume.service
+        mode: "0644"
+        content: |
+          # Managed by Ansible — do not edit.
+          [Unit]
+          Description=Reload {{ hardware_wifi_module }} after resume
+          After=suspend.target hibernate.target hybrid-sleep.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/sbin/modprobe {{ hardware_wifi_module }}
+
+          [Install]
+          WantedBy=suspend.target hibernate.target hybrid-sleep.target
+      become: true
+      register: _wifi_resume_unit
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+      become: true
+      when: _wifi_suspend_unit.changed or _wifi_resume_unit.changed
+
+    - name: Enable wifi-suspend service
+      ansible.builtin.systemd:
+        name: wifi-suspend.service
+        enabled: true
+      become: true
+
+    - name: Enable wifi-resume service
+      ansible.builtin.systemd:
+        name: wifi-resume.service
+        enabled: true
+      become: true

@@ -1,0 +1,44 @@
+---
+# Cinnamon power settings via dconf.
+
+- name: Set AC inactive sleep timeout
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/sleep-inactive-ac-timeout"
+    value: "{{ power_sleep_inactive_ac_timeout | string }}"
+    state: present
+
+- name: Set AC display sleep timeout
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/sleep-display-ac"
+    value: "{{ power_sleep_display_ac | string }}"
+    state: present
+
+- name: Set battery display sleep timeout
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/sleep-display-battery"
+    value: "{{ power_sleep_display_battery | string }}"
+    state: present
+
+- name: Set dim on battery idle
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/idle-dim-battery"
+    value: "{{ power_idle_dim_battery | string | lower }}"
+    state: present
+
+- name: Set idle dim brightness
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/idle-brightness"
+    value: "{{ power_idle_brightness | string }}"
+    state: present
+
+- name: Set lid close action on AC
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/lid-close-ac-action"
+    value: "'{{ power_lid_close_ac_action }}'"
+    state: present
+
+- name: Set lid close action on battery
+  community.general.dconf:
+    key: "/org/cinnamon/settings-daemon/plugins/power/lid-close-battery-action"
+    value: "'{{ power_lid_close_battery_action }}'"
+    state: present

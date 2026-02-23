@@ -1,0 +1,18 @@
+---
+# Power policy defaults — cross-platform.
+
+# Linux (Cinnamon dconf: /org/cinnamon/settings-daemon/plugins/power/)
+power_sleep_inactive_ac_timeout: 0
+power_sleep_display_ac: 900
+power_sleep_display_battery: 300
+power_idle_dim_battery: true
+power_idle_brightness: 30
+power_lid_close_ac_action: 'nothing'
+power_lid_close_battery_action: 'suspend'
+
+# macOS (pmset)
+power_macos_display_sleep_ac: 15
+power_macos_display_sleep_battery: 5
+power_macos_system_sleep_ac: 0
+power_macos_system_sleep_battery: 15
+power_macos_wake_on_lan: false

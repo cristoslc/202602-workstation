@@ -43,6 +43,9 @@
     - role: file-transfer
       tags: [file-transfer, filezilla, desktop]
 
+    - role: power
+      tags: [power, desktop]
+
     - role: desktop-env
       tags: [desktop-env, cinnamon, desktop]
 

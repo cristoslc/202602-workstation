@@ -46,6 +46,9 @@
     - role: mas
       tags: [mas, desktop]
 
+    - role: power
+      tags: [power, desktop]
+
     - role: macos-defaults
       tags: [macos-defaults, desktop]
       when: apply_macos_defaults | default(true) | bool

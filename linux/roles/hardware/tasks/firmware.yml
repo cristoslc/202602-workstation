@@ -1,0 +1,15 @@
+---
+# fwupd for firmware updates (LVFS).
+
+- name: Install fwupd
+  ansible.builtin.apt:
+    name: fwupd
+    state: present
+  become: true
+
+- name: Enable fwupd refresh timer
+  ansible.builtin.systemd:
+    name: fwupd-refresh.timer
+    enabled: true
+    state: started
+  become: true

@@ -1,0 +1,38 @@
+---
+# Suspend-then-hibernate: sleeps immediately, hibernates after delay
+# to save battery on long idle (e.g. lid closed overnight).
+
+- name: Ensure systemd sleep config directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/sleep.conf.d
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Configure hibernate delay
+  ansible.builtin.copy:
+    dest: /etc/systemd/sleep.conf.d/10-hibernate-delay.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible — do not edit.
+      [Sleep]
+      HibernateDelaySec={{ hardware_hibernate_delay_sec }}
+  become: true
+
+- name: Ensure systemd logind config directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/logind.conf.d
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Configure lid switch to suspend-then-hibernate
+  ansible.builtin.copy:
+    dest: /etc/systemd/logind.conf.d/10-lid-suspend-then-hibernate.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible — do not edit.
+      [Login]
+      HandleLidSwitch=suspend-then-hibernate
+      HandleLidSwitchExternalPower=suspend-then-hibernate
+  become: true
