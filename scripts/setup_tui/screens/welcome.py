@@ -34,6 +34,7 @@ class WelcomeScreen(Screen):
                 id="status",
             )
             yield OptionList(id="menu")
+            yield Static("", id="nav-hint")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -104,6 +105,12 @@ class WelcomeScreen(Screen):
         menu.highlighted = 0
         menu.display = True
         menu.focus()
+        self._show_hint()
+
+    def _show_hint(self) -> None:
+        self.query_one("#nav-hint", Static).update(
+            "[dim]Arrow keys to browse, Enter to select[/dim]"
+        )
 
     def on_option_list_option_selected(
         self, event: OptionList.OptionSelected
@@ -189,7 +196,8 @@ class FirstRunPlaceholderScreen(Screen):
                 "[bold]First-Run Setup[/bold]\n\n"
                 "The full first-run TUI is coming in Phase 3.\n"
                 "For now, exit and run:\n\n"
-                "  [cyan]./first-run.sh[/cyan]"
+                "  [cyan]./first-run.sh[/cyan]\n\n"
+                "[dim]Tab to reach Back, Enter to press[/dim]"
             )
             yield Button("Back", id="back")
         yield Footer()
@@ -209,7 +217,8 @@ class SecretsPlaceholderScreen(Screen):
                 "[bold]Edit Secrets[/bold]\n\n"
                 "The secrets TUI is coming in Phase 3.\n"
                 "For now, exit and run:\n\n"
-                "  [cyan]make edit-secrets-shared[/cyan]"
+                "  [cyan]make edit-secrets-shared[/cyan]\n\n"
+                "[dim]Tab to reach Back, Enter to press[/dim]"
             )
             yield Button("Back", id="back")
         yield Footer()

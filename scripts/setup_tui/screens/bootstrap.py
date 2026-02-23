@@ -58,12 +58,13 @@ class BootstrapModeScreen(Screen):
         with Vertical(id="main-content"):
             yield Static(
                 "[bold]Bootstrap — Step 1 of 3[/bold]\n\n"
-                "What kind of system is this?"
+                "What kind of system is this?\n"
+                "[dim]Arrow keys to choose, Tab to reach Next, Enter to press[/dim]"
             )
             with RadioSet(id="mode-select"):
                 yield RadioButton(
-                    "Fresh install (new OS, clean slate)",
-                    id="fresh",
+                    "Existing system, existing user account",
+                    id="existing_account",
                     value=True,
                 )
                 yield RadioButton(
@@ -71,8 +72,8 @@ class BootstrapModeScreen(Screen):
                     id="new_account",
                 )
                 yield RadioButton(
-                    "Existing system, existing user account",
-                    id="existing_account",
+                    "Fresh install (new OS, clean slate)",
+                    id="fresh",
                 )
             yield Button("Next", id="next", variant="primary")
         yield Footer()
@@ -160,7 +161,8 @@ class BootstrapPasswordScreen(Screen):
                 f"[dim]Phases:[/dim] {phase_names}\n\n"
                 "Enter your sudo password for Ansible privilege escalation.\n"
                 "[dim]This is passed to ansible-playbook via environment variable "
-                "and is never written to disk.[/dim]"
+                "and is never written to disk.[/dim]\n"
+                "[dim]Enter to submit, or Tab to reach Run Bootstrap[/dim]"
             )
             yield Input(
                 placeholder="sudo password",
@@ -279,6 +281,10 @@ class BootstrapRunScreen(Screen):
             yield Button("Done", id="done", variant="primary", disabled=True)
             yield Button("Back to Menu", id="back", disabled=True)
             yield Button("Send Log", id="send-log", disabled=True)
+        yield Static(
+            "[dim]Tab to move between buttons, Enter to press[/dim]",
+            id="run-hint",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -398,26 +404,25 @@ class BootstrapRunScreen(Screen):
             f"  [dim]Public key: {public_key}[/dim]"
         )
 
+    _SUDOERS_TEMP = "/etc/sudoers.d/99-bootstrap-temp"
+
     def _step_ansible(
         self, platform: str, platform_dir: str, apply_system_roles: bool
     ) -> None:
-        import tempfile
-
         ansible_cfg = REPO_ROOT / platform_dir / "ansible.cfg"
         playbook = REPO_ROOT / platform_dir / "site.yml"
 
-        # Write become password to a temp file for ansible-playbook.
-        # The ANSIBLE_BECOME_PASSWORD env var is unreliable across
-        # ansible-core versions; --become-password-file is robust.
-        pass_fd, pass_path = tempfile.mkstemp(prefix=".become-", dir=str(REPO_ROOT))
+        # Grant temporary NOPASSWD sudo for the bootstrap run.
+        # Broken PAM modules (e.g. pam_fingwit on Mint) hang for ~10s on
+        # every sudo invocation, which causes Ansible's become prompt
+        # detection to time out.  A NOPASSWD sudoers entry lets sudo skip
+        # PAM authentication entirely.  The initial `sudo -S` to create
+        # the entry goes through PAM once (~10s) but completes within
+        # the 30-second timeout.
+        self._grant_nopasswd_sudo()
         try:
-            os.write(pass_fd, self.become_pass.encode())
-            os.close(pass_fd)
-            os.chmod(pass_path, 0o600)
-
             cmd = [
                 "ansible-playbook", str(playbook),
-                "--become-password-file", pass_path,
                 "-e", f"workstation_dir={REPO_ROOT}",
                 "-e", f"bootstrap_mode={self.mode}",
                 "-e", f"apply_system_roles={str(apply_system_roles).lower()}",
@@ -432,11 +437,37 @@ class BootstrapRunScreen(Screen):
             env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
             self._run_streaming(cmd, env_extra=env_extra)
         finally:
-            # Always remove the password file, even on failure.
-            try:
-                os.unlink(pass_path)
-            except OSError:
-                pass
+            self._revoke_nopasswd_sudo()
+
+    def _grant_nopasswd_sudo(self) -> None:
+        """Create a temporary NOPASSWD sudoers entry for the current user."""
+        import getpass
+
+        user = getpass.getuser()
+        sudoers_line = f"{user} ALL=(ALL) NOPASSWD: ALL"
+        result = subprocess.run(
+            [
+                "sudo", "-S", "sh", "-c",
+                f'echo "{sudoers_line}" > {self._SUDOERS_TEMP}'
+                f" && chmod 0440 {self._SUDOERS_TEMP}",
+            ],
+            input=self.become_pass + "\n",
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode != 0:
+            logger.warning("Could not create temp sudoers: %s", result.stderr)
+
+    def _revoke_nopasswd_sudo(self) -> None:
+        """Remove the temporary NOPASSWD sudoers entry."""
+        subprocess.run(
+            ["sudo", "-n", "rm", "-f", self._SUDOERS_TEMP],
+            capture_output=True,
+            timeout=15,
+            check=False,
+        )
 
     def _run_streaming(
         self,
@@ -447,7 +478,20 @@ class BootstrapRunScreen(Screen):
     ) -> None:
         """Run a command and stream stdout/stderr to the RichLog widget."""
         env = os.environ.copy()
-        env["PATH"] = f"{Path.home()}/.local/bin:{env.get('PATH', '')}"
+        # Strip virtualenv variables so they don't leak through sudo into
+        # PAM modules (pam_fingwit.so does execvp("python3") using PATH,
+        # and the venv python lacks system packages like gi).
+        env.pop("VIRTUAL_ENV", None)
+        env.pop("PYTHONHOME", None)
+        env.pop("PYTHONPATH", None)
+        venv = os.environ.get("VIRTUAL_ENV")
+        clean_path = os.environ.get("PATH", "")
+        if venv:
+            clean_path = os.pathsep.join(
+                p for p in clean_path.split(os.pathsep)
+                if not p.startswith(venv)
+            )
+        env["PATH"] = f"{Path.home()}/.local/bin:{clean_path}"
         if env_extra:
             env.update(env_extra)
 

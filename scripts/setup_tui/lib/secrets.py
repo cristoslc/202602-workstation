@@ -41,6 +41,13 @@ SHARED_ANSIBLE_VARS: list[SecretField] = [
         description="Sets git config user.name globally",
         used_by="git role",
     ),
+    SecretField(
+        key="git_signing_key",
+        label="SSH signing key (public)",
+        placeholder="ssh-ed25519 AAAA...",
+        description="1Password SSH public key for commit signing",
+        used_by="git role",
+    ),
 ]
 
 # Shell secrets -- written to secrets.zsh.sops as export statements.

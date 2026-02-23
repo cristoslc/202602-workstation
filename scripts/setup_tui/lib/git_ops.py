@@ -18,6 +18,19 @@ class GitHubError(Exception):
     """GitHub CLI failure."""
 
 
+def _preferred_remote_url(runner: ToolRunner, config: RepoConfig) -> str:
+    """Return the remote URL matching the gh auth git protocol.
+
+    If ``gh auth status`` reports SSH, return an SSH URL; otherwise fall back
+    to the HTTPS URL from *config*.
+    """
+    result = runner.gh("auth", "status", check=False)
+    output = (result.stdout or "") + (result.stderr or "")
+    if "git_protocol: ssh" in output or "Git operations protocol: ssh" in output:
+        return f"git@github.com:{config.github_username}/{config.repo_name}.git"
+    return config.github_repo_url
+
+
 def detach_from_template(runner: ToolRunner, config: RepoConfig) -> str | None:
     """Check if origin points to template repo.
 
@@ -54,11 +67,13 @@ def create_github_repo(
 
     visibility = "--public" if public else "--private"
 
+    remote_url = _preferred_remote_url(runner, config)
+
     # Check if repo already exists.
     repo_check = runner.gh("repo", "view", slug, check=False)
     if repo_check.returncode == 0:
         messages.append(f"GitHub repo {slug} already exists.")
-        runner.git("remote", "add", "origin", config.github_repo_url)
+        runner.git("remote", "add", "origin", remote_url)
     else:
         messages.append("Creating GitHub repo...")
         runner.gh(
@@ -66,7 +81,7 @@ def create_github_repo(
             "--source", str(REPO_ROOT), "--remote", "origin",
         )
 
-    messages.append(f"Remote set to: {config.github_repo_url}")
+    messages.append(f"Remote set to: {remote_url}")
     return messages
 
 

@@ -9,46 +9,23 @@
       changed_when: false
       failed_when: false
 
-    - name: Generate Vicinae install instructions
+    - name: Install Vicinae
       when: vicinae_check.rc != 0
       block:
-        - name: Ensure manual-install directory exists
-          ansible.builtin.file:
-            path: "{{ ansible_facts.env.HOME }}/Desktop/workstation-setup"
-            state: directory
+        - name: Download Vicinae install script
+          ansible.builtin.get_url:
+            url: https://vicinae.com/install.sh
+            dest: /tmp/vicinae-install.sh
             mode: "0755"
 
-        - name: Write Vicinae install guide
-          ansible.builtin.copy:
-            dest: "{{ ansible_facts.env.HOME }}/Desktop/workstation-setup/install-vicinae.md"
-            content: |
-              # Install Vicinae
+        - name: Run Vicinae install script
+          ansible.builtin.command: bash /tmp/vicinae-install.sh
+          become: true
 
-              Vicinae provides clipboard history, emoji picker, and app launcher for Linux.
-
-              ## Installation
-
-              1. Visit https://vicinae.app
-              2. Download the latest .deb package
-              3. Install: sudo apt install ./vicinae-*.deb
-              4. Re-run bootstrap to configure keyboard shortcuts
-
-              ## Keyboard shortcuts (configured by bootstrap)
-
-              - Super+V — Clipboard history
-              - Super+E — Emoji picker
-              - Super+Space — App launcher
-
-              ## After installation
-
-              Run bootstrap again to apply shortcuts:
-                cd ~/Documents/202602-workstation && make bootstrap
-            mode: "0644"
-
-        - name: Open Vicinae install guide
-          ansible.builtin.command: xdg-open "{{ ansible_facts.env.HOME }}/Desktop/workstation-setup/install-vicinae.md"
-          changed_when: false
-          failed_when: false
+        - name: Clean up Vicinae install script
+          ansible.builtin.file:
+            path: /tmp/vicinae-install.sh
+            state: absent
 
     - name: Install Vicinae URL handler
       ansible.builtin.copy:

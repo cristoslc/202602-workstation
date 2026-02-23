@@ -486,7 +486,7 @@ class TestBootstrapModeScreen:
             await _select_option(ctx, "bootstrap")
             assert isinstance(ctx.app.screen, BootstrapModeScreen)
 
-            # Click Next with default "fresh" selected.
+            # Click Next with default selection.
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
@@ -529,6 +529,7 @@ class TestBootstrapPhaseScreen:
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
             await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#fresh")
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
 
@@ -597,7 +598,7 @@ class TestBootstrapPasswordScreen:
 
             status = ctx.app.screen.query_one("#main-content Static")
             text = str(status.content)
-            assert "Fresh install" in text
+            assert "Existing user account" in text
 
     @pytest.mark.asyncio
     async def test_escape_goes_back_to_phases(self, personalized_state):

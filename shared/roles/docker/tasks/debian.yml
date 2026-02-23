@@ -86,6 +86,13 @@
         url: https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb
         dest: "{{ _docker_desktop_tmp.path }}"
         mode: "0644"
+        force: true
+
+    - name: Verify Docker Desktop .deb is not truncated
+      ansible.builtin.stat:
+        path: "{{ _docker_desktop_tmp.path }}"
+      register: _docker_desktop_stat
+      failed_when: _docker_desktop_stat.stat.size < 100000000
 
     - name: Install Docker Desktop .deb
       ansible.builtin.apt:
