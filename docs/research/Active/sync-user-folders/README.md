@@ -133,7 +133,9 @@ compression for delta transfers of changed regions within large files.
 
 **Cross-platform:** Available via Homebrew (macOS) and distro packages (Linux).
 Version 2.52+ eliminated the client/server version-matching requirement.
-No xattr or ACL support (syncs content, permissions, timestamps only).
+xattr and ACL support added in 2.53.0 (`xattrs = true`, `acl = true`).
+See [unison-known-issues.md](unison-known-issues.md) for cross-platform caveats,
+OCaml 5.x compilation risks, and fsmonitor fragmentation.
 
 **Best for:** Ongoing bidirectional sync (see Part B). Overkill for one-time
 migration.
