@@ -1,18 +1,10 @@
 ---
-# Teams sub-task
+# Microsoft Teams
 - name: Install Teams (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify Teams is installed
-      ansible.builtin.command: brew list --cask microsoft-teams
-      register: teams_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about Teams
-      when: teams_check.rc != 0
-      ansible.builtin.debug:
-        msg: "Teams not installed. Add 'microsoft-teams' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: microsoft-teams
+    state: present
 
 - name: Install Teams (Debian)
   when: ansible_facts.os_family == "Debian"

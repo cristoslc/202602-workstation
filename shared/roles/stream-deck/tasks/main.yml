@@ -1,6 +1,6 @@
 ---
 # Stream Deck role: companion software for Elgato Stream Deck hardware.
-# macOS: official Elgato Stream Deck app via Brewfile.
+# macOS: official Elgato Stream Deck app via Homebrew cask.
 # Linux: OpenDeck (supports original Elgato plugin SDK).
 
 - name: Include OS-specific tasks

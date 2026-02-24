@@ -2,17 +2,9 @@
 # Signal sub-task
 - name: Install Signal (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify Signal is installed
-      ansible.builtin.command: brew list --cask signal
-      register: signal_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about Signal
-      when: signal_check.rc != 0
-      ansible.builtin.debug:
-        msg: "Signal not installed. Add 'signal' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: signal
+    state: present
 
 - name: Install Signal (Debian)
   when: ansible_facts.os_family == "Debian"

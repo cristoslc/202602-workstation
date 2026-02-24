@@ -1,5 +1,10 @@
 ---
-# macOS power settings via pmset.
+# macOS power settings via pmset + battery monitoring.
+
+- name: Install CoconutBattery
+  community.general.homebrew_cask:
+    name: coconutbattery
+    state: present
 
 - name: Set AC display sleep
   ansible.builtin.command: pmset -c displaysleep {{ power_macos_display_sleep_ac }}

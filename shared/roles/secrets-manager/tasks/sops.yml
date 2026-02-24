@@ -1,6 +1,52 @@
 ---
-# SOPS/age sub-task: resolve age key and decrypt secret dotfiles.
-# sops and age are installed by bootstrap.sh, not this role.
+# SOPS/age sub-task: install tools, resolve age key, decrypt secret dotfiles.
+
+- name: Install sops and age (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew:
+    name:
+      - sops
+      - age
+    state: present
+
+- name: Install sops and age (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Install age
+      ansible.builtin.apt:
+        name: age
+        state: present
+      become: true
+
+    - name: Check if sops is installed
+      ansible.builtin.command: sops --version
+      register: _sops_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install sops from GitHub release
+      when: _sops_check.rc != 0
+      block:
+        - name: Download sops .deb
+          ansible.builtin.get_url:
+            url: "https://github.com/getsops/sops/releases/download/v3.9.4/sops_3.9.4_amd64.deb"
+            dest: /tmp/sops.deb
+            mode: "0644"
+          register: _sops_download
+          retries: 3
+          delay: 5
+          until: _sops_download is not failed
+
+        - name: Install sops .deb
+          ansible.builtin.apt:
+            deb: /tmp/sops.deb
+            state: present
+          become: true
+
+        - name: Clean up sops .deb
+          ansible.builtin.file:
+            path: /tmp/sops.deb
+            state: absent
 
 - name: Check for age key
   ansible.builtin.stat:

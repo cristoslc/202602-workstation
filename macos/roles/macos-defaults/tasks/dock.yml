@@ -1,4 +1,13 @@
 ---
+- name: "Dock: Remove all default pinned apps"
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: persistent-apps
+    type: array
+    value: []
+    state: present
+  notify: restart dock
+
 - name: "Dock: Auto-hide"
   community.general.osx_defaults:
     domain: com.apple.dock

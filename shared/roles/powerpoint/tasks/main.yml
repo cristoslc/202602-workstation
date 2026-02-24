@@ -1,0 +1,23 @@
+---
+# Microsoft PowerPoint
+- name: Install PowerPoint (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: microsoft-powerpoint
+    state: present
+
+- name: Install PowerPoint (Debian — via ms-365-electron)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if ms-365-electron snap is installed
+      ansible.builtin.command: snap list ms-365-electron
+      register: _ms365_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install ms-365-electron snap
+      when: _ms365_check.rc != 0
+      community.general.snap:
+        name: ms-365-electron
+        state: present
+      become: true

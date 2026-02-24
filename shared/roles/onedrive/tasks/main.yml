@@ -1,18 +1,10 @@
 ---
-# OneDrive sub-task
+# Microsoft OneDrive cloud storage
 - name: Install OneDrive (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify OneDrive is installed
-      ansible.builtin.command: brew list --cask onedrive
-      register: onedrive_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about OneDrive
-      when: onedrive_check.rc != 0
-      ansible.builtin.debug:
-        msg: "OneDrive not installed. Add 'onedrive' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: onedrive
+    state: present
 
 - name: Install OneDrive (Debian)
   when: ansible_facts.os_family == "Debian"

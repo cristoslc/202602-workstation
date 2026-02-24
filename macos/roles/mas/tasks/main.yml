@@ -1,4 +1,9 @@
 ---
+- name: Install mas CLI
+  community.general.homebrew:
+    name: mas
+    state: present
+
 - name: Check if mas is installed
   ansible.builtin.command: mas version
   register: mas_check

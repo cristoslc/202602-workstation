@@ -1,18 +1,10 @@
 ---
-# Steam sub-task
+# Steam
 - name: Install Steam (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify Steam is installed
-      ansible.builtin.command: brew list --cask steam
-      register: steam_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about Steam
-      when: steam_check.rc != 0
-      ansible.builtin.debug:
-        msg: "Steam not installed. Add 'steam' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: steam
+    state: present
 
 # Steam's .deb post-install enables i386, installs GPG keys, and
 # creates its own apt sources (steam-stable.list, steam-beta.list)

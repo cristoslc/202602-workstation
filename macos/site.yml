@@ -4,4 +4,5 @@
 - import_playbook: plays/02-dev-tools.yml
 - import_playbook: plays/03-desktop.yml
 - import_playbook: plays/04-dotfiles.yml
-- import_playbook: plays/05-bureau-veritas.yml
+- import_playbook: plays/05-gaming.yml
+- import_playbook: plays/06-bureau-veritas.yml

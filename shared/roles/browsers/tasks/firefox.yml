@@ -2,17 +2,9 @@
 # Firefox sub-task
 - name: Install Firefox (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify Firefox is installed
-      ansible.builtin.command: brew list --cask firefox
-      register: firefox_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about Firefox
-      when: firefox_check.rc != 0
-      ansible.builtin.debug:
-        msg: "Firefox not installed. Add 'firefox' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: firefox
+    state: present
 
 - name: Install Firefox (Debian)
   when: ansible_facts.os_family == "Debian"

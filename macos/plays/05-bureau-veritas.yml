@@ -1,8 +1,0 @@
----
-- name: "Phase 5: Bureau Veritas"
-  hosts: localhost
-  connection: local
-
-  roles:
-    - role: ms-office
-      tags: [ms-office, office, edge, onedrive, teams, bureau-veritas]

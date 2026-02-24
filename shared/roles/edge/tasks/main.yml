@@ -1,18 +1,10 @@
 ---
-# Edge sub-task
+# Microsoft Edge browser
 - name: Install Edge (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify Edge is installed
-      ansible.builtin.command: brew list --cask microsoft-edge
-      register: edge_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about Edge
-      when: edge_check.rc != 0
-      ansible.builtin.debug:
-        msg: "Edge not installed. Add 'microsoft-edge' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: microsoft-edge
+    state: present
 
 - name: Install Edge (Debian)
   when: ansible_facts.os_family == "Debian"

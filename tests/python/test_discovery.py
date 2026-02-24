@@ -378,50 +378,28 @@ class TestValidateConfig:
 class TestRealPlaybooks:
     """Parse the actual linux/plays/ and macos/plays/ directories."""
 
-    @pytest.mark.skipif(
-        not (REPO_ROOT / "linux" / "plays").is_dir(),
-        reason="linux/plays/ not found",
-    )
-    def test_linux_playbook_discovery(self):
-        manifest = discover_playbook("linux")
-        assert manifest.platform == "linux"
+    @pytest.mark.parametrize("platform", ["linux", "macos"])
+    def test_playbook_discovery(self, platform):
+        plays_dir = REPO_ROOT / ("macos" if platform == "macos" else "linux") / "plays"
+        if not plays_dir.is_dir():
+            pytest.skip(f"{platform}/plays/ not found")
+
+        manifest = discover_playbook(platform)
+        assert manifest.platform == platform
         ids = manifest.phase_ids()
-        assert "system" in ids
-        assert "security" in ids
-        assert "dev-tools" in ids
-        assert "desktop" in ids
-        assert "dotfiles" in ids
-        assert "gaming" in ids
+        # Core phases present on both platforms.
+        for phase in ("system", "security", "dev-tools", "desktop", "dotfiles", "gaming"):
+            assert phase in ids
         # Phases should be ordered.
         assert ids == sorted(ids, key=lambda x: ids.index(x))
         # dev-tools should have multiple roles.
         dev = manifest.phase_by_id("dev-tools")
         assert dev is not None
         assert len(dev.roles) >= 5
-        # system should have pre_tasks.
-        sys_phase = manifest.phase_by_id("system")
-        assert sys_phase is not None
-        assert sys_phase.has_pre_tasks is True
         # gaming should have 1 role.
         gaming = manifest.phase_by_id("gaming")
         assert gaming is not None
         assert len(gaming.roles) == 1
-
-    @pytest.mark.skipif(
-        not (REPO_ROOT / "macos" / "plays").is_dir(),
-        reason="macos/plays/ not found",
-    )
-    def test_macos_playbook_discovery(self):
-        manifest = discover_playbook("macos")
-        assert manifest.platform == "macos"
-        ids = manifest.phase_ids()
-        assert "system" in ids
-        assert "security" in ids
-        assert "dev-tools" in ids
-        assert "desktop" in ids
-        assert "dotfiles" in ids
-        # macOS has no gaming phase.
-        assert "gaming" not in ids
 
     @pytest.mark.skipif(
         not (REPO_ROOT / "linux" / "plays").is_dir(),

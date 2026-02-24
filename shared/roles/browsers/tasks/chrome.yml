@@ -2,17 +2,9 @@
 # Google Chrome sub-task
 - name: Install Chrome (macOS)
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Verify Chrome is installed
-      ansible.builtin.command: brew list --cask google-chrome
-      register: chrome_check
-      changed_when: false
-      failed_when: false
-
-    - name: Note about Chrome
-      when: chrome_check.rc != 0
-      ansible.builtin.debug:
-        msg: "Chrome not installed. Add 'google-chrome' to Brewfile and run brew bundle."
+  community.general.homebrew_cask:
+    name: google-chrome
+    state: present
 
 # Chrome's .deb post-install creates its own apt repo and GPG key
 # for future updates. No need to manage the repo ourselves.

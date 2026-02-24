@@ -1,13 +1,7 @@
 ---
-# macOS: Elgato Stream Deck app installed via Brewfile.
+# macOS: Elgato Stream Deck app
 
-- name: Verify Elgato Stream Deck is installed
-  ansible.builtin.command: brew list --cask elgato-stream-deck
-  register: streamdeck_check
-  changed_when: false
-  failed_when: false
-
-- name: Note about Elgato Stream Deck
-  when: streamdeck_check.rc != 0
-  ansible.builtin.debug:
-    msg: "Elgato Stream Deck not installed. Add 'elgato-stream-deck' to Brewfile and run brew bundle."
+- name: Install Elgato Stream Deck
+  community.general.homebrew_cask:
+    name: elgato-stream-deck
+    state: present

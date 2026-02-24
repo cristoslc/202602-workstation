@@ -1,8 +1,13 @@
 ---
-# Raycast sub-task (macOS only — installed via Brewfile)
+# Raycast sub-task (macOS only)
 - name: Install Raycast (macOS)
   when: ansible_facts.os_family == "Darwin"
   block:
+    - name: Install Raycast
+      community.general.homebrew_cask:
+        name: raycast
+        state: present
+
     - name: Check if Raycast settings export exists
       ansible.builtin.stat:
         path: "{{ workstation_dir }}/macos/dotfiles/raycast/.config/raycast/settings.json"

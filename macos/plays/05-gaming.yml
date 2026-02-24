@@ -1,0 +1,8 @@
+---
+- name: "Phase 5: Gaming"
+  hosts: localhost
+  connection: local
+
+  roles:
+    - role: gaming
+      tags: [gaming, steam]

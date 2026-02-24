@@ -32,9 +32,28 @@
   community.general.homebrew:
     update_homebrew: true
 
-- name: Install packages from Brewfile
-  ansible.builtin.command:
-    cmd: brew bundle --file={{ role_path }}/files/Brewfile
-  environment:
-    HOMEBREW_BUNDLE_NO_LOCK: "1"
-  changed_when: false
+- name: Install base CLI tools
+  community.general.homebrew:
+    name:
+      - jq
+      - wget
+      - ripgrep
+      - fd
+      - fzf
+      - bat
+      - eza
+      - tree
+      - htop
+      - dust
+      - duf
+      - tldr
+      - mc
+      - gum
+    state: present
+
+- name: Install base macOS casks
+  community.general.homebrew_cask:
+    name:
+      - setapp
+      - jordanbaird-ice
+    state: present
