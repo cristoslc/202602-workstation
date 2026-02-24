@@ -3,11 +3,72 @@
   hosts: localhost
   connection: local
 
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: 300
+
   pre_tasks:
     - name: Verify running on Debian-based Linux
       ansible.builtin.assert:
         that: ansible_facts.os_family == "Debian"
         fail_msg: "This playbook is for Debian-based Linux only."
+
+    # Other apt/dpkg processes (unattended-upgrades, stuck post-install
+    # scripts) can hold the dpkg lock indefinitely, blocking every apt
+    # task. Stop the auto-updater, kill any stale lock holders, repair
+    # partial installs, then wait for locks to clear.
+    - name: Stop unattended-upgrades to prevent apt lock contention
+      ansible.builtin.systemd:
+        name: unattended-upgrades
+        state: stopped
+      become: true
+      failed_when: false
+      tags: [always]
+
+    - name: Kill stale apt/dpkg processes holding locks
+      ansible.builtin.shell: |
+        set -euo pipefail
+        killed=0
+        for lockfile in /var/lib/dpkg/lock-frontend \
+                        /var/lib/apt/lists/lock \
+                        /var/cache/apt/archives/lock; do
+          for pid in $(fuser "$lockfile" 2>/dev/null || true); do
+            [ -d "/proc/$pid" ] || continue
+            age=$(( $(date +%s) - $(stat -c %Y "/proc/$pid") ))
+            if [ "$age" -gt 600 ]; then
+              echo "Killing stale process $pid (age: ${age}s, cmd: $(cat /proc/$pid/cmdline 2>/dev/null | tr '\0' ' '))"
+              kill "$pid" 2>/dev/null || true
+              killed=1
+            fi
+          done
+        done
+        [ "$killed" -eq 1 ] && echo "CHANGED" || echo "OK"
+      args:
+        executable: /bin/bash
+      become: true
+      register: _stale_apt_kill
+      changed_when: "'CHANGED' in _stale_apt_kill.stdout"
+      tags: [always]
+
+    - name: Repair partially configured packages
+      ansible.builtin.command: dpkg --configure -a
+      become: true
+      changed_when: false
+      when: _stale_apt_kill is changed
+      tags: [always]
+
+    - name: Wait for dpkg/apt locks to be released
+      ansible.builtin.shell: |
+        while fuser /var/lib/dpkg/lock-frontend \
+                    /var/lib/apt/lists/lock \
+                    /var/cache/apt/archives/lock >/dev/null 2>&1; do
+          sleep 5
+        done
+      args:
+        executable: /bin/bash
+      become: true
+      changed_when: false
+      tags: [always]
 
     # 1Password's post-install can create conflicting apt source files.
     # We manage 1password.list with signed-by=, so remove any others.

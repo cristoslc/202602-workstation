@@ -2,6 +2,11 @@
 - name: "Phase 5: Gaming"
   hosts: localhost
   connection: local
+
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: 300
+
   roles:
     - role: gaming
       tags: [gaming, steam]
