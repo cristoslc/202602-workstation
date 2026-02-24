@@ -31,6 +31,10 @@
             url: "https://github.com/espanso/espanso/releases/latest/download/espanso-debian-x11-amd64.deb"
             dest: /tmp/espanso.deb
             mode: "0644"
+          register: _espanso_download
+          retries: 3
+          delay: 5
+          until: _espanso_download is not failed
 
         - name: Install Espanso .deb
           ansible.builtin.apt:

@@ -22,6 +22,10 @@
         dest: /tmp/docker-key.gpg
         mode: "0644"
       become: true
+      register: _docker_key_download
+      retries: 3
+      delay: 5
+      until: _docker_key_download is not failed
 
     - name: Dearmor Docker GPG key
       ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg /tmp/docker-key.gpg
@@ -87,6 +91,10 @@
         dest: "{{ _docker_desktop_tmp.path }}"
         mode: "0644"
         force: true
+      register: _docker_desktop_download
+      retries: 3
+      delay: 5
+      until: _docker_desktop_download is not failed
 
     - name: Verify Docker Desktop .deb is not truncated
       ansible.builtin.stat:

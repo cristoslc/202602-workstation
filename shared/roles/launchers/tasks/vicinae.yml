@@ -17,6 +17,10 @@
             url: https://vicinae.com/install.sh
             dest: /tmp/vicinae-install.sh
             mode: "0755"
+          register: _vicinae_download
+          retries: 3
+          delay: 5
+          until: _vicinae_download is not failed
 
         - name: Run Vicinae install script
           ansible.builtin.command: bash /tmp/vicinae-install.sh

@@ -27,10 +27,18 @@
           register: _vscode_tmp
 
         - name: Download latest VS Code .deb
-          ansible.builtin.get_url:
-            url: https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64
-            dest: "{{ _vscode_tmp.path }}"
-            mode: "0644"
+          ansible.builtin.command:
+            cmd: "curl -fsSL -o {{ _vscode_tmp.path }} 'https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64'"
+          register: _vscode_download
+          retries: 3
+          delay: 5
+          until: _vscode_download is not failed
+
+        - name: Verify VS Code .deb is not truncated
+          ansible.builtin.stat:
+            path: "{{ _vscode_tmp.path }}"
+          register: _vscode_stat
+          failed_when: _vscode_stat.stat.size < 50000000
 
         - name: Install VS Code .deb
           ansible.builtin.apt:

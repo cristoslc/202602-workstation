@@ -31,6 +31,13 @@
             url: "https://slack.com/api/desktop.latestRelease?variant=deb&arch=x64"
             return_content: true
           register: _slack_api
+          retries: 3
+          delay: 5
+          until: _slack_api is not failed
+
+        - name: Extract Slack download URL
+          ansible.builtin.set_fact:
+            _slack_deb_url: "{{ _slack_api.json.download_url }}"
 
         - name: Create temp file for Slack download
           ansible.builtin.tempfile:
@@ -39,9 +46,20 @@
 
         - name: Download latest Slack .deb
           ansible.builtin.get_url:
-            url: "{{ _slack_api.json.url }}"
+            url: "{{ _slack_deb_url }}"
             dest: "{{ _slack_tmp.path }}"
             mode: "0644"
+            force: true
+          register: _slack_download
+          retries: 3
+          delay: 5
+          until: _slack_download is not failed
+
+        - name: Verify Slack .deb is not truncated
+          ansible.builtin.stat:
+            path: "{{ _slack_tmp.path }}"
+          register: _slack_stat
+          failed_when: _slack_stat.stat.size < 50000000
 
         - name: Install Slack .deb
           ansible.builtin.apt:

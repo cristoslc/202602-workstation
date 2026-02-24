@@ -30,15 +30,27 @@ class ToolRunner:
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         logger.debug("Running: %s", " ".join(cmd))
-        result = subprocess.run(
-            cmd,
-            capture_output=capture,
-            text=True,
-            env=env,
-            input=input_text,
-            check=check,
-            cwd=cwd,
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=capture,
+                text=True,
+                env=env,
+                input=input_text,
+                check=check,
+                cwd=cwd,
+            )
+        except FileNotFoundError:
+            if check:
+                raise FileNotFoundError(
+                    f"Command not found: {cmd[0]}"
+                ) from None
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=127,
+                stdout="",
+                stderr=f"Command not found: {cmd[0]}",
+            )
         if capture:
             if result.stdout.strip():
                 logger.debug("stdout: %s", result.stdout.strip())

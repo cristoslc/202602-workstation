@@ -93,6 +93,13 @@ Screen {
     margin: 0 1;
 }
 
+#key-menu {
+    width: 60;
+    height: auto;
+    max-height: 8;
+    margin: 1 0;
+}
+
 #phase-checkboxes {
     height: auto;
     padding: 0 0 1 0;

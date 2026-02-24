@@ -11,3 +11,6 @@
     executable: /bin/bash
   register: claude_install
   changed_when: claude_install.rc == 0
+  retries: 3
+  delay: 5
+  until: claude_install is not failed

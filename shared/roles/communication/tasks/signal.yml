@@ -31,6 +31,10 @@
             dest: /tmp/signal-key.asc
             mode: "0644"
           become: true
+          register: _signal_key_download
+          retries: 3
+          delay: 5
+          until: _signal_key_download is not failed
 
         - name: Dearmor Signal GPG key
           ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg /tmp/signal-key.asc

@@ -44,6 +44,17 @@
             url: https://repo.steampowered.com/steam/archive/precise/steam_latest.deb
             dest: "{{ _steam_tmp.path }}"
             mode: "0644"
+            force: true
+          register: _steam_download
+          retries: 3
+          delay: 5
+          until: _steam_download is not failed
+
+        - name: Verify Steam .deb is not truncated
+          ansible.builtin.stat:
+            path: "{{ _steam_tmp.path }}"
+          register: _steam_stat
+          failed_when: _steam_stat.stat.size < 1000000
 
         - name: Install Steam .deb
           ansible.builtin.apt:

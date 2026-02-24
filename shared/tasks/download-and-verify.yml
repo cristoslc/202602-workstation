@@ -21,6 +21,10 @@
     mode: "0644"
     force: true
   become: true
+  register: _download_result
+  retries: 3
+  delay: 5
+  until: _download_result is not failed
 
 - name: "{{ tool_name }} — compute SHA-256 checksum"
   ansible.builtin.stat:

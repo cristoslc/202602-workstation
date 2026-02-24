@@ -22,7 +22,7 @@ from setup_tui.lib.state import (
     detect_resume_state,
     extract_resume_config,
 )
-from setup_tui.lib.age import AgeKeyError, generate_or_load_age_key
+from setup_tui.lib.age import AgeKeyError, generate_age_key, generate_or_load_age_key, load_age_key
 from setup_tui.lib.tokens import replace_tokens
 from setup_tui.lib.encryption import EncryptionError, encrypt_secret_files, write_and_encrypt
 from setup_tui.lib.git_ops import (
@@ -574,6 +574,57 @@ class TestDetectResumeState:
         state = detect_resume_state(mock_runner)
         assert state.has_placeholder_secrets is False
 
+    def test_skips_sops_when_not_installed(
+        self, tmp_repo, mock_runner, monkeypatch
+    ):
+        """When sops is not installed, sops_decrypt should not be called."""
+        sops = tmp_repo / ".sops.yaml"
+        sops.write_text("age: 'age1real'")
+        monkeypatch.setattr("setup_tui.lib.state.SOPS_YAML", sops)
+        monkeypatch.setattr("setup_tui.lib.state.REPO_ROOT", tmp_repo)
+
+        # Encrypted file without PLACEHOLDER in raw text.
+        vars_file = tmp_repo / "shared" / "secrets" / "vars.sops.yml"
+        vars_file.write_text('sops:\n  age: []\ndata: "ENC[AES256_GCM]"\n')
+
+        mock_runner.command_exists = MagicMock(return_value=False)
+        mock_runner.git = MagicMock(
+            return_value=subprocess.CompletedProcess(
+                args=[], returncode=1, stdout="", stderr=""
+            )
+        )
+
+        state = detect_resume_state(mock_runner)
+
+        mock_runner.sops_decrypt.assert_not_called()
+        assert state.has_placeholder_secrets is False
+
+    def test_calls_sops_when_installed(
+        self, tmp_repo, mock_runner, monkeypatch
+    ):
+        """When sops is installed, sops_decrypt should be called for encrypted files."""
+        sops = tmp_repo / ".sops.yaml"
+        sops.write_text("age: 'age1real'")
+        monkeypatch.setattr("setup_tui.lib.state.SOPS_YAML", sops)
+        monkeypatch.setattr("setup_tui.lib.state.REPO_ROOT", tmp_repo)
+
+        # Encrypted file without PLACEHOLDER in raw text.
+        vars_file = tmp_repo / "shared" / "secrets" / "vars.sops.yml"
+        vars_file.write_text('sops:\n  age: []\ndata: "ENC[AES256_GCM]"\n')
+
+        mock_runner.command_exists = MagicMock(return_value=True)
+        mock_runner.sops_decrypt = MagicMock(return_value="git_user_email: PLACEHOLDER")
+        mock_runner.git = MagicMock(
+            return_value=subprocess.CompletedProcess(
+                args=[], returncode=1, stdout="", stderr=""
+            )
+        )
+
+        state = detect_resume_state(mock_runner)
+
+        mock_runner.sops_decrypt.assert_called_once()
+        assert state.has_placeholder_secrets is True
+
 
 class TestExtractResumeConfig:
     def test_extracts_from_setup_sh(self, tmp_repo, mock_runner, monkeypatch):
@@ -1057,6 +1108,58 @@ class TestGenerateOrLoadAgeKey:
         assert key_path.parent.stat().st_mode & 0o777 == 0o700
 
 
+class TestLoadAgeKey:
+    def test_loads_existing_key(self, mock_runner, tmp_path, monkeypatch):
+        key_path = tmp_path / "keys.txt"
+        key_path.write_text("AGE-SECRET-KEY-1ABC\n")
+        monkeypatch.setattr("setup_tui.lib.age.AGE_KEY_PATH", key_path)
+
+        status, pubkey = load_age_key(mock_runner)
+
+        assert "exists" in status.lower()
+        assert pubkey == "age1abc"
+
+    def test_raises_file_not_found_if_missing(self, mock_runner, tmp_path, monkeypatch):
+        key_path = tmp_path / "nonexistent" / "keys.txt"
+        monkeypatch.setattr("setup_tui.lib.age.AGE_KEY_PATH", key_path)
+
+        with pytest.raises(FileNotFoundError):
+            load_age_key(mock_runner)
+
+    def test_raises_age_key_error_on_bad_key(self, mock_runner, tmp_path, monkeypatch):
+        key_path = tmp_path / "keys.txt"
+        key_path.write_text("# corrupt key\n")
+        monkeypatch.setattr("setup_tui.lib.age.AGE_KEY_PATH", key_path)
+
+        mock_runner.age_public_key_from_file = MagicMock(return_value="")
+
+        with pytest.raises(AgeKeyError):
+            load_age_key(mock_runner)
+
+
+class TestGenerateAgeKey:
+    def test_generates_new_key(self, mock_runner, tmp_path, monkeypatch):
+        key_path = tmp_path / "keys.txt"
+        monkeypatch.setattr("setup_tui.lib.age.AGE_KEY_PATH", key_path)
+
+        status, pubkey = generate_age_key(mock_runner)
+
+        assert "generated" in status.lower()
+        assert pubkey == "age1abc"
+        assert key_path.exists()
+        assert key_path.read_text() == "private-key\n"
+        mock_runner.age_keygen.assert_called_once()
+
+    def test_raises_on_empty_keygen_output(self, mock_runner, tmp_path, monkeypatch):
+        key_path = tmp_path / "keys.txt"
+        monkeypatch.setattr("setup_tui.lib.age.AGE_KEY_PATH", key_path)
+
+        mock_runner.age_keygen = MagicMock(return_value=("private-key", ""))
+
+        with pytest.raises(AgeKeyError, match="did not produce"):
+            generate_age_key(mock_runner)
+
+
 # ===========================================================================
 # Secrets load/save helpers
 # ===========================================================================
@@ -1392,3 +1495,18 @@ class TestToolRunner:
         """REPO_ROOT should point to the actual repo root."""
         assert REPO_ROOT.is_dir()
         assert (REPO_ROOT / "Makefile").exists()
+
+    def test_run_missing_binary_check_false(self):
+        """Missing binary with check=False returns returncode 127."""
+        runner = ToolRunner()
+        result = runner.run(
+            ["nonexistent_binary_xyz_123", "--version"], check=False
+        )
+        assert result.returncode == 127
+        assert "Command not found" in result.stderr
+
+    def test_run_missing_binary_check_true(self):
+        """Missing binary with check=True raises FileNotFoundError."""
+        runner = ToolRunner()
+        with pytest.raises(FileNotFoundError, match="Command not found"):
+            runner.run(["nonexistent_binary_xyz_123", "--version"], check=True)

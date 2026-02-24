@@ -109,6 +109,10 @@
     dest: /etc/apt/keyrings/eza.asc
     mode: "0644"
   become: true
+  register: _eza_key_download
+  retries: 3
+  delay: 5
+  until: _eza_key_download is not failed
 
 - name: Add eza apt repository
   ansible.builtin.apt_repository:

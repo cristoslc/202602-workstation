@@ -68,6 +68,35 @@ if ! command -v uv &>/dev/null; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# --- Ensure sops + age are available (TUI state detection calls sops) ---
+
+if [ "$PLATFORM" = "linux" ]; then
+  if ! command -v age &>/dev/null; then
+    echo "Installing age..."
+    sudo apt-get install -y -qq age
+  fi
+  if ! command -v sops &>/dev/null; then
+    echo "Installing sops v3.9.4..."
+    sops_deb="$(mktemp --suffix=.deb)"
+    curl -fsSL "https://github.com/getsops/sops/releases/download/v3.9.4/sops_3.9.4_amd64.deb" \
+      -o "$sops_deb"
+    expected="e18a091c45888f82e1a7fd14561ebb913872441f92c8162d39bb63eb9308dd16"
+    actual="$(sha256sum "$sops_deb" | cut -d' ' -f1)"
+    if [ "$actual" != "$expected" ]; then
+      rm -f "$sops_deb"
+      echo "sops checksum mismatch! Expected: $expected, Got: $actual"
+      exit 1
+    fi
+    sudo dpkg -i "$sops_deb"
+    rm -f "$sops_deb"
+  fi
+else
+  # macOS: Homebrew (idempotent — skips already-installed).
+  if command -v brew &>/dev/null; then
+    brew install sops age 2>/dev/null || true
+  fi
+fi
+
 # --- Hand off to the Textual TUI ---
 
 uv run --with textual,pyyaml "$SCRIPT_DIR/scripts/setup.py" "$@" || tui_exit=$?

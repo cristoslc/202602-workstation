@@ -91,7 +91,7 @@ def detect_resume_state(runner: ToolRunner) -> ResumeState:
         raw = shared_vars.read_text()
         if "PLACEHOLDER" in raw:
             state.has_placeholder_secrets = True
-        else:
+        elif runner.command_exists("sops"):
             decrypted = runner.sops_decrypt(shared_vars)
             if "PLACEHOLDER" in decrypted:
                 state.has_placeholder_secrets = True

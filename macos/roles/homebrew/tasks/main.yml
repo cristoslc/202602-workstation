@@ -10,6 +10,10 @@
     url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
     dest: /tmp/brew-install.sh
     mode: "0755"
+  register: _brew_download
+  retries: 3
+  delay: 5
+  until: _brew_download is not failed
 
 - name: Run Homebrew installer
   when: not homebrew_check.stat.exists

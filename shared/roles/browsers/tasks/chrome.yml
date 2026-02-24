@@ -38,6 +38,17 @@
             url: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
             dest: "{{ _chrome_tmp.path }}"
             mode: "0644"
+            force: true
+          register: _chrome_download
+          retries: 3
+          delay: 5
+          until: _chrome_download is not failed
+
+        - name: Verify Chrome .deb is not truncated
+          ansible.builtin.stat:
+            path: "{{ _chrome_tmp.path }}"
+          register: _chrome_stat
+          failed_when: _chrome_stat.stat.size < 50000000
 
         - name: Install Chrome .deb
           ansible.builtin.apt:

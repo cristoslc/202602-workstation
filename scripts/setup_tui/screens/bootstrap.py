@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 from textual import work
@@ -337,24 +338,35 @@ class BootstrapRunScreen(Screen):
             self._update_sidebar, steps, -1
         )
 
+        # Grant temporary NOPASSWD sudo for the entire bootstrap run.
+        # Broken PAM modules (e.g. pam_fprintd on Mint) hang for ~10s on
+        # every sudo invocation, which causes captured subprocess calls to
+        # fail.  A NOPASSWD sudoers entry lets sudo skip PAM authentication
+        # entirely.  The initial `sudo -S` to create the entry goes through
+        # PAM once (~10s) but completes within the 30-second timeout.
+        self._grant_nopasswd_sudo()
+
         success = True
-        for i, (label, step_fn) in enumerate(steps):
-            self.app.call_from_thread(
-                self._update_sidebar, steps, i
-            )
-            self.app.call_from_thread(
-                self._log, f"\n[bold cyan]>>> {label}[/bold cyan]\n"
-            )
-            try:
-                step_fn(platform, platform_dir, apply_system_roles)
-            except Exception as exc:
+        try:
+            for i, (label, step_fn) in enumerate(steps):
                 self.app.call_from_thread(
-                    self._log,
-                    f"\n[bold red]ERROR:[/bold red] {exc}\n"
+                    self._update_sidebar, steps, i
                 )
-                logger.exception("Bootstrap step failed: %s", label)
-                success = False
-                break
+                self.app.call_from_thread(
+                    self._log, f"\n[bold cyan]>>> {label}[/bold cyan]\n"
+                )
+                try:
+                    step_fn(platform, platform_dir, apply_system_roles)
+                except Exception as exc:
+                    self.app.call_from_thread(
+                        self._log,
+                        f"\n[bold red]ERROR:[/bold red] {exc}\n"
+                    )
+                    logger.exception("Bootstrap step failed: %s", label)
+                    success = False
+                    break
+        finally:
+            self._revoke_nopasswd_sudo()
 
         log_path = str(BOOTSTRAP_LOG)
         if success:
@@ -412,14 +424,106 @@ class BootstrapRunScreen(Screen):
     def _step_age_key(
         self, _platform: str, _platform_dir: str, _apply_system: bool
     ) -> None:
-        from ..lib.age import generate_or_load_age_key
-
-        status_msg, public_key = generate_or_load_age_key(self.app.runner)
-        self.app.call_from_thread(self._log, f"  {status_msg}")
-        self.app.call_from_thread(
-            self._log,
-            f"  [dim]Public key: {public_key}[/dim]"
+        from ..lib.age import (
+            TRANSFER_KEY_SCRIPT,
+            AgeKeyError,
+            generate_age_key,
+            load_age_key,
         )
+        from ..lib.state import AGE_KEY_PATH
+
+        # Fast path: key already exists.
+        try:
+            status_msg, public_key = load_age_key(self.app.runner)
+            self.app.call_from_thread(self._log, f"  {status_msg}")
+            self.app.call_from_thread(
+                self._log, f"  [dim]Public key: {public_key}[/dim]"
+            )
+            return
+        except FileNotFoundError:
+            pass
+
+        # No key — ask the user how to proceed.
+        from .key_resolve import KeyResolveScreen
+
+        choice_event = threading.Event()
+        choice_result: list[str] = []  # mutable container for closure
+
+        def on_dismiss(result: str) -> None:
+            choice_result.append(result or "skip")
+            choice_event.set()
+
+        self.app.call_from_thread(
+            self.app.push_screen, KeyResolveScreen(), on_dismiss
+        )
+        choice_event.wait()
+        choice = choice_result[0]
+
+        if choice in ("receive", "import"):
+            self._run_interactive_transfer(choice, TRANSFER_KEY_SCRIPT)
+        elif choice == "generate":
+            status_msg, public_key = generate_age_key(self.app.runner)
+            self.app.call_from_thread(self._log, f"  {status_msg}")
+            self.app.call_from_thread(
+                self._log, f"  [dim]Public key: {public_key}[/dim]"
+            )
+            return
+        elif choice == "skip":
+            self.app.call_from_thread(
+                self._log,
+                "  [bold yellow]Skipped[/bold yellow] — no age key. "
+                "Secret decryption will fail until a key is provided."
+            )
+            logger.warning("User skipped age key resolution")
+            return
+
+        # After transfer, verify the key was installed.
+        if not AGE_KEY_PATH.exists():
+            self.app.call_from_thread(
+                self._log,
+                "  [bold yellow]Warning:[/bold yellow] key file not found "
+                "after transfer. Secret decryption may fail."
+            )
+            logger.warning("Age key not found after transfer attempt")
+            return
+
+        try:
+            status_msg, public_key = load_age_key(self.app.runner)
+            self.app.call_from_thread(self._log, f"  {status_msg}")
+            self.app.call_from_thread(
+                self._log, f"  [dim]Public key: {public_key}[/dim]"
+            )
+        except (FileNotFoundError, AgeKeyError) as exc:
+            self.app.call_from_thread(
+                self._log,
+                f"  [bold yellow]Warning:[/bold yellow] {exc}"
+            )
+
+    def _run_interactive_transfer(
+        self, method: str, script: Path
+    ) -> None:
+        """Suspend the TUI and run transfer-key.sh interactively."""
+        done_event = threading.Event()
+
+        def _do_transfer() -> None:
+            with self.app.suspend():
+                if method == "receive":
+                    print("\n  On the source machine, run:  make key-send\n")
+                else:
+                    print(
+                        "\n  On the source machine, run:  make key-export\n"
+                        "  Then paste the blob below.\n"
+                    )
+                subprocess.run(
+                    ["bash", str(script), method],
+                    stdin=sys.stdin,
+                    stdout=sys.stdout,
+                    stderr=sys.stderr,
+                )
+            done_event.set()
+
+        self.app.call_from_thread(_do_transfer)
+        done_event.wait()
 
     _SUDOERS_TEMP = "/etc/sudoers.d/99-bootstrap-temp"
 
@@ -429,36 +533,25 @@ class BootstrapRunScreen(Screen):
         ansible_cfg = REPO_ROOT / platform_dir / "ansible.cfg"
         playbook = REPO_ROOT / platform_dir / "site.yml"
 
-        # Grant temporary NOPASSWD sudo for the bootstrap run.
-        # Broken PAM modules (e.g. pam_fingwit on Mint) hang for ~10s on
-        # every sudo invocation, which causes Ansible's become prompt
-        # detection to time out.  A NOPASSWD sudoers entry lets sudo skip
-        # PAM authentication entirely.  The initial `sudo -S` to create
-        # the entry goes through PAM once (~10s) but completes within
-        # the 30-second timeout.
-        self._grant_nopasswd_sudo()
-        try:
-            cmd = [
-                "ansible-playbook", str(playbook),
-                "-e", f"workstation_dir={REPO_ROOT}",
-                "-e", f"bootstrap_mode={self.mode}",
-                "-e", f"apply_system_roles={str(apply_system_roles).lower()}",
-                "-e", f"platform={platform}",
-                "-e", f"platform_dir={platform_dir}",
-            ]
+        cmd = [
+            "ansible-playbook", str(playbook),
+            "-e", f"workstation_dir={REPO_ROOT}",
+            "-e", f"bootstrap_mode={self.mode}",
+            "-e", f"apply_system_roles={str(apply_system_roles).lower()}",
+            "-e", f"platform={platform}",
+            "-e", f"platform_dir={platform_dir}",
+        ]
 
-            if platform == "macos":
-                apply_defaults = "true" if self.mode != "existing_account" else "false"
-                cmd.extend(["-e", f"apply_macos_defaults={apply_defaults}"])
+        if platform == "macos":
+            apply_defaults = "true" if self.mode != "existing_account" else "false"
+            cmd.extend(["-e", f"apply_macos_defaults={apply_defaults}"])
 
-            # Filter playbook to only the selected phases.
-            if self.phases:
-                cmd.extend(["--tags", ",".join(self.phases)])
+        # Filter playbook to only the selected phases.
+        if self.phases:
+            cmd.extend(["--tags", ",".join(self.phases)])
 
-            env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
-            self._run_streaming(cmd, env_extra=env_extra)
-        finally:
-            self._revoke_nopasswd_sudo()
+        env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
+        self._run_streaming(cmd, env_extra=env_extra)
 
     def _grant_nopasswd_sudo(self) -> None:
         """Create a temporary NOPASSWD sudoers entry for the current user."""

@@ -89,6 +89,10 @@
         dest: "{{ _screen_inhibit_tmp.path }}"
         mode: "0644"
         force: true
+      register: _screen_inhibit_download
+      retries: 3
+      delay: 5
+      until: _screen_inhibit_download is not failed
 
     - name: Extract screen-inhibit applet
       ansible.builtin.unarchive:
