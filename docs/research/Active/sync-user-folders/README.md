@@ -372,23 +372,76 @@ concurrent runs.
 
 #### 4. Nextcloud
 
-Self-hosted cloud sync. Server is AGPL-3.0, client is GPL-2.0.
+Self-hosted cloud sync and groupware platform. Server is AGPL-3.0, client is
+GPL-2.0.
 
 **Architecture:** Client-server. Server runs on Linux (PHP + DB + web server).
-Desktop clients for Linux (AppImage, distro packages, Flatpak), macOS, Windows.
+Docker AIO is the official deployment method, bundling Apache, MariaDB, Redis,
+Collabora, and Borg backup into a managed multi-container stack. Desktop
+clients for Linux (AppImage, PPA, Flatpak), macOS (`brew install --cask
+nextcloud`), Windows. CLI client (`nextcloudcmd`) ships with desktop packages
+-- performs a single sync run and exits (suitable for cron).
+
+**Server requirements:** 2 cores, 2-4 GB RAM, SSD storage. Supports
+MySQL/MariaDB (recommended), PostgreSQL, SQLite (testing only). Docker AIO
+handles PHP, database, and reverse proxy (Caddy) in containers. Minimum
+viable: a small VPS or home server.
+
+**Sync performance:** **No block-level delta sync.** When any part of a file
+changes, the entire file is re-uploaded. Chunked upload (10 MiB chunks) helps
+reliability for large files but is ~21% slower than single-file upload due to
+per-request overhead. Small-file sync is architecturally weak: each file
+requires an HTTP WebDAV request + database transaction. Community reports:
+~1,000 files at 10 MB total took ~7 minutes bidirectional; individual small
+files have a floor of 1-2 seconds each.
 
 **Conflict resolution:** Server version is canonical. Local conflicts renamed
-to `<file> (conflicted copy <date> <time>).ext`. No merge tool.
+to `<file> (conflicted copy <date> <time>).ext`. No merge support. No bulk
+conflict resolution UI.
 
-**Bandwidth efficiency:** No block-level delta sync. Entire files re-uploaded
-on change. Notable gap for large files.
+**End-to-end encryption:** Officially "production ready" since desktop client
+3.0 (2020), but practically unreliable. Encrypted folders are read-only in
+the web UI, cannot be shared, and must be created empty from a client app.
+Community reports: sync errors, metadata corruption, disappearing files.
+**Recommendation: use Cryptomator instead** if at-rest encryption is needed.
+
+**Virtual File System (VFS):** Fully supported on Windows, supported on macOS
+(separate `nextcloud-vfs` cask, macOS >= 12). **Rudimentary on Linux** --
+appends `.nextcloud` suffix to placeholder files, no file manager integration.
+VFS does not combine with selective sync (all remote files appear as
+placeholders).
 
 **File versioning:** Built-in server-side versioning with staggered retention.
-Browsable in web UI.
+Browsable in web UI. Versions never consume more than 50% of remaining free
+space. Without delta sync, every version is a full file copy.
 
-**Verdict for 2-3 personal machines:** Overkill. Requires maintaining a full
-server stack (PHP, MariaDB/PostgreSQL, Nginx, Redis). Justified only if web
-access or collaboration features are needed.
+**Selective sync:** Folder-level in desktop client (check/uncheck top-level
+folders). File pattern exclusions via Ignored Files Editor (glob patterns in
+`sync-exclude.lst`). `nextcloudcmd` supports `--path`, `--exclude`, and
+`--unsyncedfolders` for finer control.
+
+**Ansible installability:** Official `nextcloud.admin` Ansible collection on
+Galaxy (modules for `occ` commands, app management, user management; roles
+for install and backup). Docker AIO has a manual Docker Compose method
+designed for automation (template `.env` + `latest.yml`, deploy via
+`community.docker.docker_compose_v2`). Client: PPA on Ubuntu
+(`ppa:nextcloud-devs/client`), Homebrew cask on macOS.
+
+**Server maintenance:** Cannot skip major versions (must step 30 -> 31 -> 32
+etc.). PHP version requirements change between major versions. AIO simplifies
+this significantly (containerized PHP, managed upgrades). No downgrade path --
+always back up before upgrading. Two major releases/year, each supported ~1
+year.
+
+**Added value beyond sync:** Web UI for remote file access, file sharing
+links, CalDAV calendar, CardDAV contacts, Nextcloud Office (Collabora),
+Nextcloud Talk (video calls), Deck (kanban), Notes, 400+ app ecosystem,
+mobile apps (iOS/Android). This is the main reason to choose Nextcloud over
+pure-sync alternatives.
+
+**Best for:** Users who want a self-hosted Google Workspace replacement that
+also does file sync. Not optimal as a pure sync engine due to the lack of
+delta sync and small-file performance limitations.
 
 ---
 
@@ -397,13 +450,72 @@ access or collaboration features are needed.
 Self-hosted cloud sync. Community Edition is AGPL-3.0. Server written in C
 (much lighter than Nextcloud).
 
-**Key advantages over Nextcloud:** Block-level delta sync and deduplication.
-Better performance (benchmarks: 11 GB in 6 minutes at 30% server resources
-vs. Nextcloud at 80%). Strong client-side encryption (AES-256/CBC per
-library).
+**Architecture:** Client-server. Docker is the recommended deployment
+(`seafileltd/seafile-mc`). Stack: Seafile server + MariaDB + Redis (v13+
+replaced memcached) + Caddy for TLS. Desktop clients for Linux (AppImage --
+primary since 9.0.7; also Flatpak on Flathub), macOS (`brew install --cask
+seafile-client`). CLI client (`seaf-cli`) available on Linux only (AppImage).
 
-**Verdict:** Better than Nextcloud for pure file sync, but still requires
-server infrastructure.
+**Server requirements:** 2 cores, 2 GB RAM for Community Edition. Runs
+comfortably on a Raspberry Pi or low-end VPS. SSD recommended. Creates 3
+MariaDB databases (ccnet-db, seafile-db, seahub-db). Pro Edition is free for
+up to 3 users.
+
+**Sync performance: block-level delta sync.** This is Seafile's defining
+feature. Files are stored as blocks using **Content-Defined Chunking (CDC)**.
+Block boundaries are determined by data content (rolling hash), so insertions
+don't shift all boundaries. Only changed blocks are transferred. Benchmarks:
+11 GB folder synced in 6 minutes at 30% server CPU (vs. Nextcloud at 80% for
+equivalent workload). LAN downloads: ~100 MB/s on Gigabit Ethernet. A USENIX
+FAST '18 paper found CDC-based sync 2-8x faster than rsync-based approaches,
+supporting 30-50% more concurrent clients. Deduplication: identical blocks
+(same content hash) stored only once across files, versions, and libraries.
+
+**Conflict resolution:** First-to-server-wins, rename-the-loser. Conflicts
+renamed to `<file> (SFConflict <email> <timestamp>).<ext>`. No merge support
+(explicitly will not be added per developers). Known issue: identical-content
+conflicts are not auto-resolved. A locked file blocks the entire library.
+
+**Client-side encryption ("encrypted libraries"):** AES-256-CBC with
+two-layer key scheme. File key (random 32 bytes) encrypted with
+password-derived key (PBKDF2-SHA256, 1000 iterations; newer versions offer
+Argon2id). Encryption is **per-library** -- can mix encrypted and unencrypted
+libraries. Server operator cannot read encrypted data (password never stored
+server-side). **Caveat:** file/directory names and sizes are NOT encrypted
+(metadata leaks). Web browser access decrypts server-side (password
+transmitted to server). True client-side encryption only with desktop/SeaDrive
+clients.
+
+**File versioning:** Block-based storage means versions only store changed
+blocks (storage-efficient). Per-library configurable retention via
+`keep_days`. Library snapshots ("time machine") allow restoring files,
+folders, or entire libraries to any point. **Must run garbage collection
+manually** to reclaim space (CE requires stopping server during GC; Pro
+supports online GC). Without GC, storage can balloon significantly (community
+report: 5 TB disk for 600 GB active data).
+
+**Selective sync:** Per-library sync (choose which libraries sync to each
+machine). Sub-folder sync available but places sub-folders at sync root (not
+in original tree structure). File pattern exclusion via `seafile-ignore.txt`
+(glob patterns, one per line) at library root. Caveat: ignore rules only
+prevent upload from client; web uploads bypass them.
+
+**Ansible installability:** Official Docker images are template-friendly
+(`.env` + YAML compose files). Community Ansible role:
+`netzwirt/ansible-seafile`. Server: template `.env`/`seafile-server.yml`,
+deploy via `community.docker.docker_compose_v2`, add cron for weekly GC.
+Client (Linux): download AppImage, rename CLI to `seaf-cli`, configure via
+`seaf-cli init/start/sync`. Client (macOS): `community.general.homebrew_cask`
+-- no CLI on macOS, GUI config only.
+
+**Known issues:** macOS client crashes reported on Ventura/Monterey (v9.0.4).
+Linux CLI AppImage may require X server (headless issue). No official ARM
+Docker images. Recommended soft limit of ~100k files per library. Client
+v9.0.7 had a download speed regression (100 MB/s -> 10-30 MB/s).
+
+**Best for:** Pure file sync with block-level delta efficiency, client-side
+encryption, and low server resource usage. Clear winner over Nextcloud for
+sync performance.
 
 ---
 
@@ -441,16 +553,20 @@ privacy-conscious workstation setup.
 | **FOSS** | Yes (MPL-2.0) | Yes (GPL-3.0) | Yes (MIT) | Yes (AGPL) | Yes (AGPL) | No |
 | **P2P / no server** | Yes | Yes (SSH) | Depends | No | No | Yes |
 | **Always-on daemon** | Yes | No (on-demand) | No (on-demand) | Client+server | Client+server | Yes |
-| **Delta sync** | Block-based | rsync rolling checksum | No (whole file) | No | Block-level dedup | BitTorrent blocks |
-| **Conflict handling** | Rename conflict file | Interactive/auto resolve | Keep both + flags | Rename conflict file | Rename conflict file | Keep newest |
-| **At-rest encryption** | Untrusted device mode | No | crypt overlay | Experimental E2EE | AES-256/library | AES-128 |
-| **File versioning** | 4 strategies | No (backup pref) | No (backup-dir) | Staggered server-side | Built-in per-library | Basic |
-| **Selective sync** | `.stignore` | `path`/`ignore` | `--filter` | Folder-level + VFS | Per-library | Per-folder |
-| **apt installable** | Yes (official repo) | Yes | Yes | Client: yes | Yes | No |
-| **brew installable** | Yes | Yes | Yes | Yes (cask) | Yes | Yes (cask) |
+| **Delta sync** | Block-based | rsync rolling checksum | No (whole file) | No (whole file) | Block-level CDC | BitTorrent blocks |
+| **Conflict handling** | Rename conflict | Interactive/auto | Keep both + flags | Rename conflict | Rename conflict | Keep newest |
+| **At-rest encryption** | Untrusted device | No | crypt overlay | Unreliable E2EE | AES-256/library | AES-128 |
+| **File versioning** | 4 strategies | No (backup pref) | No (backup-dir) | Staggered (full copies) | Block-level (efficient) | Basic |
+| **Selective sync** | `.stignore` | `path`/`ignore` | `--filter` | Folder-level + VFS | Per-library + ignore | Per-folder |
+| **Web UI** | Yes (admin) | No | No | Yes (full platform) | Yes (file mgmt) | Yes (basic) |
+| **apt installable** | Yes (official repo) | Yes | Yes | Client: PPA | Client: AppImage | No |
+| **brew installable** | Yes | Yes | Yes | Yes (cask) | Yes (cask) | Yes (cask) |
+| **Server min spec** | N/A | N/A | N/A | 2 core / 4 GB | 2 core / 2 GB | N/A |
 | **Resource usage** | Moderate-high | Very low | Low | Server: moderate | Server: low | Low-moderate |
-| **NAT traversal** | Built-in | None (needs SSH) | N/A | N/A (client-server) | N/A | Built-in |
-| **Setup complexity** | Low-medium | Low (+ cron) | Medium (config+cron) | High (server stack) | Medium-high | Low |
+| **NAT traversal** | Built-in | None (needs SSH) | N/A | N/A (client-server) | N/A (client-server) | Built-in |
+| **Setup complexity** | Low-medium | Low (+ cron) | Medium | Medium (AIO Docker) | Medium (Docker) | Low |
+| **Ansible collection** | No (community roles) | No | No | Yes (official) | No (community role) | No |
+| **Beyond sync** | No | No | No | Calendar, contacts, office, talk, apps | No | No |
 
 ---
 
@@ -503,7 +619,7 @@ data_migration_folders:
 data_migration_compress: true
 ```
 
-#### Sync role (Syncthing installation)
+#### Sync role: Syncthing (P2P)
 
 ```yaml
 # shared/roles/sync/tasks/debian.yml
@@ -554,6 +670,124 @@ data_migration_compress: true
     state: started
 ```
 
+#### Sync role: Seafile server (Docker)
+
+```yaml
+# shared/roles/seafile-server/tasks/main.yml
+- name: Create Seafile data directory
+  ansible.builtin.file:
+    path: "{{ seafile_data_dir }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Template Seafile .env
+  ansible.builtin.template:
+    src: seafile.env.j2
+    dest: "{{ seafile_data_dir }}/.env"
+    mode: "0600"
+  become: true
+
+- name: Template Seafile Docker Compose
+  ansible.builtin.template:
+    src: seafile-server.yml.j2
+    dest: "{{ seafile_data_dir }}/seafile-server.yml"
+  become: true
+
+- name: Deploy Seafile stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ seafile_data_dir }}"
+    files: [seafile-server.yml]
+    state: present
+  become: true
+
+- name: Schedule weekly garbage collection
+  ansible.builtin.cron:
+    name: seafile-gc
+    weekday: "0"
+    hour: "3"
+    minute: "0"
+    job: >-
+      docker exec seafile /scripts/gc.sh >> /var/log/seafile-gc.log 2>&1
+  become: true
+
+# shared/roles/seafile-server/defaults/main.yml
+seafile_data_dir: /opt/seafile
+seafile_version: "13.0-latest"
+seafile_hostname: "seafile.example.com"
+seafile_admin_email: ""
+seafile_admin_password: ""  # no_log: true in task
+seafile_keep_days: 90
+```
+
+#### Sync role: Seafile client
+
+```yaml
+# shared/roles/seafile-client/tasks/debian.yml
+- name: Download Seafile client AppImage
+  ansible.builtin.get_url:
+    url: "{{ seafile_client_appimage_url }}"
+    dest: /usr/local/bin/seafile-appimage
+    mode: "0755"
+  become: true
+
+# shared/roles/seafile-client/tasks/darwin.yml
+- name: Install Seafile client (macOS)
+  community.general.homebrew_cask:
+    name: seafile-client
+    state: present
+```
+
+#### Sync role: Nextcloud server (Docker AIO)
+
+```yaml
+# shared/roles/nextcloud-server/tasks/main.yml
+- name: Create Nextcloud AIO directory
+  ansible.builtin.file:
+    path: "{{ nextcloud_data_dir }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Template AIO environment config
+  ansible.builtin.template:
+    src: nextcloud-aio.conf.j2
+    dest: "{{ nextcloud_data_dir }}/sample.conf"
+    mode: "0600"
+  become: true
+
+- name: Deploy Nextcloud AIO stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ nextcloud_data_dir }}"
+    files: [latest.yml]
+    state: present
+  become: true
+
+# shared/roles/nextcloud-server/defaults/main.yml
+nextcloud_data_dir: /opt/nextcloud-aio
+nextcloud_hostname: "nextcloud.example.com"
+
+# shared/roles/nextcloud-client/tasks/debian.yml
+- name: Add Nextcloud client PPA
+  ansible.builtin.apt_repository:
+    repo: "ppa:nextcloud-devs/client"
+    filename: nextcloud-client
+    state: present
+  become: true
+
+- name: Install Nextcloud desktop client
+  ansible.builtin.apt:
+    name: nextcloud-desktop
+    state: present
+  become: true
+
+# shared/roles/nextcloud-client/tasks/darwin.yml
+- name: Install Nextcloud client (macOS)
+  community.general.homebrew_cask:
+    name: nextcloud
+    state: present
+```
+
 ### Make targets sketch
 
 ```makefile
@@ -591,25 +825,27 @@ integration.
 4. SSH key authentication is already provisioned by bootstrap
 5. Use Tailscale hostnames for machines behind NAT
 
-### For ongoing sync (Part B): Syncthing or Unison
+### For ongoing sync (Part B)
 
-**Primary recommendation: Syncthing**
+The right tool depends on whether you want a server or not, and whether you
+need features beyond pure file sync.
 
-Best overall for 2-3 personal workstations:
+#### P2P path (no server): Syncthing
 
-- Zero infrastructure (no server to maintain)
+Best for real-time sync without infrastructure:
+
+- Zero server to maintain
 - Works behind NAT out of the box (relay, UPnP, discovery)
 - Continuous real-time sync (daemon)
 - Staggered file versioning for accidental deletion recovery
 - Strong selective sync via `.stignore`
 - FOSS, actively maintained, large community
 - Installable via apt and brew (Ansible-friendly)
-- Existing GPG key idempotency pattern in repo is directly reusable
 
 Main tradeoff: higher resource usage than on-demand tools. Tunable for typical
 user folder volumes.
 
-**Alternative: Unison**
+#### P2P path (no server, on-demand): Unison
 
 Best if you prefer explicit sync triggers over always-on daemon:
 
@@ -620,29 +856,77 @@ Best if you prefer explicit sync triggers over always-on daemon:
 - Requires SSH access (pair with Tailscale for NAT traversal)
 - No file versioning (layer restic or similar for backups)
 
-**Hybrid option: Syncthing + rclone**
+#### Server path (pure sync): Seafile
 
-Combine Syncthing for real-time P2P sync between workstations and rclone for
-periodic encrypted offsite backups to a cloud backend (B2, S3, or
-crypt-wrapped Google Drive).
+Best if you have a server available and want optimal sync performance:
+
+- **Block-level delta sync (CDC)** -- only changed blocks transferred, 2-8x
+  faster than rsync-based approaches (USENIX FAST '18)
+- Deduplication across files and versions (storage-efficient)
+- Native client-side encryption (AES-256-CBC per library)
+- Very low server requirements (2 cores, 2 GB RAM)
+- Docker deployment with Caddy for TLS
+- Block-based versioning (storage-efficient, per-library configurable)
+- Web UI for remote file access without VPN
+- Pro Edition free for up to 3 users
+
+Main tradeoffs: no macOS CLI client (GUI only), recommended ~100k files per
+library, must run manual garbage collection, metadata not encrypted in
+encrypted libraries. Conflict resolution is rename-only (no merge).
+
+#### Server path (platform): Nextcloud
+
+Best if you want sync **plus** a self-hosted Google Workspace replacement:
+
+- CalDAV calendar + CardDAV contacts (replaces Google/Apple services)
+- Nextcloud Office (collaborative editing via Collabora)
+- Nextcloud Talk (video calls, chat)
+- File sharing links (send files without third-party services)
+- Mobile apps (iOS/Android)
+- 400+ app ecosystem, Deck (kanban), Notes, AI assistant
+- Web UI for remote file access from any browser
+- Official Ansible collection (`nextcloud.admin`)
+- Docker AIO simplifies deployment and upgrades
+
+Main tradeoffs: **no delta sync** (entire files re-uploaded on change),
+architecturally slow with many small files, heavier server requirements
+(4 GB+ RAM recommended), upgrade treadmill (cannot skip major versions),
+E2EE is unreliable (use Cryptomator instead), VFS rudimentary on Linux.
+
+#### Hybrid options
+
+**Seafile + rclone:** Seafile for real-time sync between workstations, rclone
+for periodic encrypted offsite backups to cloud (B2, S3, crypt-wrapped Google
+Drive).
+
+**Syncthing + Nextcloud:** Syncthing for P2P file sync (better performance),
+Nextcloud for calendar/contacts/office/sharing only (disable Nextcloud file
+sync). This avoids Nextcloud's sync performance issues while keeping its
+groupware value.
+
+**Seafile + Nextcloud (separate roles):** Seafile for file sync, Nextcloud
+for groupware. More infrastructure, but each tool does what it's best at.
 
 ### What to avoid
 
 | Tool | Why |
 |------|-----|
-| Nextcloud/Seafile/ownCloud | Server infrastructure burden for 2-3 machines |
 | SparkleShare | Git-based storage is wrong for large binary files |
 | Resilio Sync | Proprietary, vendor-dependent |
 | macOS Migration Assistant | No Linux support, no scriptability |
 | ansible.builtin.copy | Never for bulk data migration |
+| Nextcloud E2EE | Unreliable -- use Cryptomator if encryption needed |
+| ownCloud | Fragmented (Infinite Scale rewrite), community shrinking |
 
 ### Decision matrix summary
 
 | Need | Tool | Why |
 |------|------|-----|
 | One-time migration | rsync | Resume, delta, metadata, Ansible-native |
-| Ongoing sync (always-on) | Syncthing | P2P, NAT traversal, versioning, zero infra |
-| Ongoing sync (on-demand) | Unison | Lightweight, best conflict resolution, SSH |
+| Ongoing sync (P2P, always-on) | Syncthing | NAT traversal, versioning, zero infra |
+| Ongoing sync (P2P, on-demand) | Unison | Lightweight, best conflict resolution, SSH |
+| Ongoing sync (server, pure sync) | Seafile | Block-level delta, encryption, low resources |
+| Ongoing sync (server, platform) | Nextcloud | Calendar, contacts, office, sharing, mobile |
 | Offsite backup | rclone + crypt | 40+ backends, client-side encryption |
 | Initial LAN seed | tar+ssh | Avoids file-list overhead for first bulk copy |
 
@@ -668,12 +952,32 @@ crypt-wrapped Google Drive).
    role post-install.
 
 6. **Conflict resolution workflow.** For Syncthing: periodic `find ~/Documents
-   -name '*.sync-conflict-*'` to surface conflicts. For Unison: interactive
-   mode handles conflicts at sync time.
+   -name '*.sync-conflict-*'` to surface conflicts. For Seafile: `find
+   ~/Documents -name '*SFConflict*'`. For Unison: interactive mode handles
+   conflicts at sync time.
 
-7. **Syncthing apt repo.** Follow the repo's GPG key idempotency pattern:
-   guard download+dearmor with `ansible.builtin.stat`, set `filename:
-   syncthing` on `apt_repository`.
+7. **GPG key idempotency.** Follow the repo's pattern for apt repo keys:
+   guard download+dearmor with `ansible.builtin.stat`, set `filename:` on
+   `apt_repository`. Applies to Syncthing and Nextcloud PPA.
+
+8. **Seafile garbage collection.** Community Edition requires stopping the
+   server during GC. Schedule weekly via cron during low-usage hours. Set
+   `keep_days` in `seafile.conf` to prevent unbounded version growth.
+
+9. **Seafile library sizing.** Keep libraries under ~100k files. Organize
+   user folders as separate libraries (Documents, Pictures, Music, etc.)
+   rather than one monolithic library.
+
+10. **Nextcloud E2EE.** Do not use Nextcloud's built-in E2EE -- it is
+    unreliable. If at-rest encryption is needed, use Cryptomator vaults that
+    sync as regular files through Nextcloud or Seafile's encrypted libraries.
+
+11. **Nextcloud server maintenance.** Cannot skip major versions. Docker AIO
+    handles sequential upgrades. Back up before every upgrade (no downgrade
+    path). Two major releases per year.
+
+12. **Seafile no macOS CLI.** The `seaf-cli` is Linux-only. macOS clients
+    require GUI configuration -- not fully automatable via Ansible.
 
 ---
 
@@ -705,10 +1009,32 @@ crypt-wrapped Google Drive).
 - [Syncthing ignoring files](https://docs.syncthing.net/users/ignoring.html)
 - [Syncthing tuning](https://docs.syncthing.net/users/tuning.html)
 
-### Nextcloud / Seafile
+### Nextcloud
 - [Nextcloud desktop client (GitHub)](https://github.com/nextcloud/desktop)
+- [Nextcloud AIO (GitHub)](https://github.com/nextcloud/all-in-one)
 - [Nextcloud Ansible collection](https://github.com/nextcloud/ansible-collection-nextcloud-admin)
+- [Nextcloud system requirements](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html)
+- [nextcloudcmd documentation](https://docs.nextcloud.com/server/stable/admin_manual/desktop/commandline.html)
+- [Nextcloud E2EE user manual](https://docs.nextcloud.com/server/latest/user_manual/en/files/using_e2ee.html)
+- [Nextcloud macOS VFS docs](https://docs.nextcloud.com/server/latest/user_manual/en/desktop/macosvfs.html)
+- [Nextcloud conflicts documentation](https://docs.nextcloud.com/desktop/3.3/conflicts.html)
+- [Nextcloud version control](https://docs.nextcloud.com/server/latest/user_manual/en/files/version_control.html)
+- [Nextcloud upgrade docs](https://docs.nextcloud.com/server/stable/admin_manual/maintenance/upgrade.html)
+
+### Seafile
 - [Seafile GitHub repository](https://github.com/haiwen/seafile)
+- [Seafile Docker (GitHub)](https://github.com/haiwen/seafile-docker)
+- [Seafile system requirements](https://haiwen.github.io/seafile-admin-docs/12.0/setup/system_requirements/)
+- [Seafile Docker CE setup](https://manual.seafile.com/latest/setup/setup_ce_by_docker/)
+- [Seafile security features](https://manual.seafile.com/latest/administration/security_features/)
+- [How encrypted libraries work](https://github.com/haiwen/seadroid/wiki/How-does-an-encrypted-library-work%3F)
+- [Encrypted libraries info leak (issue #350)](https://github.com/haiwen/seafile/issues/350)
+- [Seafile file conflicts](https://help.seafile.com/syncing_client/file_conflicts/)
+- [Seafile GC documentation](https://haiwen.github.io/seafile-admin-docs/12.0/administration/seafile_gc/)
+- [Seafile excluding files](https://help.seafile.com/syncing_client/excluding_files/)
+- [USENIX FAST '18 paper on delta sync](https://www.usenix.org/system/files/conference/fast18/fast18-xiao.pdf)
+- [Seafile vs Nextcloud comparison (sesamedisk.com)](https://sesamedisk.com/self-hosted-cloud-storage-nextcloud-seafile-owncloud/)
+- [XDA: Switched from Nextcloud to Seafile](https://www.xda-developers.com/completely-uprooted-nextcloud-server-switched-seafile-instead/)
 
 ### Ansible
 - [ansible.posix.synchronize module](https://docs.ansible.com/projects/ansible/latest/collections/ansible/posix/synchronize_module.html)
