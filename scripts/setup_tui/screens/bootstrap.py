@@ -25,21 +25,13 @@ from textual.widgets import (
     Static,
 )
 
+from ..lib.discovery import PlaybookManifest, discover_playbook, validate_config
 from ..lib.runner import REPO_ROOT
 
 logger = logging.getLogger("setup")
 
 BOOTSTRAP_LOG = REPO_ROOT / "bootstrap.log"
 ANSIBLE_LOG = Path.home() / ".local" / "log" / "ansible.log"
-
-# Phase definitions — order matches site.yml playbook imports.
-PHASES = [
-    ("system", "System", "OS packages, fonts, system settings"),
-    ("security", "Security", "SSH keys, GPG, firewall, disk encryption checks"),
-    ("dev-tools", "Dev Tools", "Languages, editors, CLI tools, containers"),
-    ("desktop", "Desktop", "Window manager, terminal, theme, apps"),
-    ("dotfiles", "Dotfiles", "Shell config, git config, app settings via stow"),
-]
 
 # Phases selected by default for each mode.
 DEFAULT_PHASES = {
@@ -55,9 +47,11 @@ PHASE_DEPS: dict[str, list[str]] = {
 }
 
 
-def _resolve_phase_deps(selected: list[str]) -> list[str]:
-    """Add missing dependencies and return phases in PHASES order."""
-    phase_order = [pid for pid, _, _ in PHASES]
+def _resolve_phase_deps(
+    selected: list[str], manifest: PlaybookManifest
+) -> list[str]:
+    """Add missing dependencies and return phases in manifest order."""
+    phase_order = manifest.phase_ids()
     full = set(selected)
     for phase in selected:
         for dep in PHASE_DEPS.get(phase, []):
@@ -105,7 +99,11 @@ class BootstrapModeScreen(Screen):
             if pressed is None:
                 return
             mode = pressed.id
-            self.app.push_screen(BootstrapPhaseScreen(mode))
+            manifest = discover_playbook(self.app.platform)
+            warnings = validate_config(manifest, DEFAULT_PHASES, PHASE_DEPS)
+            for w in warnings:
+                logger.warning("Config validation: %s", w)
+            self.app.push_screen(BootstrapPhaseScreen(mode, manifest))
 
 
 class BootstrapPhaseScreen(Screen):
@@ -113,23 +111,29 @@ class BootstrapPhaseScreen(Screen):
 
     BINDINGS = [("escape", "go_back", "Back")]
 
-    def __init__(self, mode: str) -> None:
+    def __init__(self, mode: str, manifest: PlaybookManifest) -> None:
         super().__init__()
         self.mode = mode
+        self.manifest = manifest
 
     def compose(self) -> ComposeResult:
         defaults = DEFAULT_PHASES.get(self.mode, [])
         yield Header()
         with Vertical(id="main-content"):
             yield Static(
-                "[bold]Bootstrap — Step 2 of 3[/bold]\n\n"
+                "[bold]Bootstrap — Step 2[/bold]\n\n"
                 "Which role groups should run?\n"
                 "[dim]Arrow keys to move, Space to toggle, Tab to jump to Next[/dim]"
             )
             yield SelectionList[str](
                 *[
-                    (f"{label}  [dim]{description}[/dim]", phase_id, phase_id in defaults)
-                    for phase_id, label, description in PHASES
+                    (
+                        f"{phase.display_name}  "
+                        f"[dim]{', '.join(r.name for r in phase.roles)}[/dim]",
+                        phase.phase_id,
+                        phase.phase_id in defaults,
+                    )
+                    for phase in self.manifest.phases
                 ],
                 id="phase-list",
             )
@@ -145,21 +149,102 @@ class BootstrapPhaseScreen(Screen):
             selected = list(phase_list.selected)
             if not selected:
                 return
-            selected = _resolve_phase_deps(selected)
+            selected = _resolve_phase_deps(selected, self.manifest)
+            # Show role screen if any selected phase has >1 role.
+            roles = self.manifest.roles_for_phases(selected)
+            if len(roles) > 1:
+                self.app.push_screen(
+                    BootstrapRoleScreen(
+                        self.mode, selected, self.manifest
+                    )
+                )
+            else:
+                self.app.push_screen(
+                    BootstrapPasswordScreen(
+                        self.mode, selected, self.manifest
+                    )
+                )
+
+
+class BootstrapRoleScreen(Screen):
+    """Optional step: Select individual roles to include/skip."""
+
+    BINDINGS = [("escape", "go_back", "Back")]
+
+    def __init__(
+        self,
+        mode: str,
+        phases: list[str],
+        manifest: PlaybookManifest,
+    ) -> None:
+        super().__init__()
+        self.mode = mode
+        self.phases = phases
+        self.manifest = manifest
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        with Vertical(id="main-content"):
+            yield Static(
+                "[bold]Bootstrap — Role Selection[/bold]\n\n"
+                "Deselect any roles you want to skip.\n"
+                "[dim]Arrow keys to move, Space to toggle, Tab to jump to Next[/dim]"
+            )
+            items = []
+            for phase in self.manifest.phases:
+                if phase.phase_id not in self.phases:
+                    continue
+                for role in phase.roles:
+                    desc = f"  {role.description}" if role.description else ""
+                    label = (
+                        f"{phase.display_name} > {role.name}"
+                        f"  [dim]{desc}[/dim]"
+                    )
+                    items.append((label, role.name, True))
+            yield SelectionList[str](*items, id="role-list")
+            yield Button("Next", id="next", variant="primary")
+        yield Footer()
+
+    def action_go_back(self) -> None:
+        self.app.pop_screen()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "next":
+            role_list = self.query_one("#role-list", SelectionList)
+            selected_roles = set(role_list.selected)
+            all_roles = {
+                r.name
+                for p in self.manifest.phases
+                if p.phase_id in self.phases
+                for r in p.roles
+            }
+            skip_tags = sorted(all_roles - selected_roles)
             self.app.push_screen(
-                BootstrapPasswordScreen(self.mode, selected)
+                BootstrapPasswordScreen(
+                    self.mode, self.phases, self.manifest,
+                    skip_tags=skip_tags,
+                )
             )
 
 
 class BootstrapPasswordScreen(Screen):
-    """Step 3: Collect sudo password for ansible-playbook --become."""
+    """Collect sudo password for ansible-playbook --become."""
 
     BINDINGS = [("escape", "go_back", "Back")]
 
-    def __init__(self, mode: str, phases: list[str]) -> None:
+    def __init__(
+        self,
+        mode: str,
+        phases: list[str],
+        manifest: PlaybookManifest,
+        *,
+        skip_tags: list[str] | None = None,
+    ) -> None:
         super().__init__()
         self.mode = mode
         self.phases = phases
+        self.manifest = manifest
+        self.skip_tags = skip_tags or []
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -169,14 +254,20 @@ class BootstrapPasswordScreen(Screen):
                 "new_account": "New user account",
                 "existing_account": "Existing user account",
             }
-            phase_labels = {pid: label for pid, label, _ in PHASES}
             phase_names = ", ".join(
-                phase_labels.get(p, p) for p in self.phases
+                phase.display_name if (phase := self.manifest.phase_by_id(p)) else p
+                for p in self.phases
             )
+            skip_text = ""
+            if self.skip_tags:
+                skip_text = (
+                    f"\n[dim]Skipping:[/dim] {', '.join(self.skip_tags)}"
+                )
             yield Static(
-                "[bold]Bootstrap — Step 3 of 3[/bold]\n\n"
+                "[bold]Bootstrap — Password[/bold]\n\n"
                 f"[dim]Mode:[/dim]   {mode_labels.get(self.mode, self.mode)}\n"
-                f"[dim]Phases:[/dim] {phase_names}\n\n"
+                f"[dim]Phases:[/dim] {phase_names}"
+                f"{skip_text}\n\n"
                 "Enter your sudo password for Ansible privilege escalation.\n"
                 "[dim]This is passed to ansible-playbook via environment variable "
                 "and is never written to disk.[/dim]\n"
@@ -234,7 +325,10 @@ class BootstrapPasswordScreen(Screen):
                 logger.debug("Sudo password validated successfully")
                 self.app.call_from_thread(
                     self.app.push_screen,
-                    BootstrapRunScreen(self.mode, self.phases, password),
+                    BootstrapRunScreen(
+                        self.mode, self.phases, password,
+                        skip_tags=self.skip_tags,
+                    ),
                 )
             else:
                 logger.warning("Sudo password validation failed (exit %d)", proc.returncode)
@@ -265,7 +359,10 @@ class BootstrapPasswordScreen(Screen):
             "be interfering.\nProceeding; Ansible will verify the password."
         )
         self.app.push_screen(
-            BootstrapRunScreen(self.mode, self.phases, password),
+            BootstrapRunScreen(
+                self.mode, self.phases, password,
+                skip_tags=self.skip_tags,
+            ),
         )
 
 
@@ -277,12 +374,18 @@ class BootstrapRunScreen(Screen):
     ]
 
     def __init__(
-        self, mode: str, phases: list[str], become_pass: str
+        self,
+        mode: str,
+        phases: list[str],
+        become_pass: str,
+        *,
+        skip_tags: list[str] | None = None,
     ) -> None:
         super().__init__()
         self.mode = mode
         self.phases = phases
         self.become_pass = become_pass
+        self.skip_tags = skip_tags or []
         self._finished = False
         self._success = False
         self._log_file = None
@@ -320,10 +423,11 @@ class BootstrapRunScreen(Screen):
 
         # Create fresh bootstrap.log for this run.
         self._log_file = open(BOOTSTRAP_LOG, "w")
+        skip_info = f"\nSkipping: {', '.join(self.skip_tags)}" if self.skip_tags else ""
         self._log_file.write(
             f"Bootstrap started: {datetime.now(timezone.utc).isoformat()}\n"
             f"Mode: {self.mode}  Platform: {platform}\n"
-            f"Phases: {', '.join(self.phases)}\n"
+            f"Phases: {', '.join(self.phases)}{skip_info}\n"
             f"{'=' * 60}\n\n"
         )
 
@@ -549,6 +653,10 @@ class BootstrapRunScreen(Screen):
         # Filter playbook to only the selected phases.
         if self.phases:
             cmd.extend(["--tags", ",".join(self.phases)])
+
+        # Skip deselected roles.
+        if self.skip_tags:
+            cmd.extend(["--skip-tags", ",".join(self.skip_tags)])
 
         env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
         self._run_streaming(cmd, env_extra=env_extra)

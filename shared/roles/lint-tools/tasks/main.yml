@@ -1,0 +1,19 @@
+---
+# Lint-tools role: shellcheck, yamllint, ansible-lint, bats
+# Sub-tasks carry tool-level tags for selective runs.
+
+- name: Install shellcheck
+  ansible.builtin.include_tasks: shellcheck.yml
+  tags: [shellcheck]
+
+- name: Install yamllint
+  ansible.builtin.include_tasks: yamllint.yml
+  tags: [yamllint]
+
+- name: Install ansible-lint
+  ansible.builtin.include_tasks: ansible-lint.yml
+  tags: [ansible-lint]
+
+- name: Install bats
+  ansible.builtin.include_tasks: bats.yml
+  tags: [bats]

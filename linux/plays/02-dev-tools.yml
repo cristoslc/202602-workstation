@@ -30,3 +30,6 @@
 
     - role: terminal
       tags: [terminal, tmux, dev-tools]
+
+    - role: lint-tools
+      tags: [lint-tools, shellcheck, yamllint, ansible-lint, bats, dev-tools]

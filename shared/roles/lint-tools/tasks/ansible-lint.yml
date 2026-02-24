@@ -1,0 +1,11 @@
+---
+# ansible-lint sub-task — installed via uv tool (user-level, no sudo)
+# ansible-lint needs ansible-core as a dependency; uv tool handles this
+# automatically via the --with flag.
+- name: Install ansible-lint via uv
+  ansible.builtin.command: uv tool install ansible-lint --with ansible-core
+  register: _ansible_lint_install
+  changed_when: "'Installed' in _ansible_lint_install.stdout"
+  failed_when:
+    - _ansible_lint_install.rc != 0
+    - "'already installed' not in _ansible_lint_install.stderr"

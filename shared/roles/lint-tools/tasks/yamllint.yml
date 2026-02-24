@@ -1,0 +1,9 @@
+---
+# yamllint sub-task — installed via uv tool (user-level, no sudo)
+- name: Install yamllint via uv
+  ansible.builtin.command: uv tool install yamllint
+  register: _yamllint_install
+  changed_when: "'Installed' in _yamllint_install.stdout"
+  failed_when:
+    - _yamllint_install.rc != 0
+    - "'already installed' not in _yamllint_install.stderr"

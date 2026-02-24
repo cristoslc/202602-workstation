@@ -27,11 +27,18 @@ from textual.widgets import Button
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 
 from setup_tui.app import SetupApp
+from setup_tui.lib.discovery import (
+    DiscoveredPhase,
+    DiscoveredRole,
+    PlaybookManifest,
+)
 from setup_tui.lib.state import ResumeState
 from setup_tui.screens.bootstrap import (
+    DEFAULT_PHASES,
     BootstrapModeScreen,
     BootstrapPasswordScreen,
     BootstrapPhaseScreen,
+    BootstrapRoleScreen,
     BootstrapRunScreen,
 )
 from setup_tui.screens.secrets import SecretsScreen
@@ -85,6 +92,83 @@ async def _select_option(ctx, option_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Mock manifest for tests
+# ---------------------------------------------------------------------------
+
+def _make_mock_manifest() -> PlaybookManifest:
+    """Build a PlaybookManifest matching the old hardcoded PHASES shape."""
+    return PlaybookManifest(
+        platform="linux",
+        phases=(
+            DiscoveredPhase(
+                phase_id="system",
+                order=0,
+                display_name="System foundation",
+                roles=(
+                    DiscoveredRole("base", ("base", "system"), "", True),
+                    DiscoveredRole("system", ("system",), "", True),
+                    DiscoveredRole("hardware", ("hardware", "thinkpad", "system"), "Thinkpad", True),
+                ),
+                has_pre_tasks=True,
+            ),
+            DiscoveredPhase(
+                phase_id="security",
+                order=1,
+                display_name="Security and secrets",
+                roles=(
+                    DiscoveredRole("secrets-manager", ("secrets-manager", "onepassword", "sops", "security"), "Onepassword, Sops"),
+                    DiscoveredRole("firewall", ("firewall", "security"), ""),
+                ),
+                has_pre_tasks=True,
+            ),
+            DiscoveredPhase(
+                phase_id="dev-tools",
+                order=2,
+                display_name="Development tools",
+                roles=(
+                    DiscoveredRole("git", ("git", "gh", "lazygit", "delta", "dev-tools"), "Gh, Lazygit, Delta"),
+                    DiscoveredRole("shell", ("shell", "zsh", "direnv", "dev-tools"), "Zsh, Direnv"),
+                    DiscoveredRole("python", ("python", "dev-tools"), ""),
+                    DiscoveredRole("node", ("node", "dev-tools"), ""),
+                    DiscoveredRole("docker", ("docker", "dev-tools"), ""),
+                    DiscoveredRole("editor", ("editor", "vscode", "dev-tools"), "Vscode"),
+                    DiscoveredRole("claude-code", ("claude-code", "dev-tools"), ""),
+                    DiscoveredRole("fonts", ("fonts", "dev-tools"), ""),
+                    DiscoveredRole("terminal", ("terminal", "tmux", "dev-tools"), "Tmux"),
+                ),
+            ),
+            DiscoveredPhase(
+                phase_id="desktop",
+                order=3,
+                display_name="Desktop environment",
+                roles=(
+                    DiscoveredRole("browsers", ("browsers", "firefox", "brave", "chrome", "desktop"), "Firefox, Brave, Chrome"),
+                ),
+            ),
+            DiscoveredPhase(
+                phase_id="dotfiles",
+                order=4,
+                display_name="Dotfile management",
+                roles=(
+                    DiscoveredRole("stow", ("stow", "dotfiles"), ""),
+                ),
+            ),
+            DiscoveredPhase(
+                phase_id="gaming",
+                order=5,
+                display_name="Gaming",
+                roles=(
+                    DiscoveredRole("gaming", ("gaming", "steam"), "Steam"),
+                ),
+            ),
+        ),
+    )
+
+
+MOCK_MANIFEST = _make_mock_manifest()
+
+
+# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
@@ -130,7 +214,7 @@ def placeholder_secrets_state():
 
 
 # ---------------------------------------------------------------------------
-# Shared context manager: patches setup_logging + detect_resume_state
+# Shared context manager: patches setup_logging + detect_resume_state + discovery
 # ---------------------------------------------------------------------------
 
 class _AppTestContext:
@@ -150,9 +234,14 @@ class _AppTestContext:
             return_value=self.state,
         )
         self._patch_logging = patch("setup_tui.app.setup_logging")
+        self._patch_discover = patch(
+            "setup_tui.screens.bootstrap.discover_playbook",
+            return_value=MOCK_MANIFEST,
+        )
 
         self._patch_state.start()
         self._patch_logging.start()
+        self._patch_discover.start()
 
         self._ctx = self.app.run_test()
         self.pilot = await self._ctx.__aenter__()
@@ -165,6 +254,7 @@ class _AppTestContext:
         await self._ctx.__aexit__(*exc)
         self._patch_state.stop()
         self._patch_logging.stop()
+        self._patch_discover.stop()
 
 
 # ===========================================================================
@@ -532,14 +622,14 @@ class TestBootstrapPhaseScreen:
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
 
-            # Should have 5 options in the SelectionList for the 5 phases.
+            # Should have one option per phase in the SelectionList.
             from textual.widgets import SelectionList
             selection_list = ctx.app.screen.query_one(SelectionList)
-            assert selection_list.option_count == 5
+            assert selection_list.option_count == len(MOCK_MANIFEST.phases)
 
     @pytest.mark.asyncio
-    async def test_fresh_mode_selects_all_phases(self, personalized_state):
-        """Fresh install should default to all phases selected."""
+    async def test_fresh_mode_selects_default_phases(self, personalized_state):
+        """Fresh install should default to phases in DEFAULT_PHASES."""
         async with _AppTestContext(
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
@@ -550,10 +640,11 @@ class TestBootstrapPhaseScreen:
 
             from textual.widgets import SelectionList
             selection_list = ctx.app.screen.query_one(SelectionList)
-            assert len(selection_list.selected) == 5
+            assert len(selection_list.selected) == len(DEFAULT_PHASES["fresh"])
 
     @pytest.mark.asyncio
-    async def test_next_navigates_to_password_screen(self, personalized_state):
+    async def test_next_navigates_to_role_screen(self, personalized_state):
+        """Phase screen with multi-role phases should go to role screen."""
         async with _AppTestContext(
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
@@ -562,9 +653,11 @@ class TestBootstrapPhaseScreen:
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
 
+            # Default mode (existing_account) selects security, dev-tools, desktop, dotfiles.
+            # These have >1 role total, so role screen should appear.
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
-            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+            assert isinstance(ctx.app.screen, BootstrapRoleScreen)
 
     @pytest.mark.asyncio
     async def test_escape_goes_back_to_mode(self, personalized_state):
@@ -581,6 +674,76 @@ class TestBootstrapPhaseScreen:
             assert isinstance(ctx.app.screen, BootstrapModeScreen)
 
 
+class TestBootstrapRoleScreen:
+    """BootstrapRoleScreen should render role checkboxes and handle skip_tags."""
+
+    @pytest.mark.asyncio
+    async def test_role_screen_renders(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapRoleScreen)
+
+            from textual.widgets import SelectionList
+            role_list = ctx.app.screen.query_one("#role-list", SelectionList)
+            assert role_list is not None
+            # Should have roles from all default phases.
+            assert role_list.option_count > 0
+
+    @pytest.mark.asyncio
+    async def test_all_roles_selected_by_default(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapRoleScreen)
+
+            from textual.widgets import SelectionList
+            role_list = ctx.app.screen.query_one("#role-list", SelectionList)
+            assert len(role_list.selected) == role_list.option_count
+
+    @pytest.mark.asyncio
+    async def test_next_navigates_to_password_screen(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapRoleScreen)
+
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+    @pytest.mark.asyncio
+    async def test_escape_goes_back_to_phases(self, personalized_state):
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapRoleScreen)
+
+            await ctx.pilot.press("escape")
+            await ctx.pilot.pause()
+            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+
 class TestBootstrapPasswordScreen:
     """BootstrapPasswordScreen should collect sudo password."""
 
@@ -592,6 +755,9 @@ class TestBootstrapPasswordScreen:
             await _select_option(ctx, "bootstrap")
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
+            # Role screen
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
@@ -610,17 +776,21 @@ class TestBootstrapPasswordScreen:
             await ctx.pilot.pause()
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
 
             status = ctx.app.screen.query_one("#main-content Static")
             text = str(status.content)
             assert "Existing user account" in text
 
     @pytest.mark.asyncio
-    async def test_escape_goes_back_to_phases(self, personalized_state):
+    async def test_escape_goes_back_to_roles(self, personalized_state):
         async with _AppTestContext(
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
             await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
             await ctx.pilot.click("#next")
@@ -629,7 +799,7 @@ class TestBootstrapPasswordScreen:
 
             await ctx.pilot.press("escape")
             await ctx.pilot.pause()
-            assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+            assert isinstance(ctx.app.screen, BootstrapRoleScreen)
 
     @pytest.mark.asyncio
     async def test_empty_password_does_not_proceed(self, personalized_state):
@@ -638,6 +808,8 @@ class TestBootstrapPasswordScreen:
             personalized_state, runner_git_return=_ok_result()
         ) as ctx:
             await _select_option(ctx, "bootstrap")
+            await ctx.pilot.click("#next")
+            await ctx.pilot.pause()
             await ctx.pilot.click("#next")
             await ctx.pilot.pause()
             await ctx.pilot.click("#next")
@@ -676,6 +848,87 @@ class TestBootstrapRunScreen:
 
                 step_list = ctx.app.screen.query_one("#step-list")
                 assert step_list is not None
+
+    @pytest.mark.asyncio
+    async def test_run_screen_accepts_skip_tags(self, personalized_state):
+        """BootstrapRunScreen should accept and store skip_tags."""
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            with patch.object(
+                BootstrapRunScreen, "_run_bootstrap", lambda self: None
+            ):
+                screen = BootstrapRunScreen(
+                    "fresh", ["dev-tools"], "testpass",
+                    skip_tags=["docker", "node"],
+                )
+                ctx.app.push_screen(screen)
+                await ctx.pilot.pause()
+                assert screen.skip_tags == ["docker", "node"]
+
+
+class TestBootstrapSkipTagsIntegration:
+    """End-to-end: role screen skipped for single-role phases, skip_tags threaded."""
+
+    @pytest.mark.asyncio
+    async def test_single_role_phase_skips_role_screen(self, personalized_state):
+        """Selecting only 'gaming' (1 role) should skip the role screen."""
+        single_role_manifest = PlaybookManifest(
+            platform="linux",
+            phases=(
+                DiscoveredPhase(
+                    phase_id="gaming",
+                    order=5,
+                    display_name="Gaming",
+                    roles=(
+                        DiscoveredRole("gaming", ("gaming", "steam"), "Steam"),
+                    ),
+                ),
+            ),
+        )
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            # Override discovery to return single-role manifest.
+            with patch(
+                "setup_tui.screens.bootstrap.discover_playbook",
+                return_value=single_role_manifest,
+            ):
+                await _select_option(ctx, "bootstrap")
+                await ctx.pilot.click("#next")
+                await ctx.pilot.pause()
+                assert isinstance(ctx.app.screen, BootstrapPhaseScreen)
+
+                # Toggle gaming on (it's the only phase).
+                from textual.widgets import SelectionList
+                sel = ctx.app.screen.query_one("#phase-list", SelectionList)
+                sel.select_all()
+                await ctx.pilot.pause()
+
+                await ctx.pilot.click("#next")
+                await ctx.pilot.pause()
+                # Should skip role screen and go straight to password.
+                assert isinstance(ctx.app.screen, BootstrapPasswordScreen)
+
+    @pytest.mark.asyncio
+    async def test_password_screen_shows_skip_tags(self, personalized_state):
+        """Password screen should display skipped roles."""
+        async with _AppTestContext(
+            personalized_state, runner_git_return=_ok_result()
+        ) as ctx:
+            screen = BootstrapPasswordScreen(
+                "fresh",
+                ["dev-tools"],
+                MOCK_MANIFEST,
+                skip_tags=["docker", "node"],
+            )
+            ctx.app.push_screen(screen)
+            await ctx.pilot.pause()
+
+            status = ctx.app.screen.query_one("#main-content Static")
+            text = str(status.content)
+            assert "docker" in text
+            assert "node" in text
 
 
 # ===========================================================================
