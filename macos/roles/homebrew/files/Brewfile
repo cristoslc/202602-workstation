@@ -91,6 +91,9 @@ cask "espanso"
 # --- Stream Deck (role: stream-deck) ---
 cask "elgato-stream-deck"
 
+# --- Power (role: power) ---
+cask "coconutbattery"
+
 # --- Utilities (role: utilities) ---
 cask "keka"
 
