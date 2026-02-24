@@ -34,7 +34,7 @@
 
 - name: Install packages from Brewfile
   ansible.builtin.command:
-    cmd: brew bundle --file={{ role_path }}/files/Brewfile --no-lock
+    cmd: brew bundle --file={{ role_path }}/files/Brewfile
   environment:
     HOMEBREW_BUNDLE_NO_LOCK: "1"
   changed_when: false

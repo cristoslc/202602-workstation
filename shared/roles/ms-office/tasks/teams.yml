@@ -1,0 +1,31 @@
+---
+# Teams sub-task
+- name: Install Teams (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Verify Teams is installed
+      ansible.builtin.command: brew list --cask microsoft-teams
+      register: teams_check
+      changed_when: false
+      failed_when: false
+
+    - name: Note about Teams
+      when: teams_check.rc != 0
+      ansible.builtin.debug:
+        msg: "Teams not installed. Add 'microsoft-teams' to Brewfile and run brew bundle."
+
+- name: Install Teams (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if teams-for-linux snap is installed
+      ansible.builtin.command: snap list teams-for-linux
+      register: _teams_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install teams-for-linux snap
+      when: _teams_check.rc != 0
+      community.general.snap:
+        name: teams-for-linux
+        state: present
+      become: true

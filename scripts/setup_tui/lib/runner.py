@@ -40,7 +40,9 @@ class ToolRunner:
                 check=check,
                 cwd=cwd,
             )
-        except FileNotFoundError:
+        except OSError:
+            # Missing binaries raise FileNotFoundError on Linux but
+            # PermissionError on some macOS/Python combos — catch both.
             if check:
                 raise FileNotFoundError(
                     f"Command not found: {cmd[0]}"

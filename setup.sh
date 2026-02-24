@@ -117,7 +117,7 @@ fi
 
 # --- Hand off to the Textual TUI ---
 
-uv run --with textual,pyyaml "$SCRIPT_DIR/scripts/setup.py" "$@" || tui_exit=$?
+uv run --python 3.12 --with textual,pyyaml "$SCRIPT_DIR/scripts/setup.py" "$@" || tui_exit=$?
 tui_exit="${tui_exit:-0}"
 
 # Exit code 7 = bootstrap succeeded, reload shell to pick up new dotfiles.

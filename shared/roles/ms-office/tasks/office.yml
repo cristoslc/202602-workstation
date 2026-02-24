@@ -1,0 +1,31 @@
+---
+# Office sub-task: Word, Excel, PowerPoint, Outlook
+- name: Install Office apps (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Verify Office apps are installed
+      ansible.builtin.command: brew list --cask microsoft-word microsoft-excel microsoft-powerpoint microsoft-outlook
+      register: office_check
+      changed_when: false
+      failed_when: false
+
+    - name: Note about Office apps
+      when: office_check.rc != 0
+      ansible.builtin.debug:
+        msg: "One or more Office apps not installed. Add them to Brewfile and run brew bundle."
+
+- name: Install Office apps (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if ms-365-electron snap is installed
+      ansible.builtin.command: snap list ms-365-electron
+      register: _ms365_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install ms-365-electron snap
+      when: _ms365_check.rc != 0
+      community.general.snap:
+        name: ms-365-electron
+        state: present
+      become: true

@@ -1,0 +1,67 @@
+---
+# Edge sub-task
+- name: Install Edge (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Verify Edge is installed
+      ansible.builtin.command: brew list --cask microsoft-edge
+      register: edge_check
+      changed_when: false
+      failed_when: false
+
+    - name: Note about Edge
+      when: edge_check.rc != 0
+      ansible.builtin.debug:
+        msg: "Edge not installed. Add 'microsoft-edge' to Brewfile and run brew bundle."
+
+- name: Install Edge (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if Microsoft Edge keyring exists
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/microsoft-edge-keyring.gpg
+      register: _edge_keyring
+
+    - name: Install Microsoft Edge GPG key
+      when: not _edge_keyring.stat.exists
+      block:
+        - name: Download Microsoft Edge GPG key
+          ansible.builtin.get_url:
+            url: https://packages.microsoft.com/keys/microsoft.asc
+            dest: /tmp/microsoft-edge-key.asc
+            mode: "0644"
+          become: true
+          register: _edge_key_download
+          retries: 3
+          delay: 5
+          until: _edge_key_download is not failed
+
+        - name: Dearmor Microsoft Edge GPG key
+          ansible.builtin.command: gpg --batch --yes --dearmor -o /usr/share/keyrings/microsoft-edge-keyring.gpg /tmp/microsoft-edge-key.asc
+          become: true
+
+        - name: Clean up Edge key temp file
+          ansible.builtin.file:
+            path: /tmp/microsoft-edge-key.asc
+            state: absent
+          become: true
+
+    - name: Detect Ubuntu base codename
+      ansible.builtin.shell:
+        cmd: . /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+      register: _ubuntu_codename
+      changed_when: false
+
+    - name: Add Microsoft Edge apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-edge-keyring.gpg] https://packages.microsoft.com/repos/edge stable main"
+        filename: microsoft-edge
+        state: present
+      become: true
+
+    - name: Install Microsoft Edge
+      ansible.builtin.apt:
+        name: microsoft-edge-stable
+        state: present
+        update_cache: true
+      become: true

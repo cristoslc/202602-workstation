@@ -23,6 +23,8 @@ from textual.widgets import (
     RichLog,
     SelectionList,
     Static,
+    TabbedContent,
+    TabPane,
 )
 
 from ..lib.discovery import PlaybookManifest, discover_playbook, validate_config
@@ -190,18 +192,19 @@ class BootstrapRoleScreen(Screen):
                 "Deselect any roles you want to skip.\n"
                 "[dim]Arrow keys to move, Space to toggle, Tab to jump to Next[/dim]"
             )
-            items = []
-            for phase in self.manifest.phases:
-                if phase.phase_id not in self.phases:
-                    continue
-                for role in phase.roles:
-                    desc = f"  {role.description}" if role.description else ""
-                    label = (
-                        f"{phase.display_name} > {role.name}"
-                        f"  [dim]{desc}[/dim]"
-                    )
-                    items.append((label, role.name, True))
-            yield SelectionList[str](*items, id="role-list")
+            with TabbedContent(id="role-tabs"):
+                for phase in self.manifest.phases:
+                    if phase.phase_id not in self.phases:
+                        continue
+                    items = []
+                    for role in phase.roles:
+                        desc = f"  [dim]{role.description}[/dim]" if role.description else ""
+                        label = f"{role.name}{desc}"
+                        items.append((label, role.name, True))
+                    with TabPane(phase.display_name, id=f"tab-{phase.phase_id}"):
+                        yield SelectionList[str](
+                            *items, id=f"roles-{phase.phase_id}"
+                        )
             yield Button("Next", id="next", variant="primary")
         yield Footer()
 
@@ -210,8 +213,9 @@ class BootstrapRoleScreen(Screen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "next":
-            role_list = self.query_one("#role-list", SelectionList)
-            selected_roles = set(role_list.selected)
+            selected_roles: set[str] = set()
+            for sel_list in self.query(SelectionList):
+                selected_roles.update(sel_list.selected)
             all_roles = {
                 r.name
                 for p in self.manifest.phases
@@ -324,11 +328,7 @@ class BootstrapPasswordScreen(Screen):
             if proc.returncode == 0:
                 logger.debug("Sudo password validated successfully")
                 self.app.call_from_thread(
-                    self.app.push_screen,
-                    BootstrapRunScreen(
-                        self.mode, self.phases, password,
-                        skip_tags=self.skip_tags,
-                    ),
+                    self._push_run_screen, password,
                 )
             else:
                 logger.warning("Sudo password validation failed (exit %d)", proc.returncode)
@@ -352,18 +352,22 @@ class BootstrapPasswordScreen(Screen):
         password_input.focus()
         self.query_one("#run", Button).disabled = False
 
-    def _show_timeout_warning(self, password: str) -> None:
-        """Sudo timed out (likely fingerprint auth). Proceed with a warning."""
-        self.query_one("#password-error", Static).update(
-            "[bold yellow]Sudo timed out[/bold yellow] — fingerprint auth may "
-            "be interfering.\nProceeding; Ansible will verify the password."
-        )
+    def _push_run_screen(self, password: str) -> None:
+        """Instantiate and push the run screen on the main thread."""
         self.app.push_screen(
             BootstrapRunScreen(
                 self.mode, self.phases, password,
                 skip_tags=self.skip_tags,
             ),
         )
+
+    def _show_timeout_warning(self, password: str) -> None:
+        """Sudo timed out (likely fingerprint auth). Proceed with a warning."""
+        self.query_one("#password-error", Static).update(
+            "[bold yellow]Sudo timed out[/bold yellow] — fingerprint auth may "
+            "be interfering.\nProceeding; Ansible will verify the password."
+        )
+        self._push_run_screen(password)
 
 
 class BootstrapRunScreen(Screen):

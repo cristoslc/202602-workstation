@@ -98,11 +98,46 @@ def _install_macos_prereqs(msg: callable) -> list[str]:
     """Install macOS-specific prerequisites."""
     messages = []
 
+    _install_homebrew(msg)
+
     # Homebrew prereqs (idempotent — brew skips already-installed).
     msg("Installing prerequisites via Homebrew...")
     _run(["brew", "install", "sops", "age", "stow"], check=False)
 
     return messages
+
+
+def _install_homebrew(msg: callable) -> None:
+    """Install Homebrew if not already present."""
+    if _command_exists("brew"):
+        msg("Homebrew already installed.")
+        return
+
+    import tempfile
+
+    msg("Installing Homebrew...")
+    url = "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+
+    with tempfile.NamedTemporaryFile(suffix=".sh", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        _run(["curl", "-fsSL", url, "-o", tmp_path])
+        subprocess.run(
+            ["/bin/bash", tmp_path],
+            check=True,
+            env={**os.environ, "NONINTERACTIVE": "1"},
+        )
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    # Add Homebrew to PATH for the rest of this process.
+    brew_bin = "/opt/homebrew/bin"
+    if brew_bin not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = f"{brew_bin}:{os.environ.get('PATH', '')}"
+
+    if not _command_exists("brew"):
+        raise RuntimeError("Homebrew installation failed.")
 
 
 def _install_linux_prereqs(msg: callable) -> list[str]:

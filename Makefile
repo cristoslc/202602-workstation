@@ -19,8 +19,8 @@ export SOPS_AGE_KEY_FILE
 export PATH := $(HOME)/.local/bin:$(PATH)
 
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
-        check-collisions test test-bats test-python check apply decrypt \
-        clean-secrets status template-export \
+        check-collisions check-playbook test test-bats test-python check apply \
+        decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
         log-send log-receive
@@ -95,6 +95,10 @@ status: ## Show workstation status (stub — Rich dashboard planned)
 check-collisions: ## Check for stow filename collisions between layers
 	./scripts/check-stow-collisions.sh
 
+check-playbook: ## Syntax-check Ansible playbooks (no sudo needed)
+	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/linux/ansible.cfg ansible-playbook linux/site.yml --syntax-check
+	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/macos/ansible.cfg ansible-playbook macos/site.yml --syntax-check
+
 test-bats: ## Run bats shell unit tests
 	bats tests/bats/
 
@@ -103,7 +107,7 @@ test-python: ## Run Python unit tests (first-run wizard + setup TUI)
 
 test: lint test-bats test-python ## Run all linters and tests
 
-check: shellcheck yamllint check-collisions test-bats test-python ## Quick local verification (no ansible-lint)
+check: shellcheck yamllint check-collisions check-playbook test-bats test-python ## Quick local verification (no ansible-lint)
 
 key-send: ## Send age key to another machine via Magic Wormhole
 	./scripts/transfer-key.sh send

@@ -100,6 +100,33 @@ Screen {
     margin: 1 0;
 }
 
+#role-tabs {
+    height: 1fr;
+}
+
+#role-tabs Tab {
+    padding: 0 4;
+    text-style: bold;
+    color: $text-muted;
+}
+
+#role-tabs Tab.-active {
+    color: $text;
+    background: $surface-darken-1;
+}
+
+#role-tabs TabPane {
+    padding: 1 2;
+    height: 1fr;
+    border: solid $primary-background;
+    margin: 0 1;
+}
+
+#role-tabs Underline > .underline--bar {
+    color: $accent;
+    background: $foreground 15%;
+}
+
 #phase-checkboxes {
     height: auto;
     padding: 0 0 1 0;

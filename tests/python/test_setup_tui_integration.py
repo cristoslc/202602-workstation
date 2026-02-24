@@ -161,6 +161,14 @@ def _make_mock_manifest() -> PlaybookManifest:
                     DiscoveredRole("gaming", ("gaming", "steam"), "Steam"),
                 ),
             ),
+            DiscoveredPhase(
+                phase_id="bureau-veritas",
+                order=6,
+                display_name="Bureau Veritas",
+                roles=(
+                    DiscoveredRole("ms-office", ("ms-office", "office", "edge", "onedrive", "teams", "bureau-veritas"), "Office, Edge, Onedrive, Teams"),
+                ),
+            ),
         ),
     )
 
@@ -689,11 +697,12 @@ class TestBootstrapRoleScreen:
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, BootstrapRoleScreen)
 
-            from textual.widgets import SelectionList
-            role_list = ctx.app.screen.query_one("#role-list", SelectionList)
-            assert role_list is not None
-            # Should have roles from all default phases.
-            assert role_list.option_count > 0
+            from textual.widgets import TabbedContent
+            tabbed = ctx.app.screen.query_one("#role-tabs", TabbedContent)
+            assert tabbed is not None
+            # Tab count should match the number of selected phases.
+            expected_phases = len(ctx.app.screen.phases)
+            assert tabbed.tab_count == expected_phases
 
     @pytest.mark.asyncio
     async def test_all_roles_selected_by_default(self, personalized_state):
@@ -708,8 +717,14 @@ class TestBootstrapRoleScreen:
             assert isinstance(ctx.app.screen, BootstrapRoleScreen)
 
             from textual.widgets import SelectionList
-            role_list = ctx.app.screen.query_one("#role-list", SelectionList)
-            assert len(role_list.selected) == role_list.option_count
+            total_selected = sum(
+                len(sl.selected) for sl in ctx.app.screen.query(SelectionList)
+            )
+            total_options = sum(
+                sl.option_count for sl in ctx.app.screen.query(SelectionList)
+            )
+            assert total_selected == total_options
+            assert total_options > 0
 
     @pytest.mark.asyncio
     async def test_next_navigates_to_password_screen(self, personalized_state):
