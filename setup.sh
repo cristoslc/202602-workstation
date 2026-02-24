@@ -11,6 +11,27 @@ umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Install Xcode Command Line Tools headlessly via softwareupdate.
+# xcode-select --install requires a GUI popup; this works over SSH too.
+install_xcode_clt() {
+  echo "Installing Xcode Command Line Tools..."
+  local placeholder="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+  touch "$placeholder"
+  local label
+  label="$(softwareupdate -l 2>/dev/null \
+    | grep -o 'Label: Command Line Tools.*' \
+    | sed 's/^Label: //' \
+    | sort -rV \
+    | head -n1)"
+  if [ -z "$label" ]; then
+    echo "Could not find Command Line Tools in softwareupdate catalog."
+    rm -f "$placeholder"
+    exit 1
+  fi
+  softwareupdate -i "$label"
+  rm -f "$placeholder"
+}
+
 # Detect platform.
 case "$(uname -s)" in
   Linux*)  PLATFORM="linux" ;;
@@ -33,8 +54,7 @@ if [ ! -f "$SCRIPT_DIR/scripts/setup.py" ]; then
   if [ "$PLATFORM" = "linux" ]; then
     sudo apt-get update -qq && sudo apt-get install -y -qq git curl
   else
-    xcode-select --install 2>/dev/null || true
-    until xcode-select -p &>/dev/null; do sleep 5; done
+    install_xcode_clt
   fi
   git clone "https://github.com/cristoslc/202602-workstation.git" "$WORKSTATION_DIR"
   exec "$WORKSTATION_DIR/setup.sh" "$@"
@@ -51,9 +71,7 @@ if [ "$PLATFORM" = "linux" ]; then
 else
   # macOS: Xcode CLT provides python3.
   if ! xcode-select -p &>/dev/null; then
-    echo "Installing Xcode Command Line Tools..."
-    xcode-select --install
-    until xcode-select -p &>/dev/null; do sleep 5; done
+    install_xcode_clt
   fi
 fi
 
