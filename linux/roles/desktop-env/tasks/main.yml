@@ -38,6 +38,24 @@
     value: "'Emoji Picker'"
     state: present
 
+- name: Clear IBus trigger to free Super+Space
+  community.general.dconf:
+    key: "/desktop/ibus/general/hotkey/triggers"
+    value: "['']"
+    state: present
+
+- name: Remove Super+Space from input-source switch
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/wm/switch-input-source"
+    value: "['XF86Keyboard']"
+    state: present
+
+- name: Remove Shift+Super+Space from input-source switch-backward
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/wm/switch-input-source-backward"
+    value: "['<Shift>XF86Keyboard']"
+    state: present
+
 - name: Set Vicinae launcher shortcut (Super+Space)
   community.general.dconf:
     key: "/org/cinnamon/desktop/keybindings/custom-keybindings/custom2/binding"
