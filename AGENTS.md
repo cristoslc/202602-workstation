@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 ## Project overview
 
@@ -65,3 +65,21 @@ make test-python # just python tests (first-run + setup TUI)
 - Dotfiles without shebangs (`.zshrc`, `completion.zsh`, etc.) need `# shellcheck shell=bash` directive for shellcheck pre-commit hooks.
 - SOPS age key path on macOS: SOPS uses `~/Library/Application Support/` but we store at `~/.config/sops/age/keys.txt` (XDG). Every `sops` call site must set `SOPS_AGE_KEY_FILE`.
 - Textual TUI logging: Never use `exec > >(tee)` — it breaks `isatty()`. Python `logging` module writes to `~/.local/log/setup.log`; Textual widgets handle console display.
+
+
+## Documentation lifecycle workflow
+
+Use the following structure and lifecycle tracking conventions for new and moved documentation:
+
+- Research artifacts live under `docs/research/` with phase directories:
+  - `Planned/`
+  - `Active/`
+  - `Complete/`
+- Every research artifact must be a folder (not a single markdown file).
+- ADR artifacts live under `docs/adr/` with phase directories:
+  - `Proposed/`
+  - `Adopted/`
+  - `Retired/`
+  - `Superseded/`
+- ADR artifacts are markdown files directly in their phase directories.
+- Each phase directory must keep a markdown file at the top containing a lifecycle table with commit hash stamps for state transitions so repository state is auditable at decision time.
