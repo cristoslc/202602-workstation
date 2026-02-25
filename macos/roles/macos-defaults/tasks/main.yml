@@ -25,3 +25,7 @@
 - name: Include misc defaults
   ansible.builtin.include_tasks: misc.yml
   tags: [macos-defaults]
+
+- name: Include iTerm2 defaults
+  ansible.builtin.include_tasks: iterm2.yml
+  tags: [macos-defaults, iterm2]

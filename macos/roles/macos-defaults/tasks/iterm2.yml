@@ -1,0 +1,92 @@
+---
+# iTerm2 sane defaults: dark theme, proper font, Unicode 9+ widths.
+# Profile settings (colors, font, terminal behavior) are applied via a
+# Python script because they live inside the nested New Bookmarks array,
+# which community.general.osx_defaults cannot address.
+
+- name: "iTerm2: Check if preferences exist"
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/Library/Preferences/com.googlecode.iterm2.plist"
+  register: iterm2_plist
+
+- name: "iTerm2: Skip if iTerm2 has never been launched"
+  ansible.builtin.debug:
+    msg: "iTerm2 plist not found — skipping. Launch iTerm2 once and re-run."
+  when: not iterm2_plist.stat.exists
+
+- name: Apply iTerm2 profile defaults block
+  when: iterm2_plist.stat.exists
+  block:
+    # --- Top-level settings (via osx_defaults) ---
+
+    - name: "iTerm2: Hide scrollbar"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: HideScrollbar
+        type: bool
+        value: true
+        state: present
+
+    - name: "iTerm2: Alternate mouse scroll (scroll in less/man)"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: AlternateMouseScroll
+        type: bool
+        value: true
+        state: present
+
+    - name: "iTerm2: Disable Tip of the Day"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: NoSyncTipsDisabled
+        type: bool
+        value: true
+        state: present
+
+    - name: "iTerm2: Disable prompt on quit"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: PromptOnQuit
+        type: bool
+        value: false
+        state: present
+
+    - name: "iTerm2: Smart window placement"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: SmartPlacement
+        type: bool
+        value: true
+        state: present
+
+    - name: "iTerm2: Adjust window size to fit tab bar"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: AdjustWindowForFontSizeChange
+        type: bool
+        value: true
+        state: present
+
+    - name: "iTerm2: Tab style (dark)"
+      community.general.osx_defaults:
+        domain: com.googlecode.iterm2
+        key: TabStyleWithAutomaticOption
+        type: int
+        value: 5
+        state: present
+
+    # --- Profile settings (colors, font, terminal behavior) ---
+
+    - name: "iTerm2: Check if profile defaults need applying"
+      ansible.builtin.command:
+        cmd: python3 {{ role_path }}/files/iterm2-profile-defaults.py --check
+      register: iterm2_check
+      changed_when: iterm2_check.rc == 0
+      failed_when: iterm2_check.rc == 1
+
+    - name: "iTerm2: Apply profile defaults (dark theme, font, terminal settings)"
+      ansible.builtin.command:
+        cmd: python3 {{ role_path }}/files/iterm2-profile-defaults.py
+      when: iterm2_check.rc == 0
+      changed_when: true
+      notify: restart iterm2
