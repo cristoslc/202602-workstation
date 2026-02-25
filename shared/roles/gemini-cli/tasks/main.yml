@@ -1,0 +1,25 @@
+---
+- name: Check if Gemini CLI is installed
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_facts.env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    gemini --version
+  args:
+    executable: /bin/bash
+  register: gemini_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Gemini CLI via npm
+  when: gemini_check.rc != 0
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_facts.env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    npm install -g @google/gemini-cli
+  args:
+    executable: /bin/bash
+  register: gemini_install
+  changed_when: gemini_install.rc == 0
+  retries: 3
+  delay: 5
+  until: gemini_install is not failed

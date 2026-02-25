@@ -25,6 +25,12 @@
     - role: claude-code
       tags: [claude-code, dev-tools]
 
+    - role: codex-cli
+      tags: [codex-cli, dev-tools]
+
+    - role: gemini-cli
+      tags: [gemini-cli, dev-tools]
+
     - role: fonts
       tags: [fonts, dev-tools]
 
