@@ -12,8 +12,9 @@ raw findings and sources for each.
 
 ### Current version and release cadence
 
-- **Seafile Sync Client v9.0.16** released 2025-01-09 (latest as of 2026-02-25).
-  Prior releases: v9.0.15 (2024-08-22), v9.0.9 (2023-10-29), v9.0.7 (2024-08-05).
+- **Seafile Sync Client v9.0.16** released 2026-01-09 (latest as of 2026-02-25).
+  Prior releases: v9.0.15 (2025-08-22), v9.0.11 (2024-11-15), v9.0.9 (2024-10-29,
+  later pulled back), v9.0.8 (2024-08-12), v9.0.7 (2024-08-05).
   [Releases](https://github.com/haiwen/seafile-client/releases) |
   [Changelog](https://manual.seafile.com/latest/changelog/client-changelog/)
 
@@ -29,9 +30,10 @@ raw findings and sources for each.
 
 ### Architecture
 
-- The sync client is a Qt 6-based GUI (Qt 6.5+). It is NOT a native Swift/AppKit
-  app. Built with cmake, links against Qt6::Core, Qt6::Gui, Qt6::Widgets,
-  Qt6::Network, Qt6::Core5Compat.
+- The sync client is a Qt 6-based GUI. It is NOT a native Swift/AppKit app. Built
+  with cmake, links against Qt6::Core, Qt6::Gui, Qt6::Widgets, Qt6::Network,
+  Qt6::Core5Compat. Official macOS binaries ship with Qt 6.5.2 (since v9.0.4),
+  though the CMakeLists.txt does not enforce a minimum Qt 6 minor version.
   [CMakeLists.txt](https://github.com/haiwen/seafile-client/blob/master/CMakeLists.txt)
 
 - SeaDrive 3.0 on macOS is implemented as a Finder extension (no longer requires
@@ -81,6 +83,9 @@ raw findings and sources for each.
 
 - **SeaDrive multiple accounts after macOS 14.4 (Sonoma):** Required a fix in a
   recent SeaDrive update.
+
+- **v9.0.7 download speed regression:** Community reports indicate download speeds
+  dropped from ~100 MB/s to 10-30 MB/s starting with v9.0.7.
 
 ### Sources
 
@@ -402,12 +407,15 @@ unreliable by Seafile's own documentation.
 - Supports authentication with username/password or API tokens.
 - Can list libraries, upload/download files, manage shares.
 - Platform-independent (works on macOS).
+- Low maintenance cadence; no published GitHub releases. 38 stars, 47 forks.
 - [GitHub](https://github.com/haiwen/python-seafile)
 
 ### Community fork: `python-seafile-api`
 
 - Fork of the official SDK with additional features.
 - Available on PyPI: `pip install python-seafile-api`.
+- Inactive maintenance (no releases in 12+ months, ~100 weekly downloads).
+- Newer alternative: `seafileapi2` (v2.0.1, Feb 2025) on PyPI.
 - [GitHub](https://github.com/AshotS/python-seafile-api) |
   [PyPI](https://pypi.org/project/python-seafile-api/)
 
@@ -419,14 +427,16 @@ unreliable by Seafile's own documentation.
 - [GitHub](https://github.com/twei7/seaf-share)
 - [Forum thread](https://forum.seafile.com/t/python-script-for-seafile-downloading-uploading-share-link/2605)
 
-### SeaSync (community Swift client for macOS Tahoe)
+### SeaSync (community Swift client for macOS)
 
-- A Swift-based macOS menu-bar app for Seafile.
-- Described as "Seafile client app to work with MacOS 26 Tahoe - simple top menu
-  GUI."
-- 0 stars, last updated 2026-01-24. Very early/experimental.
+- A native Swift/SwiftUI macOS menu-bar app for Seafile (MIT license).
+- Created to address official Qt client crashes on macOS 15 Sequoia and macOS 26
+  Tahoe.
+- Features: bidirectional sync, encrypted library support, FSEvents-based file
+  change detection, macOS Keychain credential storage.
+- Very early/experimental (few stars, last updated 2026-01-24).
 - Owner: dvdcodez.
-- [GitHub topics: seafile-community](https://github.com/topics/seafile-community)
+- [GitHub](https://github.com/dvdcodez/SeaSync)
 
 ### Seafile Web API v2.1
 
@@ -549,4 +559,4 @@ SeaDrive is GUI-only with no documented CLI flags or daemon mode.
 | Mountain Duck | GUI | Smart sync | No | Yes (Finder ext) | Good | Commercial, WebDAV-based |
 | WebDAV (Finder) | Native | No (mount) | No | Yes | Poor (per Seafile docs) | Officially discouraged |
 | python-seafile SDK | Library | Custom | Yes | Yes (pip) | API-dependent | Build your own tool |
-| SeaSync (community Swift) | GUI | Unknown | No | Yes (macOS Tahoe) | Unknown (0 stars, new) | Very early stage |
+| SeaSync (community Swift) | GUI | Bidirectional | No | Yes (native Swift) | Unknown (new, few stars) | Very early stage |
