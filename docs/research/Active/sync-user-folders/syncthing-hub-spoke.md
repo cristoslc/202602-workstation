@@ -485,7 +485,8 @@ characterized by:
 - The introducer feature (too few devices to justify the complexity).
 - Full mesh (adds complexity without meaningful benefit for 2-3 devices).
 - Git repo syncing (managed by git itself; explicitly warned against by
-  community).
+  community). See [syncthing-git-repos.md](syncthing-git-repos.md) for the
+  full analysis of why, including the "different branches" scenario.
 
 ---
 
