@@ -4,7 +4,7 @@
   // This file sets baseline editor preferences.
 
   // Editor
-  "editor.fontFamily": "'JetBrainsMono Nerd Font', 'Fira Code', monospace",
+  "editor.fontFamily": "'JetBrainsMono Nerd Font', 'Fira Code', Menlo, monospace",
   "editor.fontLigatures": true,
   "editor.fontSize": 14,
   "editor.tabSize": 2,
@@ -21,6 +21,7 @@
   "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font', monospace",
   "terminal.integrated.fontSize": 13,
   "terminal.integrated.defaultProfile.linux": "zsh",
+  "terminal.integrated.defaultProfile.osx": "zsh",
 
   // Files
   "files.trimTrailingWhitespace": true,
