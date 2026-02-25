@@ -1,6 +1,10 @@
 ---
-# Screenshots role: CleanShot X (macOS, Setapp-managed)
+# Screenshots role: CleanShot X (macOS) + Flameshot (Linux)
 
 - name: Install CleanShot X
   ansible.builtin.include_tasks: cleanshot.yml
   tags: [cleanshot]
+
+- name: Install Flameshot
+  ansible.builtin.include_tasks: flameshot.yml
+  tags: [flameshot]

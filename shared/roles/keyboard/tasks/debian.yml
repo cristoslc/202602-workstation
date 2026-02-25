@@ -1,0 +1,97 @@
+---
+# Linux: Data-driven Cinnamon dconf keybindings from the action registry.
+
+# --- Free Super+Space from IBus / input-source defaults ---
+
+- name: Clear IBus trigger to free Super+Space
+  community.general.dconf:
+    key: "/desktop/ibus/general/hotkey/triggers"
+    value: "['']"
+    state: present
+
+- name: Remove Super+Space from input-source switch
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/wm/switch-input-source"
+    value: "['XF86Keyboard']"
+    state: present
+
+- name: Remove Shift+Super+Space from input-source switch-backward
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/wm/switch-input-source-backward"
+    value: "['<Shift>XF86Keyboard']"
+    state: present
+
+# --- Custom keybindings (launcher, clipboard, emoji, screenshots) ---
+
+- name: "Bind {{ item.action }}"
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/custom-keybindings/custom{{ idx }}/binding"
+    value: "['{{ item.keybinding.linux }}']"
+    state: present
+  loop: >-
+    {{ workstation_actions
+       | selectattr('implementation.linux', 'defined')
+       | selectattr('implementation.linux.type', 'equalto', 'dconf')
+       | list }}
+  loop_control:
+    index_var: idx
+    label: "{{ item.action }}"
+
+- name: "Set {{ item.action }} command"
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/custom-keybindings/custom{{ idx }}/command"
+    value: "'{{ item.implementation.linux.command }}'"
+    state: present
+  loop: >-
+    {{ workstation_actions
+       | selectattr('implementation.linux', 'defined')
+       | selectattr('implementation.linux.type', 'equalto', 'dconf')
+       | list }}
+  loop_control:
+    index_var: idx
+    label: "{{ item.action }}"
+
+- name: "Set {{ item.action }} name"
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/custom-keybindings/custom{{ idx }}/name"
+    value: "'{{ item.description }}'"
+    state: present
+  loop: >-
+    {{ workstation_actions
+       | selectattr('implementation.linux', 'defined')
+       | selectattr('implementation.linux.type', 'equalto', 'dconf')
+       | list }}
+  loop_control:
+    index_var: idx
+    label: "{{ item.action }}"
+
+- name: Register custom keybindings list
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/custom-list"
+    value: >-
+      [{{ range(_dconf_count | int)
+          | map('string')
+          | map('regex_replace', '^(.*)$', "'custom\\1'")
+          | join(', ') }}]
+    state: present
+  vars:
+    _dconf_count: >-
+      {{ workstation_actions
+         | selectattr('implementation.linux', 'defined')
+         | selectattr('implementation.linux.type', 'equalto', 'dconf')
+         | list | length }}
+
+# --- Window management (Cinnamon built-in tiling) ---
+
+- name: "Set {{ item.action }} WM binding"
+  community.general.dconf:
+    key: "/org/cinnamon/desktop/keybindings/wm/{{ item.implementation.linux.dconf_key }}"
+    value: "['{{ item.keybinding.linux }}']"
+    state: present
+  loop: >-
+    {{ workstation_actions
+       | selectattr('implementation.linux', 'defined')
+       | selectattr('implementation.linux.type', 'equalto', 'dconf_wm')
+       | list }}
+  loop_control:
+    label: "{{ item.action }}"
