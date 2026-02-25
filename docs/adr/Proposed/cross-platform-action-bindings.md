@@ -1,4 +1,4 @@
-# ADR: Cross-Platform Action Bindings via Karabiner + Hammerspoon + dconf
+# ADR: Cross-Platform Action Bindings via Hammerspoon + dconf
 
 **Status:** Proposed
 **Date:** 2026-02-25
@@ -6,7 +6,7 @@
 
 ## Context
 
-The workstation provisioning system has keybindings that are app-coupled and platform-scattered. On Linux, three Vicinae shortcuts are hardcoded as Cinnamon dconf tasks. On macOS, equivalent actions (Raycast launcher, clipboard history, screenshots) are left to manual configuration. There is no shared vocabulary for "the same user action on different platforms using different apps."
+The workstation provisioning system has keybindings that are app-coupled and platform-scattered. On Linux, three Vicinae shortcuts are hardcoded as Cinnamon dconf tasks. On macOS, equivalent actions (Raycast launcher, clipboard history, screenshots) are left to manual configuration. Window management is unmanaged on both platforms. There is no shared vocabulary for "the same user action on different platforms using different apps."
 
 Users expect consistent muscle memory across machines. When apps change (Vicinae swapped for Ulauncher, CleanShot X replaced by macOS built-in), keybindings should survive because they are bound to **actions**, not apps.
 
@@ -22,7 +22,7 @@ workstation_actions:
     description: "Open app launcher"
     keybinding:
       linux: "<Super>space"
-      macos: { mods: [command, control, option, shift], key: space }
+      macos: { mods: [ctrl, alt], key: space }
     implementation:
       linux: { type: dconf, command: "vicinae toggle" }
       macos: { type: hammerspoon, lua: 'hs.execute("open raycast://", true)' }
@@ -30,16 +30,21 @@ workstation_actions:
 
 Actions are the stable abstraction. Apps and dispatchers are implementation details.
 
-### 2. macOS: Karabiner-Elements + Hammerspoon
+### 2. macOS: Hammerspoon as sole dispatcher
 
-**Karabiner-Elements** creates the Hyper key (Caps Lock → Cmd+Ctrl+Opt+Shift) and handles low-level key remapping. Its JSON config lives in a Stow package at `macos/dotfiles/karabiner/.config/karabiner/`.
+**Hammerspoon** binds global hotkeys and dispatches actions. It provides:
+- Global hotkey binding via `hs.hotkey.bind()`
+- Shell command execution, URL scheme launches, app focus
+- Built-in window management via `hs.window` (tile, move, resize, multi-monitor)
+- Auto-reload on config file change
+- A single Lua config at `~/.hammerspoon/` — fully Stow-able
 
-**Hammerspoon** dispatches Hyper+key combos to actions. Its Lua config lives in a Stow package at `macos/dotfiles/hammerspoon/.hammerspoon/`. An Ansible template generates `actions.lua` from the action registry.
+**Modifier namespace: `Ctrl+Opt` (Control+Option).** This modifier combination is essentially unused by macOS system shortcuts and applications, giving us a conflict-free namespace without needing Karabiner-Elements for low-level key interception. Adding `Shift` provides a second tier for extended actions.
 
-The Hyper key pattern avoids all system and application shortcut conflicts by using a modifier combination (Cmd+Ctrl+Opt+Shift) that nothing else claims.
+The Lua config lives in a Stow package at `macos/dotfiles/hammerspoon/.hammerspoon/`. An Ansible template generates `actions.lua` from the action registry.
 
-**New roles:**
-- `shared/roles/keyboard/` — cross-platform role with `darwin.yml` (Karabiner + Hammerspoon install and config deployment) and `debian.yml` (data-driven dconf keybindings).
+**New role:**
+- `shared/roles/keyboard/` — cross-platform role with `darwin.yml` (Hammerspoon install + config) and `debian.yml` (data-driven dconf keybindings).
 
 ### 3. Linux: Data-driven dconf custom keybindings
 
@@ -58,26 +63,23 @@ The existing `desktop-env` role's hardcoded dconf tasks are replaced by a loop t
     label: "{{ item.action }}"
 ```
 
-### 4. Caps Lock → Escape (tap) / Hyper (hold) on both platforms
+Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), configured via dconf window management keys for consistency.
 
-| Platform | Mechanism |
-|----------|-----------|
-| macOS | Karabiner `to_if_alone: escape`, `to: [command, control, option, shift]` |
-| Linux | Future: `keyd` or `interception-tools` (not required for initial implementation — Super key is sufficient) |
-
-### 5. Initial action set
-
-Start with the actions already half-implemented, plus the most painful gaps:
+### 4. Initial action set
 
 | Action | Linux binding | macOS binding | Linux app | macOS app |
 |--------|-------------|---------------|-----------|-----------|
-| `open_launcher` | Super+Space | Hyper+Space | Vicinae | Raycast |
-| `clipboard_history` | Super+V | Hyper+V | Vicinae | Raycast |
-| `emoji_picker` | Super+E | Hyper+E | Vicinae | Raycast |
-| `screenshot_region` | Super+Shift+4 | Hyper+Shift+4 | Flameshot | CleanShot X |
-| `screenshot_full` | Super+Shift+3 | Hyper+Shift+3 | Flameshot | macOS built-in |
-
-Additional actions (window management, app switching, media controls) can be added incrementally.
+| `open_launcher` | Super+Space | Ctrl+Opt+Space | Vicinae | Raycast |
+| `clipboard_history` | Super+V | Ctrl+Opt+V | Vicinae | Raycast |
+| `emoji_picker` | Super+E | Ctrl+Opt+E | Vicinae | Raycast |
+| `screenshot_region` | Super+Shift+4 | Ctrl+Opt+Shift+4 | Flameshot | CleanShot X |
+| `screenshot_full` | Super+Shift+3 | Ctrl+Opt+Shift+3 | Flameshot | macOS built-in |
+| `window_left_half` | Super+Left | Ctrl+Opt+Left | Cinnamon tiling | Hammerspoon |
+| `window_right_half` | Super+Right | Ctrl+Opt+Right | Cinnamon tiling | Hammerspoon |
+| `window_maximize` | Super+Up | Ctrl+Opt+Up | Cinnamon tiling | Hammerspoon |
+| `window_restore` | Super+Down | Ctrl+Opt+Down | Cinnamon tiling | Hammerspoon |
+| `window_next_monitor` | Super+Shift+Right | Ctrl+Opt+Shift+Right | Cinnamon tiling | Hammerspoon |
+| `window_prev_monitor` | Super+Shift+Left | Ctrl+Opt+Shift+Left | Cinnamon tiling | Hammerspoon |
 
 ## Consequences
 
@@ -85,57 +87,55 @@ Additional actions (window management, app switching, media controls) can be add
 
 - **Consistent muscle memory** — same keybindings across machines, surviving app changes.
 - **Single source of truth** — action registry in git defines all keybindings for all platforms.
-- **Apps are swappable** — change the `implementation` entry without touching keybindings. The `docs/fallback.md` Vicinae-to-Ulauncher swap becomes a one-line change.
-- **No more manual post-install** — screenshot and launcher shortcuts are deployed by bootstrap, removing items from `post-install.md`.
-- **Stow-managed configs** — Karabiner JSON and Hammerspoon Lua are dotfiles like everything else.
-- **Hyper key avoids conflicts** — the Cmd+Ctrl+Opt+Shift namespace has zero system or app collisions on macOS.
+- **Apps are swappable** — change the `implementation` entry without touching keybindings.
+- **No more manual post-install** — screenshot, launcher, and window management shortcuts are deployed by bootstrap.
+- **Stow-managed config** — Hammerspoon Lua is a dotfile like everything else.
+- **Ctrl+Opt avoids conflicts** — the namespace is unused by macOS system and application shortcuts.
+- **Window management included** — Hammerspoon replaces the need for Rectangle/Magnet on macOS; Cinnamon's built-in tiling is configured consistently on Linux.
+- **One macOS tool, one permission** — only Hammerspoon (Accessibility). No Karabiner means no Input Monitoring, no Driver Extension, no Login Items, no macOS upgrade breakage risk.
 
 ### Negative
 
-- **Two new macOS tools** — Karabiner-Elements and Hammerspoon must be installed, and both require manual permission grants (Input Monitoring, Accessibility) that Ansible cannot automate.
-- **macOS upgrade risk** — Karabiner historically breaks on major macOS updates until a patch ships. Mitigation: patches ship within days; pin OS upgrades.
-- **Learning curve** — Karabiner JSON and Hammerspoon Lua are new config formats to maintain.
-- **Increased complexity** — the action registry YAML, Jinja2 templates, and two dispatch mechanisms are more moving parts than the current hardcoded dconf tasks.
+- **One new macOS tool** — Hammerspoon requires manual Accessibility permission grant that Ansible cannot automate.
+- **Learning curve** — Hammerspoon Lua is a new config format to maintain.
+- **Increased complexity** — the action registry YAML, Jinja2 template, and dispatch mechanism are more moving parts than the current hardcoded dconf tasks.
+- **Cannot intercept system shortcuts** — Hammerspoon's `hs.hotkey.bind()` cannot override macOS system shortcuts (Cmd+Shift+4, Cmd+Space, etc.). This is acceptable because `Ctrl+Opt` avoids those entirely, but it means we cannot remap existing system shortcuts if desired in the future.
 
 ### Neutral
 
 - The Linux side stays with the existing dconf approach — this ADR adds structure (data-driven loop) but does not change the underlying mechanism.
-- The Hyper key on Linux is not required initially. Super is already a free modifier namespace on Cinnamon. A Linux Hyper key can be added later if needed.
-- Karabiner and Hammerspoon are both mature, widely-used open-source tools (14.5k and ~14.5k GitHub stars respectively), MIT-licensed, actively maintained.
+- Karabiner-Elements remains available as a future add-on if hardware-level key remapping is ever needed (e.g., Caps Lock → Escape). It is not required for the action binding system.
 
 ## Implementation Plan
 
-### Phase 1: Karabiner + Hammerspoon bootstrap (macOS only)
+### Phase 1: Hammerspoon bootstrap (macOS only)
 
 1. Create `shared/roles/keyboard/` with `tasks/darwin.yml`:
-   - Install Karabiner-Elements via `homebrew_cask`
    - Install Hammerspoon via `homebrew_cask`
-   - Deploy Karabiner Hyper key config (Stow or Ansible template)
-   - Deploy Hammerspoon base config (Stow)
-   - Add `debug` note about required permissions
-2. Create Stow packages:
-   - `macos/dotfiles/karabiner/.config/karabiner/` — Hyper key rule + asset files
+   - Deploy Hammerspoon base config via Stow
+   - Add `debug` note about required Accessibility permission
+2. Create Stow package:
    - `macos/dotfiles/hammerspoon/.hammerspoon/` — `init.lua` + `actions.lua`
 
 ### Phase 2: Action registry + data-driven keybindings
 
-3. Create `shared/vars/action-bindings.yml` with the initial 5 actions.
+3. Create `shared/vars/action-bindings.yml` with the initial action set (launcher, clipboard, emoji, screenshots, window management).
 4. Refactor `linux/roles/desktop-env/tasks/main.yml` to loop over the registry instead of hardcoding per-binding tasks.
 5. Create Ansible template for `actions.lua` that generates Hammerspoon bindings from the registry.
 6. Add the `keyboard` role to both platform playbooks (`03-desktop.yml`).
 
 ### Phase 3: Expand and harden
 
-7. Add screenshot actions (requires choosing Flameshot for Linux, confirming CleanShot X URL scheme).
-8. Add window management actions if desired.
+7. Confirm CleanShot X URL scheme for screenshot region capture.
+8. Configure Cinnamon window management dconf keys explicitly for consistency.
 9. Add Ansible handler for Cinnamon restart after keybinding changes.
-10. Update `post-install.md` to remove items that are now automated (Raycast shortcuts, screenshot tool shortcuts).
+10. Update `post-install.md` to remove items that are now automated.
 
 ## Alternatives Considered
 
 See [research doc](../../research/Active/cross-platform-action-bindings/README.md#alternatives-considered) for detailed evaluation of:
-- Hammerspoon only (can't intercept system shortcuts or create Hyper key)
-- Karabiner only (too limited for rich action dispatch)
+- Karabiner-Elements Hyper key pattern (unnecessary complexity — Ctrl+Opt avoids conflicts without a second tool)
+- Karabiner only (too limited for rich action dispatch and window management)
 - sxhkd on Linux (conflicts with Cinnamon, not integrated)
 - macOS Shortcuts.app (not programmable enough)
 - BetterTouchTool (paid, proprietary)
