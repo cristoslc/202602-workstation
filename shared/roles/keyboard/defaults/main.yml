@@ -2,10 +2,11 @@
 # Action registry: semantic actions with per-platform keybindings and implementations.
 # The keyboard role reads this to configure Hammerspoon (macOS) and dconf (Linux).
 #
-# Modifier namespace:
-#   macOS:  Ctrl+Opt          (unused by system/apps — no Karabiner needed)
-#   Linux:  Super              (standard DE custom shortcut namespace)
-#   +Shift on either platform gives a second tier for extended actions.
+# Modifier strategy — same physical keys on both platforms:
+#   macOS Cmd  =  Linux Super  (same physical key)
+#   +Shift where the bare combo conflicts (e.g. Cmd+V = paste → Cmd+Shift+V)
+#
+# This means muscle memory transfers 1:1 between machines.
 
 workstation_actions:
 
@@ -15,7 +16,7 @@ workstation_actions:
     description: "Open app launcher"
     keybinding:
       linux: "<Super>space"
-      macos: { mods: [ctrl, alt], key: space }
+      macos: { mods: [cmd], key: space }
     implementation:
       linux: { type: dconf, command: "vicinae toggle" }
       macos: { type: hammerspoon, lua: 'hs.execute("open raycast://", true)' }
@@ -23,8 +24,8 @@ workstation_actions:
   - action: clipboard_history
     description: "Clipboard history"
     keybinding:
-      linux: "<Super>v"
-      macos: { mods: [ctrl, alt], key: v }
+      linux: "<Super><Shift>v"
+      macos: { mods: [cmd, shift], key: v }
     implementation:
       linux: { type: dconf, command: "xdg-open vicinae://extensions/vicinae/clipboard/history" }
       macos: { type: hammerspoon, lua: 'hs.execute("open raycast://extensions/raycast/clipboard-history/clipboard-history", true)' }
@@ -32,8 +33,8 @@ workstation_actions:
   - action: emoji_picker
     description: "Emoji picker"
     keybinding:
-      linux: "<Super>e"
-      macos: { mods: [ctrl, alt], key: e }
+      linux: "<Super><Shift>e"
+      macos: { mods: [cmd, shift], key: e }
     implementation:
       linux: { type: dconf, command: "xdg-open vicinae://extensions/vicinae/emoji" }
       macos: { type: hammerspoon, lua: 'hs.execute("open raycast://extensions/raycast/emoji-symbols/search-emoji-symbols", true)' }
@@ -44,7 +45,7 @@ workstation_actions:
     description: "Screenshot selected region"
     keybinding:
       linux: "<Super><Shift>4"
-      macos: { mods: [ctrl, alt, shift], key: "4" }
+      macos: { mods: [cmd, shift], key: "4" }
     implementation:
       linux: { type: dconf, command: "flameshot gui" }
       macos: { type: hammerspoon, lua: 'hs.execute("open \"cleanshot://capture-area\"", true)' }
@@ -53,7 +54,7 @@ workstation_actions:
     description: "Screenshot full screen"
     keybinding:
       linux: "<Super><Shift>3"
-      macos: { mods: [ctrl, alt, shift], key: "3" }
+      macos: { mods: [cmd, shift], key: "3" }
     implementation:
       linux: { type: dconf, command: "flameshot full --path ~/Screenshots" }
       macos: { type: hammerspoon, lua: 'hs.eventtap.keyStroke({"cmd", "shift"}, "3")' }
@@ -64,7 +65,7 @@ workstation_actions:
     description: "Tile window left half"
     keybinding:
       linux: "<Super>Left"
-      macos: { mods: [ctrl, alt], key: left }
+      macos: { mods: [cmd], key: left }
     implementation:
       linux: { type: dconf_wm, dconf_key: push-tile-left }
       macos:
@@ -77,7 +78,7 @@ workstation_actions:
     description: "Tile window right half"
     keybinding:
       linux: "<Super>Right"
-      macos: { mods: [ctrl, alt], key: right }
+      macos: { mods: [cmd], key: right }
     implementation:
       linux: { type: dconf_wm, dconf_key: push-tile-right }
       macos:
@@ -90,7 +91,7 @@ workstation_actions:
     description: "Maximize window"
     keybinding:
       linux: "<Super>Up"
-      macos: { mods: [ctrl, alt], key: up }
+      macos: { mods: [cmd], key: up }
     implementation:
       linux: { type: dconf_wm, dconf_key: toggle-maximized }
       macos:
@@ -103,7 +104,7 @@ workstation_actions:
     description: "Restore window"
     keybinding:
       linux: "<Super>Down"
-      macos: { mods: [ctrl, alt], key: down }
+      macos: { mods: [cmd], key: down }
     implementation:
       linux: { type: dconf_wm, dconf_key: unmaximize }
       macos:
@@ -116,7 +117,7 @@ workstation_actions:
     description: "Move window to next monitor"
     keybinding:
       linux: "<Super><Shift>Right"
-      macos: { mods: [ctrl, alt, shift], key: right }
+      macos: { mods: [cmd, shift], key: right }
     implementation:
       linux: { type: dconf_wm, dconf_key: move-to-monitor-right }
       macos:
@@ -129,7 +130,7 @@ workstation_actions:
     description: "Move window to previous monitor"
     keybinding:
       linux: "<Super><Shift>Left"
-      macos: { mods: [ctrl, alt, shift], key: left }
+      macos: { mods: [cmd, shift], key: left }
     implementation:
       linux: { type: dconf_wm, dconf_key: move-to-monitor-left }
       macos:

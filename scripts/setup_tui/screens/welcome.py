@@ -96,6 +96,7 @@ class WelcomeScreen(Screen):
             )
             menu.add_options([
                 Option("Bootstrap This Machine", id="bootstrap"),
+                Option("Edit Defaults", id="edit-defaults"),
                 Option("Edit Secrets", id="edit-secrets"),
                 Option("Re-Run First-Time Setup", id="first-run"),
                 Option("Update and Relaunch", id="update"),
@@ -124,6 +125,9 @@ class WelcomeScreen(Screen):
             self.app.push_screen(BootstrapModeScreen())
         elif option_id == "first-run":
             self.app.push_screen(FirstRunPlaceholderScreen())
+        elif option_id == "edit-defaults":
+            from .defaults import EditDefaultsScreen
+            self.app.push_screen(EditDefaultsScreen())
         elif option_id == "edit-secrets":
             from .secrets import SecretsScreen
             self.app.push_screen(SecretsScreen())

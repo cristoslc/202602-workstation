@@ -168,6 +168,29 @@ Screen {
     height: auto;
     margin: 1 0;
 }
+
+#defaults-form {
+    padding: 1 0;
+}
+
+#defaults-form Input {
+    width: 40;
+    margin: 0 0 1 0;
+}
+
+#defaults-buttons {
+    height: auto;
+    margin: 1 0;
+}
+
+#defaults-buttons Button {
+    margin: 0 1;
+}
+
+#defaults-result {
+    height: auto;
+    margin: 1 0;
+}
 """
 
 
