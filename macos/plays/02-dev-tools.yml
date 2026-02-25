@@ -17,7 +17,7 @@
       tags: [node, dev-tools]
 
     - role: docker
-      tags: [docker, dev-tools]
+      tags: [docker, mcp-gateway, dev-tools]
 
     - role: editor
       tags: [editor, vscode, dev-tools]

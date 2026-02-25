@@ -1,0 +1,59 @@
+---
+# Docker MCP Gateway — idempotent profile creation and server setup.
+# Requires Docker Desktop with MCP Toolkit enabled.
+
+- name: Check if docker mcp CLI is available
+  ansible.builtin.command: docker mcp --help
+  register: _docker_mcp_check
+  changed_when: false
+  failed_when: false
+
+- name: Skip MCP setup if Toolkit unavailable
+  when: _docker_mcp_check.rc != 0
+  ansible.builtin.debug:
+    msg: >-
+      docker mcp CLI not available. Enable MCP Toolkit in
+      Docker Desktop → Settings → Beta features, then re-run.
+
+- name: Configure Docker MCP Gateway
+  when: _docker_mcp_check.rc == 0
+  block:
+    - name: Check if MCP profile exists
+      ansible.builtin.command: docker mcp profile show {{ docker_mcp_profile_name }}
+      register: _mcp_profile_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create MCP profile
+      ansible.builtin.command: docker mcp profile create --name {{ docker_mcp_profile_name }}
+      when: _mcp_profile_check.rc != 0
+
+    - name: List servers in MCP profile
+      ansible.builtin.command: docker mcp profile server ls --filter profile={{ docker_mcp_profile_name }}
+      register: _mcp_servers_list
+      changed_when: false
+
+    - name: Add MCP servers to profile
+      ansible.builtin.command: >-
+        docker mcp profile server add {{ docker_mcp_profile_name }}
+        --server catalog://mcp/docker-mcp-catalog/{{ item }}
+      loop: "{{ docker_mcp_servers }}"
+      when: item not in _mcp_servers_list.stdout
+      register: _mcp_server_add
+      changed_when: _mcp_server_add.rc == 0
+
+    - name: Configure Brave Search API key
+      ansible.builtin.command: >-
+        docker mcp profile config {{ docker_mcp_profile_name }}
+        --set brave-search.BRAVE_API_KEY={{ docker_mcp_brave_api_key }}
+      when: docker_mcp_brave_api_key | length > 0
+      no_log: true
+      changed_when: false
+
+    - name: Connect Claude Code to MCP profile
+      ansible.builtin.command: >-
+        docker mcp client connect claude-code
+        --profile {{ docker_mcp_profile_name }}
+      register: _mcp_client_connect
+      changed_when: "'already connected' not in (_mcp_client_connect.stdout | default(''))"
+      failed_when: false
