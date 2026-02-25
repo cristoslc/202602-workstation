@@ -9,7 +9,7 @@ from textual import work
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, OptionList, Static
+from textual.widgets import Footer, Header, OptionList, Static
 from textual.widgets.option_list import Option
 
 from ..lib.runner import REPO_ROOT
@@ -39,6 +39,7 @@ class WelcomeScreen(Screen):
 
     def on_mount(self) -> None:
         self.query_one("#menu", OptionList).display = False
+        self._state = None
         self._detect_state()
 
     @work(thread=True)
@@ -49,6 +50,7 @@ class WelcomeScreen(Screen):
 
     def _show_menu(self, state) -> None:
         """Update the screen with detected state and menu options."""
+        self._state = state
         status = self.query_one("#status", Static)
         menu = self.query_one("#menu", OptionList)
         menu.clear_options()
@@ -124,7 +126,14 @@ class WelcomeScreen(Screen):
             from .bootstrap import BootstrapModeScreen
             self.app.push_screen(BootstrapModeScreen())
         elif option_id == "first-run":
-            self.app.push_screen(FirstRunPlaceholderScreen())
+            if self._state and self._state.is_personalized:
+                from .secrets import SecretsScreen
+                self.app.push_screen(
+                    SecretsScreen(), self._first_run_after_secrets
+                )
+            else:
+                from .first_run import FirstRunSetupScreen
+                self.app.push_screen(FirstRunSetupScreen())
         elif option_id == "edit-defaults":
             from .defaults import EditDefaultsScreen
             self.app.push_screen(EditDefaultsScreen())
@@ -133,6 +142,11 @@ class WelcomeScreen(Screen):
             self.app.push_screen(SecretsScreen())
         elif option_id == "update":
             self._run_update()
+
+    def _first_run_after_secrets(self, _result: object | None = None) -> None:
+        """Continue first-run flow by chaining into defaults editing."""
+        from .defaults import EditDefaultsScreen
+        self.app.push_screen(EditDefaultsScreen())
 
     @work(thread=True)
     def _run_update(self) -> None:
@@ -186,29 +200,4 @@ class WelcomeScreen(Screen):
                 "[red]Update timed out.[/red] Check your network connection."
             )
             self.app.call_from_thread(menu.__setattr__, "display", True)
-
-
-# Placeholder screens — will be replaced in Phase 3.
-
-
-class FirstRunPlaceholderScreen(Screen):
-    """Temporary placeholder until Phase 3 implements the full first-run flow."""
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        with Vertical(id="main-content"):
-            yield Static(
-                "[bold]First-Run Setup[/bold]\n\n"
-                "The full first-run TUI is coming in Phase 3.\n"
-                "For now, exit and run:\n\n"
-                "  [cyan]./first-run.sh[/cyan]\n\n"
-                "[dim]Tab to reach Back, Enter to press[/dim]"
-            )
-            yield Button("Back", id="back")
-        yield Footer()
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "back":
-            self.app.pop_screen()
-
 

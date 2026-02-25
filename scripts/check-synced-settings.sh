@@ -40,7 +40,8 @@ check_synced() {
       DRIFT=$((DRIFT + 1))
     elif ! diff -q "$linux_file" "$macos_file" >/dev/null 2>&1; then
       echo "DRIFT: $label — contents differ between platforms"
-      diff --unified=3 "$linux_file" "$macos_file" | head -20
+      # Show a short diff preview without aborting under `set -euo pipefail`.
+      diff --unified=3 "$linux_file" "$macos_file" | head -20 || true
       DRIFT=$((DRIFT + 1))
     fi
     i=$((i + 2))

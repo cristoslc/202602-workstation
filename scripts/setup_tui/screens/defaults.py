@@ -12,6 +12,7 @@ from textual.widgets import Button, Footer, Header, Input, Static
 
 from ..lib.defaults import (
     display_to_keybinding,
+    export_iterm2_plist,
     keybinding_to_display,
     load_action_registry,
     save_action_registry,
@@ -82,19 +83,27 @@ class EditDefaultsScreen(Screen):
                 )
             )
 
-        form.mount(
-            Horizontal(
-                Button("Save", id="save", variant="primary"),
-                Button("Back", id="back"),
-                id="defaults-buttons",
-            )
-        )
+        buttons = [
+            Button("Save", id="save", variant="primary"),
+        ]
+        if self.app.platform == "macos":
+            buttons.append(Button("Export iTerm2", id="export-iterm2"))
+        buttons.append(Button("Back", id="back"))
 
+        form.mount(Horizontal(*buttons, id="defaults-buttons"))
+
+        macos_hint = ""
+        if self.app.platform == "macos":
+            macos_hint = (
+                "[dim]macOS: use Export iTerm2 to capture current iTerm2 "
+                "prefs into the repo.[/dim]\n"
+            )
         self.query_one("#defaults-status", Static).update(
             "[bold]Edit Defaults[/bold]\n\n"
             "Change keybindings below, then press Save.\n"
             "[dim]Format: Meta+Key or Meta+Shift+Key  "
             "(Meta = Cmd on macOS, Super on Linux)[/dim]\n"
+            f"{macos_hint}"
             "[dim]Tab between fields, Enter to save, Escape to go back[/dim]"
         )
         form.display = True
@@ -117,6 +126,8 @@ class EditDefaultsScreen(Screen):
             self.app.pop_screen()
         elif event.button.id == "save":
             self._do_save()
+        elif event.button.id == "export-iterm2":
+            self._do_export_iterm2()
 
     def _do_save(self) -> None:
         """Collect edited bindings and save the action registry."""
@@ -172,4 +183,39 @@ class EditDefaultsScreen(Screen):
         self.query_one("#save", Button).disabled = False
         self.query_one("#defaults-result", Static).update(
             f"[bold red]Save failed:[/bold red] {error}"
+        )
+
+    def _do_export_iterm2(self) -> None:
+        """Export iTerm2 preferences (macOS only)."""
+        if self.app.platform != "macos":
+            self.query_one("#defaults-result", Static).update(
+                "[bold yellow]iTerm2 export is macOS-only.[/bold yellow]"
+            )
+            return
+        self.query_one("#export-iterm2", Button).disabled = True
+        self.query_one("#defaults-result", Static).update(
+            "[dim]Exporting iTerm2 preferences...[/dim]"
+        )
+        self._export_iterm2_worker()
+
+    @work(thread=True)
+    def _export_iterm2_worker(self) -> None:
+        """Run iTerm2 export in a background thread."""
+        try:
+            message = export_iterm2_plist(self.app.runner)
+            self.app.call_from_thread(self._show_export_success, message)
+        except Exception as exc:
+            logger.exception("Failed to export iTerm2 preferences")
+            self.app.call_from_thread(self._show_export_error, str(exc))
+
+    def _show_export_success(self, message: str) -> None:
+        self.query_one("#export-iterm2", Button).disabled = False
+        self.query_one("#defaults-result", Static).update(
+            f"[bold green]{message}[/bold green]"
+        )
+
+    def _show_export_error(self, error: str) -> None:
+        self.query_one("#export-iterm2", Button).disabled = False
+        self.query_one("#defaults-result", Static).update(
+            f"[bold red]iTerm2 export failed:[/bold red] {error}"
         )

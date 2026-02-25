@@ -1029,6 +1029,45 @@ def edit_secrets(
 
 
 # ---------------------------------------------------------------------------
+# Phase 12: Defaults editing
+# ---------------------------------------------------------------------------
+
+
+def edit_defaults(
+    runner: ToolRunner, ui: WizardUI, plat: str
+) -> None:
+    """Optional defaults edits collected during first-run."""
+    ui.console.print()
+    if plat != "macos":
+        ui.info("Defaults: no additional Linux export steps defined yet.")
+        return
+
+    if not ui.confirm(
+        "Export current iTerm2 preferences into repo defaults now?"
+    ):
+        ui.info("Skipped iTerm2 export. Run later with: make iterm2-export")
+        return
+
+    ui.info("Exporting iTerm2 preferences...")
+    result = runner.run(
+        ["make", "iterm2-export"],
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    if result.returncode == 0:
+        ui.info(
+            "iTerm2 settings exported to "
+            "macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist"
+        )
+        return
+
+    details = (result.stderr or result.stdout or "").strip()
+    ui.warn("iTerm2 export failed. You can retry later with: make iterm2-export")
+    if details:
+        ui.warn(f"  {details}")
+
+
+# ---------------------------------------------------------------------------
 # Resume: extract config from already-personalized repo
 # ---------------------------------------------------------------------------
 
@@ -1214,6 +1253,9 @@ def main() -> None:
 
         # Phase 11: Secrets.
         edit_secrets(runner, ui, plat)
+
+        # Phase 12: Defaults.
+        edit_defaults(runner, ui, plat)
 
         # Done.
         show_completion(ui, config)

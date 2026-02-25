@@ -45,6 +45,7 @@ from setup_tui.lib.secrets import (
 )
 from setup_tui.lib.prereqs import detect_platform, install_precommit
 from setup_tui.lib.setup_logging import LOG_DIR, LOG_FILE, setup_logging
+from setup_tui.lib.defaults import export_iterm2_plist
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +212,29 @@ class TestRepoConfig:
     def test_url_with_special_chars_in_name(self):
         config = RepoConfig(github_username="user", repo_name="my-repo-2025")
         assert config.github_repo_url == "https://github.com/user/my-repo-2025.git"
+
+
+class TestExportIterm2Plist:
+    def test_runs_make_target(self, mock_runner):
+        export_iterm2_plist(mock_runner)
+        mock_runner.run.assert_called_once_with(
+            ["make", "iterm2-export"],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+
+    def test_raises_on_failure(self, mock_runner):
+        mock_runner.run = MagicMock(
+            return_value=subprocess.CompletedProcess(
+                args=[],
+                returncode=1,
+                stdout="",
+                stderr="boom",
+            )
+        )
+
+        with pytest.raises(RuntimeError, match="boom"):
+            export_iterm2_plist(mock_runner)
 
 
 class TestResumeState:

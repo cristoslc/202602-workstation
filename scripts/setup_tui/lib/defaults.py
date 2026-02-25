@@ -13,10 +13,14 @@ from pathlib import Path
 
 import yaml
 
-from .runner import REPO_ROOT
+from .runner import REPO_ROOT, ToolRunner
 
 REGISTRY_PATH = (
     REPO_ROOT / "shared" / "roles" / "keyboard" / "defaults" / "main.yml"
+)
+ITERM2_PLIST_PATH = (
+    REPO_ROOT / "macos" / "dotfiles" / "iterm2" / ".config" / "iterm2"
+    / "com.googlecode.iterm2.plist"
 )
 
 _HEADER = """\
@@ -153,3 +157,17 @@ def save_action_registry(
         width=120,
     )
     target.write_text(_HEADER + body)
+
+
+def export_iterm2_plist(runner: ToolRunner) -> str:
+    """Export iTerm2 preferences plist via the existing Make target."""
+    result = runner.run(
+        ["make", "iterm2-export"],
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout or "").strip()
+        msg = details or "make iterm2-export failed"
+        raise RuntimeError(msg)
+    return f"iTerm2 settings exported to {ITERM2_PLIST_PATH}"

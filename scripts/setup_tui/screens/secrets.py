@@ -118,14 +118,14 @@ class SecretsScreen(Screen):
         self.query_one("#secrets-form").display = True
 
     def action_go_back(self) -> None:
-        self.app.pop_screen()
+        self.dismiss("back")
 
     def on_input_submitted(self, _event: Input.Submitted) -> None:
         self._do_save()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":
-            self.app.pop_screen()
+            self.dismiss("back")
         elif event.button.id == "save":
             self._do_save()
 

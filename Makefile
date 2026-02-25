@@ -18,6 +18,8 @@ export SOPS_AGE_KEY_FILE
 # Ensure uv and other ~/.local/bin tools are on PATH (uv installs there).
 export PATH := $(HOME)/.local/bin:$(PATH)
 
+CHECK_LOG ?= check.log
+
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions check-sync check-playbook test test-bats test-python check apply \
         decrypt clean-secrets status template-export \
@@ -110,7 +112,19 @@ test-python: ## Run Python unit tests (first-run wizard + setup TUI)
 
 test: lint test-bats test-python ## Run all linters and tests
 
-check: shellcheck yamllint check-collisions check-sync check-playbook test-bats test-python ## Quick local verification (no ansible-lint)
+check: ## Quick local verification (no ansible-lint); writes output to $(CHECK_LOG)
+	@echo "Writing check log to: $(CHECK_LOG)"
+	@set -euo pipefail; { \
+		echo "=== make check started: $$(date '+%Y-%m-%d %H:%M:%S %Z') ==="; \
+		$(MAKE) shellcheck; \
+		$(MAKE) yamllint; \
+		$(MAKE) check-collisions; \
+		$(MAKE) check-sync; \
+		$(MAKE) check-playbook; \
+		$(MAKE) test-bats; \
+		$(MAKE) test-python; \
+		echo "=== make check completed: $$(date '+%Y-%m-%d %H:%M:%S %Z') ==="; \
+	} 2>&1 | tee "$(CHECK_LOG)"
 
 key-send: ## Send age key to another machine via Magic Wormhole
 	./scripts/transfer-key.sh send

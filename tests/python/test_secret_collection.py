@@ -273,3 +273,60 @@ class TestWriteAndEncryptIntegration:
         parsed = yaml.safe_load(written_content)
         assert parsed["git_user_email"] == "a@b.com"
         assert parsed["git_user_name"] == "Test"
+
+
+class TestEditDefaults:
+    """Tests for first-run defaults editing step."""
+
+    def test_macos_runs_iterm2_export_when_confirmed(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+        mock_ui.confirm = MagicMock(return_value=True)
+
+        first_run.edit_defaults(mock_runner, mock_ui, "macos")
+
+        mock_runner.run.assert_called_once_with(
+            ["make", "iterm2-export"],
+            cwd=tmp_repo,
+            check=False,
+        )
+
+    def test_macos_skips_when_not_confirmed(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+        mock_ui.confirm = MagicMock(return_value=False)
+
+        first_run.edit_defaults(mock_runner, mock_ui, "macos")
+
+        mock_runner.run.assert_not_called()
+
+    def test_linux_has_no_export_step(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+
+        first_run.edit_defaults(mock_runner, mock_ui, "linux")
+
+        mock_ui.confirm.assert_not_called()
+        mock_runner.run.assert_not_called()
+
+    def test_export_failure_is_warned_not_raised(
+        self, tmp_repo, mock_runner, mock_ui, monkeypatch
+    ):
+        monkeypatch.setattr(first_run, "REPO_ROOT", tmp_repo)
+        mock_ui.confirm = MagicMock(return_value=True)
+        mock_runner.run = MagicMock(
+            return_value=subprocess.CompletedProcess(
+                args=[],
+                returncode=1,
+                stdout="",
+                stderr="failed",
+            )
+        )
+
+        first_run.edit_defaults(mock_runner, mock_ui, "macos")
+
+        warn_msgs = [m[1] for m in mock_ui._messages if m[0] == "warn"]
+        assert any("iTerm2 export failed" in m for m in warn_msgs)
