@@ -1,5 +1,0 @@
-// Managed by iac-daily-driver-environments.
-// Keep this file identical across linux/ and macos/ dotfiles so
-// muscle-memory keybindings stay consistent on both platforms.
-// VS Code automatically maps Cmd (macOS) ↔ Ctrl (Linux).
-[]
