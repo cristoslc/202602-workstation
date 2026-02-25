@@ -132,6 +132,10 @@ Screen {
     padding: 0 0 1 0;
 }
 
+#phase-list, #role-list {
+    height: 1fr;
+}
+
 #sudo-password {
     width: 40;
     margin: 1 0;
