@@ -23,7 +23,7 @@ export PATH := $(HOME)/.local/bin:$(PATH)
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive
+        log-send log-receive iterm2-export
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -130,6 +130,11 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
+
+iterm2-export: ## Re-export iTerm2 plist to stow package (macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	defaults export com.googlecode.iterm2 - | plutil -convert xml1 -o macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist -
+	@echo "iTerm2 plist exported. Review with: git diff macos/dotfiles/iterm2/"
 
 template-export: ## Export clean template repo (no personal data, fresh history)
 	./scripts/templatize.sh
