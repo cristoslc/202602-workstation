@@ -72,6 +72,13 @@ Screen {
     border-right: solid $primary-background;
 }
 
+#elapsed-timer {
+    dock: bottom;
+    height: auto;
+    padding: 0 2;
+    margin: 1 0 0 0;
+}
+
 #run-main {
     width: 1fr;
     height: 1fr;
