@@ -1,0 +1,25 @@
+---
+# macOS: Install Hammerspoon and deploy action bindings.
+
+- name: Install Hammerspoon
+  community.general.homebrew_cask:
+    name: hammerspoon
+    state: present
+
+- name: Ensure Hammerspoon config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.hammerspoon"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Hammerspoon action bindings
+  ansible.builtin.template:
+    src: actions.lua.j2
+    dest: "{{ ansible_facts.env.HOME }}/.hammerspoon/actions.lua"
+    mode: "0644"
+
+- name: Remind about Accessibility permission
+  ansible.builtin.debug:
+    msg: >-
+      Hammerspoon requires Accessibility permission.
+      Grant it in System Settings → Privacy & Security → Accessibility.

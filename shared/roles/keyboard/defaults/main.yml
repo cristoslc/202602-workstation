@@ -1,0 +1,139 @@
+---
+# Action registry: semantic actions with per-platform keybindings and implementations.
+# The keyboard role reads this to configure Hammerspoon (macOS) and dconf (Linux).
+#
+# Modifier namespace:
+#   macOS:  Ctrl+Opt          (unused by system/apps — no Karabiner needed)
+#   Linux:  Super              (standard DE custom shortcut namespace)
+#   +Shift on either platform gives a second tier for extended actions.
+
+workstation_actions:
+
+  # --- Launcher / Utility ---
+
+  - action: open_launcher
+    description: "Open app launcher"
+    keybinding:
+      linux: "<Super>space"
+      macos: { mods: [ctrl, alt], key: space }
+    implementation:
+      linux: { type: dconf, command: "vicinae toggle" }
+      macos: { type: hammerspoon, lua: 'hs.execute("open raycast://", true)' }
+
+  - action: clipboard_history
+    description: "Clipboard history"
+    keybinding:
+      linux: "<Super>v"
+      macos: { mods: [ctrl, alt], key: v }
+    implementation:
+      linux: { type: dconf, command: "xdg-open vicinae://extensions/vicinae/clipboard/history" }
+      macos: { type: hammerspoon, lua: 'hs.execute("open raycast://extensions/raycast/clipboard-history/clipboard-history", true)' }
+
+  - action: emoji_picker
+    description: "Emoji picker"
+    keybinding:
+      linux: "<Super>e"
+      macos: { mods: [ctrl, alt], key: e }
+    implementation:
+      linux: { type: dconf, command: "xdg-open vicinae://extensions/vicinae/emoji" }
+      macos: { type: hammerspoon, lua: 'hs.execute("open raycast://extensions/raycast/emoji-symbols/search-emoji-symbols", true)' }
+
+  # --- Screenshots ---
+
+  - action: screenshot_region
+    description: "Screenshot selected region"
+    keybinding:
+      linux: "<Super><Shift>4"
+      macos: { mods: [ctrl, alt, shift], key: "4" }
+    implementation:
+      linux: { type: dconf, command: "flameshot gui" }
+      macos: { type: hammerspoon, lua: 'hs.execute("open \"cleanshot://capture-area\"", true)' }
+
+  - action: screenshot_full
+    description: "Screenshot full screen"
+    keybinding:
+      linux: "<Super><Shift>3"
+      macos: { mods: [ctrl, alt, shift], key: "3" }
+    implementation:
+      linux: { type: dconf, command: "flameshot full --path ~/Screenshots" }
+      macos: { type: hammerspoon, lua: 'hs.eventtap.keyStroke({"cmd", "shift"}, "3")' }
+
+  # --- Window Management ---
+
+  - action: window_left_half
+    description: "Tile window left half"
+    keybinding:
+      linux: "<Super>Left"
+      macos: { mods: [ctrl, alt], key: left }
+    implementation:
+      linux: { type: dconf_wm, dconf_key: push-tile-left }
+      macos:
+        type: hammerspoon
+        lua: |
+          local win = hs.window.focusedWindow()
+          if win then win:moveToUnit(hs.layout.left50) end
+
+  - action: window_right_half
+    description: "Tile window right half"
+    keybinding:
+      linux: "<Super>Right"
+      macos: { mods: [ctrl, alt], key: right }
+    implementation:
+      linux: { type: dconf_wm, dconf_key: push-tile-right }
+      macos:
+        type: hammerspoon
+        lua: |
+          local win = hs.window.focusedWindow()
+          if win then win:moveToUnit(hs.layout.right50) end
+
+  - action: window_maximize
+    description: "Maximize window"
+    keybinding:
+      linux: "<Super>Up"
+      macos: { mods: [ctrl, alt], key: up }
+    implementation:
+      linux: { type: dconf_wm, dconf_key: toggle-maximized }
+      macos:
+        type: hammerspoon
+        lua: |
+          local win = hs.window.focusedWindow()
+          if win then win:maximize() end
+
+  - action: window_restore
+    description: "Restore window"
+    keybinding:
+      linux: "<Super>Down"
+      macos: { mods: [ctrl, alt], key: down }
+    implementation:
+      linux: { type: dconf_wm, dconf_key: unmaximize }
+      macos:
+        type: hammerspoon
+        lua: |
+          local win = hs.window.focusedWindow()
+          if win then win:moveToUnit({x = 0.1, y = 0.1, w = 0.8, h = 0.8}) end
+
+  - action: window_next_monitor
+    description: "Move window to next monitor"
+    keybinding:
+      linux: "<Super><Shift>Right"
+      macos: { mods: [ctrl, alt, shift], key: right }
+    implementation:
+      linux: { type: dconf_wm, dconf_key: move-to-monitor-right }
+      macos:
+        type: hammerspoon
+        lua: |
+          local win = hs.window.focusedWindow()
+          if win then win:moveToScreen(win:screen():next()) end
+
+  - action: window_prev_monitor
+    description: "Move window to previous monitor"
+    keybinding:
+      linux: "<Super><Shift>Left"
+      macos: { mods: [ctrl, alt, shift], key: left }
+    implementation:
+      linux: { type: dconf_wm, dconf_key: move-to-monitor-left }
+      macos:
+        type: hammerspoon
+        lua: |
+          local win = hs.window.focusedWindow()
+          if win then win:moveToScreen(win:screen():previous()) end

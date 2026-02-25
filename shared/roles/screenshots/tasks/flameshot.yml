@@ -1,0 +1,8 @@
+---
+# Flameshot sub-task (Debian only)
+- name: Install Flameshot (Debian)
+  when: ansible_facts.os_family == "Debian"
+  ansible.builtin.apt:
+    name: flameshot
+    state: present
+  become: true

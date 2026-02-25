@@ -1,0 +1,6 @@
+---
+# Keyboard role: deploy action bindings from the workstation_actions registry.
+# macOS → Hammerspoon hotkeys.  Linux → Cinnamon dconf custom keybindings.
+
+- name: Include OS-specific keyboard tasks
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
