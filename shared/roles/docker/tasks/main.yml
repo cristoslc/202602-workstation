@@ -12,3 +12,7 @@
 - name: Configure Docker Desktop auto-update
   ansible.builtin.include_tasks: desktop-update.yml
   when: ansible_facts.os_family != 'Darwin'
+
+- name: Configure Docker MCP Gateway
+  ansible.builtin.include_tasks: mcp-gateway.yml
+  tags: [mcp-gateway]

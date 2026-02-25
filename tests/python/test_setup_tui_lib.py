@@ -266,10 +266,13 @@ class TestSecretFieldDeclarations:
         for sf in SHARED_ANSIBLE_VARS + SHELL_SECRETS:
             assert sf.used_by, f"{sf.key} should have a used_by"
 
-    def test_ansible_vars_not_password(self):
-        """Ansible vars (git email, name) should not be masked."""
+    def test_ansible_vars_password_matches_sensitivity(self):
+        """Non-key ansible vars should not be masked; API keys should be."""
         for sf in SHARED_ANSIBLE_VARS:
-            assert sf.password is False
+            if "api_key" in sf.key or "token" in sf.key:
+                assert sf.password is True, f"{sf.key} is sensitive and should be masked"
+            else:
+                assert sf.password is False, f"{sf.key} should not be masked"
 
     def test_shell_secrets_are_passwords(self):
         """Shell secrets (API keys) should be masked."""
