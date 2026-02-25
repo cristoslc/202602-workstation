@@ -1,0 +1,25 @@
+---
+- name: Check if Codex CLI is installed
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_facts.env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    codex --version
+  args:
+    executable: /bin/bash
+  register: codex_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Codex CLI via npm
+  when: codex_check.rc != 0
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_facts.env.HOME }}/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    npm install -g @openai/codex
+  args:
+    executable: /bin/bash
+  register: codex_install
+  changed_when: codex_install.rc == 0
+  retries: 3
+  delay: 5
+  until: codex_install is not failed
