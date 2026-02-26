@@ -256,39 +256,327 @@ restic's backend flexibility wins.
 
 ---
 
+## Design decisions
+
+### Backend architecture: Proxmox REST server + B2 offsite
+
+```
+┌──────────────────────┐         ┌──────────────────────────────┐
+│  macOS workstation    │────────▶│  Proxmox LXC/VM              │
+│  restic + Backrest    │  REST   │  restic REST server (Docker)  │
+└──────────────────────┘         │  /data/backups/               │
+                                  │                                │
+┌──────────────────────┐         │  cron: rclone sync ──────────▶ B2
+│  Linux workstation    │────────▶│       (nightly offsite copy)   │
+│  restic + Backrest    │  REST   └──────────────────────────────┘
+└──────────────────────┘
+```
+
+**Primary target — restic REST server on Proxmox:**
+
+- LXC container (or VM) running `restic/rest-server` in Docker.
+- REST protocol is faster than SFTP (no 32 KiB chunk / per-packet ACK
+  overhead).
+- `--private-repos` flag gives each workstation its own namespace
+  (`/data/backups/<username>/`).
+- `--append-only` mode prevents a compromised workstation from deleting old
+  snapshots (ransomware protection).
+- `.htpasswd` auth (bcrypt). TLS via reverse proxy or `--tls`.
+- Prometheus metrics at `/metrics` for monitoring.
+- Repo URL: `rest:https://backup.local:8000/<username>/`
+
+**Offsite copy — rclone to B2:**
+
+- A cron job on the Proxmox host runs `rclone sync /data/backups/ b2:bucket/`
+  nightly.
+- The B2 copy is a byte-for-byte mirror of the restic repo — restic can open
+  it directly (`restic -r b2:bucket:/ snapshots`).
+- Workstations only talk to the local REST server. B2 sync is the server's job.
+  This keeps workstation config simple and avoids doubling backup time.
+- B2 lifecycle rules can add another retention layer (e.g., keep deleted objects
+  for 30 days).
+
+**Why REST server over SFTP?**
+
+| | REST server | SFTP |
+|--|-------------|------|
+| Performance | Better (HTTP streaming) | 32 KiB chunks, per-packet ACK |
+| Auth | `.htpasswd` or proxy | SSH keys |
+| Append-only | Built-in `--append-only` | Requires filesystem tricks |
+| Docker | Official `restic/rest-server` image | Need SSH server in container |
+| Monitoring | Prometheus `/metrics` | Manual |
+
+### GUI: Backrest (web UI + background service)
+
+There is no single open-source tool that provides a native tray icon for restic
+on both macOS and Linux. The landscape:
+
+| Tool | macOS | Linux | Schedules | Browse/Restore | Open source |
+|------|-------|-------|-----------|----------------|-------------|
+| **Backrest** | launchd service + web UI | systemd service + web UI | Yes (cron) | Yes | GPL-3.0 |
+| **ResticScheduler** | Menu bar app | N/A | Yes | No | MIT |
+| **Restic Browser** | Desktop (Tauri) | Desktop (Tauri) | No | Yes (browse only) | MIT |
+| **Relica** | GUI + tray | GUI + tray | Yes | Yes | Proprietary ($5/mo) |
+
+**Decision: Backrest** as the unified management layer.
+
+- Ansible installs Backrest + restic, templates `config.json`, enables the
+  background service.
+- Web UI at `http://localhost:9898` for monitoring, snapshot browsing, and
+  file restore (including direct download from snapshots).
+- Handles scheduling (cron syntax), retention policies, health checks
+  (prune, check), and notifications (Discord/Slack/Gotify/Healthchecks).
+- Can import the restic repo configured by Ansible — no separate repo init.
+- Config is JSON at `~/.config/backrest/config.json`, Ansible-templatable.
+
+**Trade-off acknowledged:** No native tray icon on macOS/Linux. Mitigations:
+- Bookmark `localhost:9898` or install as a PWA.
+- macOS: A simple SwiftBar/xbar plugin could show last-backup time and link
+  to the web UI (low-effort addition later).
+- Linux: A polybar/waybar module or `.desktop` autostart entry.
+- Backup notifications (Gotify, desktop notify hook) provide push awareness
+  without polling a tray icon.
+
+### Exclude patterns
+
+Strategy: back up `$HOME` with an aggressive exclude file. For `~/Library` on
+macOS, keep config/preferences but exclude caches, logs, and regenerable data.
+
+```
+# ── OS noise ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.Spotlight-V100
+.fseventsd
+.Trashes
+.Trash
+.local/share/Trash
+
+# ── Runtime / build artifacts ─────────────────────────────
+.cache
+**/__pycache__
+**/*.pyc
+**/.mypy_cache
+**/node_modules
+**/.npm
+**/.yarn/cache
+**/.pnpm-store
+**/.gradle
+**/.m2/repository
+**/.cargo/registry
+**/.cargo/git
+**/.rustup/toolchains
+**/target/debug
+**/target/release
+**/.tox
+**/.venv
+**/venv
+**/.virtualenvs
+
+# ── Editor / IDE state ────────────────────────────────────
+**/.idea
+**/.vscode/workspaceStorage
+**/*.swp
+**/*.swo
+
+# ── Large / regenerable binaries ──────────────────────────
+*.iso
+*.dmg
+*.vmdk
+*.qcow2
+*.vdi
+
+# ── macOS ~/Library: keep config, skip caches ─────────────
+#    (restic includes ~/Library by default; these patterns
+#    carve out the noise while preserving Preferences/,
+#    Application Support/<app>/config, Keychains/, Fonts/)
+Library/Caches
+Library/Logs
+Library/Cookies
+Library/HTTPStorages
+Library/WebKit
+Library/Saved Application State
+Library/Metadata
+Library/Trial
+Library/Developer
+Library/Containers/*/Data/Library/Caches
+Library/Group Containers/*/Library/Caches
+Library/Application Support/*/Cache
+Library/Application Support/*/CachedData
+Library/Application Support/*/CachedExtensionVSIXs
+Library/Application Support/*/GPUCache
+Library/Application Support/*/Service Worker
+Library/Application Support/*/Code Cache
+Library/Application Support/CrashReporter
+Library/Application Support/com.apple.sharedfilelist
+Library/Application Support/FileProvider
+Library/Application Support/AddressBook/Sources
+Library/Application Support/Google/Chrome/*/Service Worker
+Library/Application Support/Google/Chrome/*/Code Cache
+Library/Application Support/Slack/Cache
+Library/Application Support/Slack/Service Worker
+Library/Application Support/discord/Cache
+Library/Application Support/discord/Code Cache
+Library/Mail/V*/MailData/Envelope Index*
+Library/Mail/V*/MailData/BackingStoreUpdateJournal
+
+# ── Linux-specific ────────────────────────────────────────
+.local/share/baloo
+.local/share/akonadi
+snap/*/common/cache
+.local/share/flatpak
+.var/app/*/cache
+```
+
+**What this preserves on macOS:**
+
+- `~/Library/Preferences/` — all plists (app settings).
+- `~/Library/Application Support/<app>/` — app data, configs, databases
+  (minus caches/service workers carved out above).
+- `~/Library/Keychains/` — keychain databases.
+- `~/Library/Fonts/` — user-installed fonts.
+- `~/Library/Services/` — Automator services.
+- `~/Library/ColorSync/Profiles/` — color profiles.
+- `~/Library/Spelling/` — custom dictionaries.
+
+---
+
+## Browsing and restore flow
+
+### Day-to-day: Backrest web UI
+
+1. Open `http://localhost:9898`.
+2. Select the repo in the sidebar — see the snapshot timeline with dates and
+   sizes.
+3. Click a snapshot — browse the file tree visually.
+4. Select file(s) or folder(s):
+   - **Download** — streams the file directly through the browser.
+   - **Restore** — writes to a target directory on disk.
+5. Backrest shows backup history, errors, and next-scheduled-run on the
+   dashboard.
+
+### Power user: restic CLI
+
+```bash
+# Set env (or use the Backrest-managed repo config)
+export RESTIC_REPOSITORY="rest:https://backup.local:8000/myuser/"
+export RESTIC_PASSWORD_FILE="$HOME/.config/restic/password"
+
+# ── List snapshots for this host ──
+restic snapshots --host "$(hostname)"
+
+# ── Find a file across all snapshots ──
+restic find "quarterly-report.xlsx"
+
+# ── Mount for interactive browsing (FUSE) ──
+mkdir -p /tmp/restic-mount
+restic mount /tmp/restic-mount
+# Browse: /tmp/restic-mount/snapshots/2025-06-15T10:30:00/home/user/...
+# Unmount: fusermount -u /tmp/restic-mount  (Linux)
+#          umount /tmp/restic-mount          (macOS)
+
+# ── Restore a specific file from the latest snapshot ──
+restic restore latest \
+  --target /tmp/restore \
+  --include "/home/user/Documents/quarterly-report.xlsx" \
+  --host "$(hostname)"
+
+# ── Restore from a specific snapshot ID ──
+restic restore abc123def \
+  --target /tmp/restore
+
+# ── Dump a single file to stdout ──
+restic dump latest "/home/user/.zshrc" > /tmp/old-zshrc
+
+# ── Diff two snapshots ──
+restic diff abc123 def456
+```
+
+### Disaster recovery: full workstation loss
+
+Scenario: workstation is destroyed, you have a fresh OS install.
+
+1. **Install restic** (single binary download).
+2. **Set repo credentials:**
+   ```bash
+   export RESTIC_REPOSITORY="rest:https://backup.local:8000/myuser/"
+   # or for offsite: export RESTIC_REPOSITORY="b2:bucket-name:/"
+   export RESTIC_PASSWORD="<from password manager or SOPS>"
+   ```
+3. **Find the last snapshot:**
+   ```bash
+   restic snapshots --host old-hostname
+   ```
+4. **Restore to a staging directory** (safer than restoring over `/`):
+   ```bash
+   restic restore latest \
+     --target /tmp/full-restore \
+     --host old-hostname
+   ```
+5. **Cherry-pick** what you need from `/tmp/full-restore/` into the new home
+   directory. Or restore directly to `$HOME` if you're confident.
+6. **For the B2 offsite copy**: same flow, just change the repo URL:
+   ```bash
+   export RESTIC_REPOSITORY="b2:my-backup-bucket:/"
+   ```
+
+### Browsing offsite (B2) copy
+
+The B2 mirror is a byte-for-byte copy of the local restic repo. Any restic
+command works against it:
+
+```bash
+restic -r b2:my-backup-bucket:/ snapshots --host myworkstation
+restic -r b2:my-backup-bucket:/ restore latest --target /tmp/restore
+```
+
+This provides a second, independent access path if the Proxmox host is
+unavailable.
+
+---
+
 ## Suggested Ansible role structure
 
 ```
 shared/roles/backups/tasks/
-├── main.yml          # existing — add restic include
-├── backblaze.yml     # existing (macOS)
-├── timeshift.yml     # existing (Linux)
-└── restic.yml        # new: cross-platform restic setup
+├── main.yml              # existing — add restic + backrest includes
+├── backblaze.yml         # existing (macOS)
+├── timeshift.yml         # existing (Linux)
+├── restic.yml            # new: install restic binary (cross-platform)
+└── backrest.yml          # new: install + configure Backrest
 
 shared/roles/backups/templates/
-├── timeshift.json.j2         # existing
-├── restic-backup.sh.j2       # new: wrapper script
-├── restic-backup.timer.j2    # new: systemd timer (Linux)
-├── restic-backup.service.j2  # new: systemd service (Linux)
-└── com.restic.backup.plist.j2 # new: launchd plist (macOS)
+├── timeshift.json.j2              # existing
+├── restic-excludes.txt.j2         # new: exclude patterns (above)
+├── backrest-config.json.j2        # new: Backrest config (repos, plans, retention)
+├── backrest.service.j2            # new: systemd user service (Linux)
+└── com.backrest.agent.plist.j2    # new: launchd user agent (macOS)
 
 shared/roles/backups/defaults/
-└── main.yml          # new: restic_repo_url, restic_password_file, restic_excludes, restic_keep_*
+└── main.yml              # new: restic_repo_url, restic_password,
+                          #      backrest_port, retention counts, excludes
 ```
+
+Backrest handles scheduling internally (cron expressions in its config), so
+separate systemd timers for restic backup/forget/prune are not needed. The
+systemd service / launchd agent just keeps Backrest running.
 
 ---
 
 ## Next steps
 
-1. **Choose a backend** — Do you have a NAS with SFTP, or prefer cloud (B2)?
-   This determines the `restic_repo_url` format.
-2. **Define exclude patterns** — What directories to skip (caches, node_modules,
-   `.local/share/Trash`, etc.).
-3. **Decide on wrapper** — Plain shell script vs. `resticprofile` (YAML config
-   file that wraps restic commands).
-4. **Implementation** — Create the Ansible role tasks, templates, and defaults.
-   This could become a PRD if the implementation is non-trivial, or go straight
-   to implementation if the scope is clear.
+1. **Provision the Proxmox REST server** — LXC + Docker +
+   `restic/rest-server`. Set up `.htpasswd`, TLS, and storage mount.
+2. **Init the restic repo** — `restic init` against the REST server (one-time).
+3. **Implement the Ansible role** — `restic.yml` + `backrest.yml` tasks,
+   templates, and defaults.
+4. **Set up rclone B2 sync** — cron job on the Proxmox host.
+5. **First backup + retention test** — verify `forget --keep-daily 365` works
+   as expected.
+
+This is scoped enough to go straight to implementation without a formal PRD.
+The Ansible role is the deliverable.
 
 ---
 
@@ -296,6 +584,13 @@ shared/roles/backups/defaults/
 
 - Restic documentation: https://restic.readthedocs.io/
 - Restic GitHub: https://github.com/restic/restic
+- Restic REST server: https://github.com/restic/rest-server
+- Backrest (web UI for restic): https://github.com/garethgeorge/backrest
+- Backrest docs: https://garethgeorge.github.io/backrest/
+- ResticScheduler (macOS menu bar): https://github.com/sergeymakinen/ResticScheduler
+- Restic Browser (desktop browse/restore): https://github.com/emuell/restic-browser
+- Restic GUI forum thread (2025): https://forum.restic.net/t/2025-best-gui-for-restic/10253
+- Relica (commercial restic GUI): https://relicabackup.com/
 - Kopia documentation: https://kopia.io/docs/
 - BorgBackup documentation: https://borgbackup.readthedocs.io/
 - Borgmatic documentation: https://torsion.org/borgmatic/
