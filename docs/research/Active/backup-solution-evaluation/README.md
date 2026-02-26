@@ -258,53 +258,34 @@ restic's backend flexibility wins.
 
 ## Design decisions
 
-### Backend architecture: Proxmox REST server + B2 offsite
+### Backend architecture: B2-direct (v1) + Proxmox REST server (v2)
+
+**v1 — B2-direct (implemented by PRD-002):**
 
 ```
-┌──────────────────────┐         ┌──────────────────────────────┐
-│  macOS workstation    │────────▶│  Proxmox LXC/VM              │
-│  restic + Backrest    │  REST   │  restic REST server (Docker)  │
-└──────────────────────┘         │  /data/backups/               │
-                                  │                                │
-┌──────────────────────┐         │  cron: rclone sync ──────────▶ B2
-│  Linux workstation    │────────▶│       (nightly offsite copy)   │
-│  restic + Backrest    │  REST   └──────────────────────────────┘
+┌──────────────────────┐
+│  macOS workstation    │──── restic backup ────▶ B2 bucket
+│  restic + Backrest    │     (direct, client-side encrypted)
+└──────────────────────┘
+
+┌──────────────────────┐
+│  Linux workstation    │──── restic backup ────▶ same B2 bucket
+│  restic + Backrest    │     (--host isolates snapshots)
 └──────────────────────┘
 ```
 
-**Primary target — restic REST server on Proxmox:**
+Restic is a CLI binary that runs on the workstation. It reads files,
+deduplicates, encrypts client-side (AES-256 + Poly1305), and uploads directly
+to B2. No intermediate server needed. B2 bucket with optional SSE-B2
+(Backblaze-managed keys) as defense-in-depth.
 
-- LXC container (or VM) running `restic/rest-server` in Docker.
-- REST protocol is faster than SFTP (no 32 KiB chunk / per-packet ACK
-  overhead).
-- `--private-repos` flag gives each workstation its own namespace
-  (`/data/backups/<username>/`).
-- `--append-only` mode prevents a compromised workstation from deleting old
-  snapshots (ransomware protection).
-- `.htpasswd` auth (bcrypt). TLS via reverse proxy or `--tls`.
-- Prometheus metrics at `/metrics` for monitoring.
-- Repo URL: `rest:https://backup.local:8000/<username>/`
+**v2 — Proxmox REST server (future enhancement):**
 
-**Offsite copy — rclone to B2:**
-
-- A cron job on the Proxmox host runs `rclone sync /data/backups/ b2:bucket/`
-  nightly.
-- The B2 copy is a byte-for-byte mirror of the restic repo — restic can open
-  it directly (`restic -r b2:bucket:/ snapshots`).
-- Workstations only talk to the local REST server. B2 sync is the server's job.
-  This keeps workstation config simple and avoids doubling backup time.
-- B2 lifecycle rules can add another retention layer (e.g., keep deleted objects
-  for 30 days).
-
-**Why REST server over SFTP?**
-
-| | REST server | SFTP |
-|--|-------------|------|
-| Performance | Better (HTTP streaming) | 32 KiB chunks, per-packet ACK |
-| Auth | `.htpasswd` or proxy | SSH keys |
-| Append-only | Built-in `--append-only` | Requires filesystem tricks |
-| Docker | Official `restic/rest-server` image | Need SSH server in container |
-| Monitoring | Prometheus `/metrics` | Manual |
+Add a local `restic/rest-server` on Proxmox LXC as a LAN-speed cache.
+Benefits: faster backups, `--append-only` ransomware protection, fast local
+restores. B2 becomes offsite mirror via `rclone sync`. Pure
+acceleration/hardening upgrade — workstation config change is just swapping
+the repo URL.
 
 ### GUI: Backrest (web UI + background service)
 
