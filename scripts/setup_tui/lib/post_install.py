@@ -88,6 +88,15 @@ LINUX_ITEMS: list[ChecklistItem] = [
         "(<code>sudo timeshift --list</code>)",
         platforms=["linux"],
     ),
+    ChecklistItem(
+        "LinNote: launch, set master encryption password, "
+        "and configure global hotkey",
+        platforms=["linux"],
+    ),
+    ChecklistItem(
+        "NormCap: launch and verify OCR screen capture works",
+        platforms=["linux"],
+    ),
 ]
 
 MACOS_ITEMS: list[ChecklistItem] = [
@@ -141,6 +150,11 @@ MACOS_ITEMS: list[ChecklistItem] = [
     ),
     ChecklistItem(
         "Set default browser in System Settings → Default web browser",
+        platforms=["macos"],
+    ),
+    ChecklistItem(
+        "Antinote: launch, configure global hotkey (Option+A), "
+        "and enable iCloud sync with E2EE if desired",
         platforms=["macos"],
     ),
 ]
