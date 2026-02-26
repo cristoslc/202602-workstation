@@ -1,0 +1,6 @@
+[Unit]
+Description=Check restic backup staleness
+
+[Service]
+Type=oneshot
+ExecStart={{ ansible_facts.env.HOME }}/.local/bin/backup-staleness-check

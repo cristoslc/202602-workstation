@@ -20,12 +20,17 @@ export PATH := $(HOME)/.local/bin:$(PATH)
 
 CHECK_LOG ?= check.log
 
+# Restic backup defaults for make targets
+RESTIC_STALE_HOURS ?= 8
+RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
+
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions check-sync check-playbook test test-bats test-python check apply \
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
         log-send log-receive iterm2-export raycast-export \
+        backup-status backup-browse \
         data-pull data-pull-dry
 
 help: ## Show this help
@@ -177,3 +182,28 @@ endif
 
 template-export: ## Export clean template repo (no personal data, fresh history)
 	./scripts/templatize.sh
+
+backup-status: ## Check heartbeat staleness + show latest restic snapshots
+	@HEARTBEAT="$$HOME/.local/log/restic-heartbeat.log"; \
+	if [ -f "$$HEARTBEAT" ]; then \
+	  LAST=$$(tail -1 "$$HEARTBEAT" | cut -d' ' -f1); \
+	  AGE=$$(( ($$(date +%s) - $$(date -d "$$LAST" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%%H:%%M:%%SZ" "$$LAST" +%s)) / 3600 )); \
+	  if [ "$$AGE" -gt $(RESTIC_STALE_HOURS) ]; then \
+	    echo "WARNING: Last successful backup was $$AGE hours ago (threshold: $(RESTIC_STALE_HOURS)h)"; \
+	  else \
+	    echo "OK: Last successful backup $$AGE hours ago"; \
+	  fi; \
+	else \
+	  echo "WARNING: No heartbeat file found — has a backup ever completed?"; \
+	fi
+ifeq ($(RESTIC_B2_BUCKET),)
+	@echo "Set RESTIC_B2_BUCKET to show snapshots: make backup-status RESTIC_B2_BUCKET=my-bucket"
+else
+	@B2_ACCOUNT_ID=$$(sops -d --extract '["restic_b2_account_id"]' shared/secrets/vars.sops.yml) \
+	B2_ACCOUNT_KEY=$$(sops -d --extract '["restic_b2_account_key"]' shared/secrets/vars.sops.yml) \
+	RESTIC_PASSWORD=$$(sops -d --extract '["restic_repo_password"]' shared/secrets/vars.sops.yml) \
+	restic -r "b2:$(RESTIC_B2_BUCKET):/" snapshots --host "$$(hostname)" --latest 3
+endif
+
+backup-browse: ## Open Backrest web UI at localhost:9898
+	$(if $(filter darwin,$(PLATFORM)),open,xdg-open) http://localhost:9898

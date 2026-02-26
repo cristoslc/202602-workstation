@@ -1,0 +1,143 @@
+---
+# Backrest sub-task: install Backrest + configure background service
+
+- name: Install Backrest (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Tap Backrest Homebrew repository
+      community.general.homebrew_tap:
+        name: garethgeorge/homebrew-backrest-tap
+        state: present
+
+    - name: Install Backrest via Homebrew
+      community.general.homebrew:
+        name: backrest
+        state: present
+
+- name: Install Backrest (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check Backrest version
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
+      vars:
+        tool_name: backrest
+        tool_repo: "{{ backrest_repo }}"
+        pinned_version: "{{ backrest_version }}"
+
+    - name: Check if Backrest is installed at correct version
+      ansible.builtin.shell: backrest version 2>/dev/null | grep -qF '{{ backrest_version }}'
+      register: _backrest_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download and verify Backrest
+      when: _backrest_installed.rc != 0
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
+      vars:
+        download_url: "{{ backrest_url }}"
+        expected_sha256: "{{ backrest_sha256 }}"
+        tool_name: backrest
+
+    - name: Extract Backrest binary
+      when: _backrest_installed.rc != 0
+      ansible.builtin.unarchive:
+        src: "{{ _verified_download.path }}"
+        dest: /usr/local/bin
+        remote_src: true
+        include:
+          - backrest
+        mode: "0755"
+      become: true
+
+    - name: Clean up Backrest temp file
+      when: _backrest_installed.rc != 0 and _verified_download is defined
+      ansible.builtin.file:
+        path: "{{ _verified_download.path }}"
+        state: absent
+
+# ── Provision B2 bucket + per-workstation key via Terraform ─────────
+
+- name: Provision B2 infrastructure
+  ansible.builtin.include_tasks: b2-provision.yml
+  when: restic_b2_bucket | length > 0 and b2_master_key_id | length > 0
+  tags: [b2-provision]
+
+# ── Configure Backrest (both platforms) ─────────────────────────────
+
+- name: Ensure Backrest config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/backrest"
+    state: directory
+    mode: "0700"
+
+- name: Ensure Backrest data directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/backrest"
+    state: directory
+    mode: "0700"
+
+- name: Ensure heartbeat log directory exists
+  ansible.builtin.file:
+    path: "{{ restic_heartbeat_file | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Template Backrest config
+  ansible.builtin.template:
+    src: backrest-config.json.j2
+    dest: "{{ ansible_facts.env.HOME }}/.config/backrest/config.json"
+    mode: "0600"
+  no_log: true
+  notify: restart backrest
+
+# ── Systemd user service (Linux) ───────────────────────────────────
+
+- name: Configure Backrest systemd user service (Linux)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure systemd user directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Template Backrest systemd user service
+      ansible.builtin.template:
+        src: backrest.service.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/backrest.service"
+        mode: "0644"
+      notify: restart backrest
+
+    - name: Reload systemd user daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+
+    - name: Enable and start Backrest service
+      ansible.builtin.systemd:
+        name: backrest
+        state: started
+        enabled: true
+        scope: user
+
+# ── Launchd user agent (macOS via Homebrew) ─────────────────────────
+
+- name: Start Backrest via Homebrew services (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  ansible.builtin.command:
+    cmd: brew services start backrest
+  register: _backrest_brew_start
+  changed_when: "'Successfully started' in _backrest_brew_start.stdout"
+  failed_when: false
+
+# ── Staleness watcher (both platforms) ──────────────────────────────
+
+- name: Install staleness watcher
+  ansible.builtin.include_tasks: staleness-watcher.yml
+  tags: [staleness-watcher]
+
+# ── Tray indicator (both platforms) ─────────────────────────────────
+
+- name: Install tray indicator
+  ansible.builtin.include_tasks: tray-indicator.yml
+  tags: [tray-indicator]

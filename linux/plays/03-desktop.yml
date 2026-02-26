@@ -33,7 +33,7 @@
       tags: [remote-desktop, rustdesk, remmina, gli-kvm, desktop]
 
     - role: backups
-      tags: [backups, timeshift, desktop]
+      tags: [backups, timeshift, restic, backrest, desktop]
 
     - role: screenshots
       tags: [screenshots, flameshot, desktop]

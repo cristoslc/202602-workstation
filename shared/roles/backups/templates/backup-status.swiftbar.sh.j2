@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# <bitbar.title>Backup Status</bitbar.title>
+# <bitbar.version>v1.0</bitbar.version>
+# <bitbar.author>Ansible backups role</bitbar.author>
+# <bitbar.desc>Shows restic backup heartbeat status in macOS menu bar</bitbar.desc>
+# <swiftbar.hideAbout>true</swiftbar.hideAbout>
+# <swiftbar.hideRunInTerminal>true</swiftbar.hideRunInTerminal>
+# <swiftbar.hideDisablePlugin>true</swiftbar.hideDisablePlugin>
+
+HEARTBEAT="{{ restic_heartbeat_file }}"
+THRESHOLD_HOURS="{{ restic_stale_threshold_hours }}"
+BACKREST_PORT="{{ backrest_port.split(':')[-1] }}"
+
+if [[ ! -f "$HEARTBEAT" ]]; then
+  echo "🔴 Backup | color=red"
+  echo "---"
+  echo "No heartbeat file — backup never ran | color=red"
+  echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
+  exit 0
+fi
+
+LAST_LINE="$(tail -1 "$HEARTBEAT")"
+LAST_TS="$(echo "$LAST_LINE" | cut -d' ' -f1)"
+
+if LAST_EPOCH="$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s 2>/dev/null)"; then
+  NOW_EPOCH="$(date +%s)"
+  AGE_HOURS="$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))"
+else
+  echo "🔴 Backup | color=red"
+  echo "---"
+  echo "Cannot parse heartbeat timestamp | color=red"
+  echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
+  exit 0
+fi
+
+HALF_THRESHOLD="$(( THRESHOLD_HOURS / 2 ))"
+
+if [[ "$AGE_HOURS" -gt "$THRESHOLD_HOURS" ]]; then
+  echo "🔴 Backup | color=red"
+  echo "---"
+  echo "Stale: last backup ${AGE_HOURS}h ago (threshold: ${THRESHOLD_HOURS}h) | color=red"
+elif [[ "$AGE_HOURS" -gt "$HALF_THRESHOLD" ]]; then
+  echo "🟡 Backup | color=orange"
+  echo "---"
+  echo "Aging: last backup ${AGE_HOURS}h ago | color=orange"
+else
+  echo "🟢 Backup | color=green"
+  echo "---"
+  echo "OK: last backup ${AGE_HOURS}h ago | color=green"
+fi
+
+echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
+echo "---"
+echo "Refresh | refresh=true"

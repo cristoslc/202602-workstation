@@ -15,6 +15,11 @@ These steps cannot be automated and must be done manually after bootstrap comple
 - [ ] Signal: verify phone number
 - [ ] Spotify: sign in
 - [ ] Stream Deck: open app, configure buttons/profiles, import backup if available
+- [ ] Restic: verify backup works (`make backup-status`)
+- [ ] Backrest: open `http://localhost:9898` and confirm dashboard shows repo
+- [ ] Verify first backup completes without error
+- [ ] (Optional) Pause backups: Backrest web UI → plan → disable schedule
+- [ ] (Optional) Bandwidth limit: set `restic_upload_limit` in defaults
 
 ## Linux (Mint 22)
 
@@ -24,7 +29,7 @@ These steps cannot be automated and must be done manually after bootstrap comple
 - [ ] Verify default browser is correct (`xdg-settings get default-web-browser`)
 - [ ] Verify MIME associations: `xdg-mime query default x-scheme-handler/https`
 - [ ] Select a screenshot tool (Flameshot or Shutter) and add to the `screenshots` role
-- [ ] Backblaze is macOS-only; verify Timeshift snapshots are running (`sudo timeshift --list`)
+- [ ] Verify Timeshift snapshots (`sudo timeshift --list`) and Restic backups (`make backup-status`)
 
 ## macOS
 
@@ -38,4 +43,5 @@ These steps cannot be automated and must be done manually after bootstrap comple
 - [ ] Sign into Mac App Store (required for `mas` installs)
 - [ ] iCloud sign-in (if applicable)
 - [ ] Backblaze: sign in and configure backup
+- [ ] Verify Restic backup is running alongside Backblaze (`make backup-status`)
 - [ ] Set default browser in System Settings → Default web browser

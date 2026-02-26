@@ -1,0 +1,62 @@
+---
+# Restic + Backrest backup stack defaults.
+#
+# Secrets (repo password, B2 credentials, notification URLs) are in
+# shared/secrets/vars.sops.yml — edit with: make edit-secrets-shared
+
+# ── Restic (Linux binary install; macOS uses Homebrew) ──────────────
+restic_version: "0.17.3"
+restic_sha256: "5097faeda6aa13167aae6e36efdba636637f8741fed89bbf015678334632d4d3"
+restic_url: "https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_amd64.bz2"
+restic_repo: "restic/restic"
+
+# ── Backrest (Linux binary install; macOS uses Homebrew tap) ────────
+backrest_version: "1.7.1"
+backrest_sha256: "0c5481b5d3d6638f805cd27a0ff1a1d4aa6568547bd464faed1ec059f0eedee9"
+backrest_url: "https://github.com/garethgeorge/backrest/releases/download/v{{ backrest_version }}/backrest_Linux_x86_64.tar.gz"
+backrest_repo: "garethgeorge/backrest"
+
+# ── Repository — B2-direct (v1) ────────────────────────────────────
+restic_b2_bucket: ""               # e.g. "my-workstation-backups"
+restic_repo_password: ""           # from SOPS — restic encryption key
+
+# B2 master key (from SOPS — used by Terraform to create per-workstation keys)
+b2_master_key_id: ""
+b2_master_key: ""
+
+# Per-workstation B2 credentials (auto-provisioned by Terraform — do not set manually)
+restic_b2_account_id: ""
+restic_b2_account_key: ""
+
+# Create B2 bucket via Terraform (true for first workstation, false for subsequent)
+b2_create_bucket: true
+
+# ── Backrest ────────────────────────────────────────────────────────
+backrest_port: "127.0.0.1:9898"
+
+# ── Retention ───────────────────────────────────────────────────────
+restic_keep_daily: 365
+restic_keep_weekly: 52
+restic_keep_monthly: 24
+restic_keep_yearly: 5
+
+# ── Schedule (cron syntax — Backrest format) ────────────────────────
+restic_backup_schedule: "0 */4 * * *"
+restic_prune_schedule: "0 3 * * 0"
+
+# ── Bandwidth (0 = unlimited; KiB/s) ───────────────────────────────
+restic_upload_limit: 0
+restic_download_limit: 0
+
+# ── Notifications ───────────────────────────────────────────────────
+restic_shoutrrr_url: ""
+restic_heartbeat_file: "{{ ansible_facts.env.HOME }}/.local/log/restic-heartbeat.log"
+restic_stale_threshold_hours: 8
+restic_stale_check_interval: "2h"
+restic_stale_check_interval_seconds: 7200
+
+# ── Excludes ────────────────────────────────────────────────────────
+restic_extra_excludes: []
+
+# ── Version check ───────────────────────────────────────────────────
+skip_version_check: false

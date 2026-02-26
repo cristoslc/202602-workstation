@@ -1,0 +1,160 @@
+{
+  "modno": 1,
+  "instance": "{{ ansible_facts.hostname }}",
+  "repos": [
+    {
+      "id": "b2-backup",
+      "uri": "b2:{{ restic_b2_bucket }}:/",
+      "password": "{{ restic_repo_password }}",
+      "env": [
+        "B2_ACCOUNT_ID={{ restic_b2_account_id }}",
+        "B2_ACCOUNT_KEY={{ restic_b2_account_key }}"
+      ],
+{% set repo_flags = [] %}
+{% if restic_upload_limit | int > 0 %}
+{%   set _ = repo_flags.extend(["--limit-upload", restic_upload_limit | string]) %}
+{% endif %}
+{% if restic_download_limit | int > 0 %}
+{%   set _ = repo_flags.extend(["--limit-download", restic_download_limit | string]) %}
+{% endif %}
+      "flags": {{ repo_flags | to_json }},
+      "prunePolicy": {
+        "schedule": {
+          "cron": "{{ restic_prune_schedule }}"
+        },
+        "maxUnusedPercent": 25
+      },
+      "checkPolicy": {
+        "schedule": {
+          "cron": "0 4 1 * *"
+        },
+        "readDataSubsetPercent": 5
+      }
+    }
+  ],
+  "plans": [
+    {
+      "id": "home-backup",
+      "repo": "b2-backup",
+      "paths": [
+        "{{ ansible_facts.env.HOME }}"
+      ],
+      "excludes": [
+        ".DS_Store",
+        "Thumbs.db",
+        "desktop.ini",
+        ".Spotlight-V100",
+        ".fseventsd",
+        ".Trashes",
+        ".Trash",
+        ".local/share/Trash",
+        ".cache",
+        "**/__pycache__",
+        "**/*.pyc",
+        "**/.mypy_cache",
+        "**/node_modules",
+        "**/.npm",
+        "**/.yarn/cache",
+        "**/.pnpm-store",
+        "**/.gradle",
+        "**/.m2/repository",
+        "**/.cargo/registry",
+        "**/.cargo/git",
+        "**/.rustup/toolchains",
+        "**/target/debug",
+        "**/target/release",
+        "**/.tox",
+        "**/.venv",
+        "**/venv",
+        "**/.virtualenvs",
+        "**/.idea",
+        "**/.vscode/workspaceStorage",
+        "**/*.swp",
+        "**/*.swo",
+        "*.iso",
+        "*.dmg",
+        "*.vmdk",
+        "*.qcow2",
+        "*.vdi",
+        "Library/Caches",
+        "Library/Logs",
+        "Library/Cookies",
+        "Library/HTTPStorages",
+        "Library/WebKit",
+        "Library/Saved Application State",
+        "Library/Metadata",
+        "Library/Trial",
+        "Library/Developer",
+        "Library/Containers/*/Data/Library/Caches",
+        "Library/Group Containers/*/Library/Caches",
+        "Library/Application Support/*/Cache",
+        "Library/Application Support/*/CachedData",
+        "Library/Application Support/*/CachedExtensionVSIXs",
+        "Library/Application Support/*/GPUCache",
+        "Library/Application Support/*/Service Worker",
+        "Library/Application Support/*/Code Cache",
+        "Library/Application Support/CrashReporter",
+        "Library/Application Support/com.apple.sharedfilelist",
+        "Library/Application Support/FileProvider",
+        "Library/Application Support/AddressBook/Sources",
+        "Library/Application Support/Google/Chrome/*/Service Worker",
+        "Library/Application Support/Google/Chrome/*/Code Cache",
+        "Library/Application Support/Slack/Cache",
+        "Library/Application Support/Slack/Service Worker",
+        "Library/Application Support/discord/Cache",
+        "Library/Application Support/discord/Code Cache",
+        "Library/Mail/V*/MailData/Envelope Index*",
+        "Library/Mail/V*/MailData/BackingStoreUpdateJournal",
+        ".local/share/baloo",
+        ".local/share/akonadi",
+        "snap/*/common/cache",
+        ".local/share/flatpak",
+        ".var/app/*/cache"
+{% for pattern in restic_extra_excludes | default([]) %}
+        ,"{{ pattern }}"
+{% endfor %}
+      ],
+      "iexcludes": [],
+      "schedule": {
+        "cron": "{{ restic_backup_schedule }}"
+      },
+      "retention": {
+        "keepDaily": {{ restic_keep_daily }},
+        "keepWeekly": {{ restic_keep_weekly }},
+        "keepMonthly": {{ restic_keep_monthly }},
+        "keepYearly": {{ restic_keep_yearly }}
+      },
+      "hooks": [
+        {
+          "conditions": ["CONDITION_SNAPSHOT_END"],
+          "actionCommand": {
+            "command": "/bin/bash -c 'mkdir -p \"$(dirname {{ restic_heartbeat_file }})\" && echo \"$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ) {{ ansible_facts.hostname }} snapshot_end\" >> {{ restic_heartbeat_file }}'"
+          }
+        },
+        {
+          "conditions": ["CONDITION_SNAPSHOT_ERROR"],
+          "actionCommand": {
+{% if ansible_facts.os_family == "Darwin" %}
+            "command": "osascript -e 'display notification \"Backup failed — check Backrest at localhost:{{ backrest_port.split(':')[-1] }}\" with title \"Restic Backup Error\"'"
+{% else %}
+            "command": "notify-send -u critical 'Restic Backup Error' 'Backup failed — check Backrest at localhost:{{ backrest_port.split(':')[-1] }}'"
+{% endif %}
+          }
+        }
+{% if restic_shoutrrr_url | length > 0 %}
+        ,{
+          "conditions": ["CONDITION_SNAPSHOT_ERROR"],
+          "actionShoutrrr": {
+            "shouttrrUrl": "{{ restic_shoutrrr_url }}",
+            "template": "Restic backup failed on {{ '{{' }} .hostname {{ '}}' }}"
+          },
+          "onError": "ON_ERROR_IGNORE"
+        }
+{% endif %}
+      ]
+    }
+  ],
+  "auth": {
+    "disabled": true
+  }
+}

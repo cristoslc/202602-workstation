@@ -29,7 +29,7 @@
       tags: [remote-desktop, rustdesk, gli-kvm, desktop]
 
     - role: backups
-      tags: [backups, backblaze, desktop]
+      tags: [backups, backblaze, restic, backrest, desktop]
 
     - role: screenshots
       tags: [screenshots, cleanshot, desktop]

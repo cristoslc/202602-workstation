@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+# shellcheck disable=all
+"""Backup status tray indicator — deployed by Ansible backups role.
+
+Reads the restic heartbeat file and shows a tray icon:
+  Green  = backup within threshold
+  Yellow = backup approaching staleness (>50% of threshold)
+  Red    = stale or heartbeat file missing
+
+Left-click opens the Backrest web UI.
+"""
+
+import os
+import signal
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+HEARTBEAT = Path(os.path.expanduser("{{ restic_heartbeat_file }}"))
+THRESHOLD_HOURS = {{ restic_stale_threshold_hours }}
+BACKREST_URL = "http://{{ backrest_port }}"
+REFRESH_SECONDS = 300  # re-check every 5 minutes
+
+try:
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("AppIndicator3", "0.1")
+    from gi.repository import AppIndicator3, GLib, Gtk  # noqa: E402
+except (ImportError, ValueError):
+    # AppIndicator3 not available — exit silently (graceful degradation)
+    raise SystemExit(0)
+
+
+def get_status():
+    """Return (icon_name, tooltip) based on heartbeat freshness."""
+    if not HEARTBEAT.exists():
+        return "dialog-error", "No heartbeat file — backup never ran"
+
+    try:
+        last_line = HEARTBEAT.read_text().strip().splitlines()[-1]
+        ts_str = last_line.split()[0]
+        last_dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        age_hours = (datetime.now(timezone.utc) - last_dt).total_seconds() / 3600
+    except (IndexError, ValueError, OSError):
+        return "dialog-error", "Cannot parse heartbeat file"
+
+    if age_hours > THRESHOLD_HOURS:
+        return "dialog-error", f"Stale: last backup {age_hours:.0f}h ago"
+    elif age_hours > THRESHOLD_HOURS * 0.5:
+        return "dialog-warning", f"Aging: last backup {age_hours:.0f}h ago"
+    else:
+        return "emblem-default", f"OK: last backup {age_hours:.0f}h ago"
+
+
+def open_backrest(_):
+    subprocess.Popen(["xdg-open", BACKREST_URL])  # noqa: S603
+
+
+def refresh(indicator, menu_status):
+    icon, tooltip = get_status()
+    indicator.set_icon_full(icon, tooltip)
+    menu_status.set_label(tooltip)
+    return True  # keep timer running
+
+
+def main():
+    icon, tooltip = get_status()
+
+    indicator = AppIndicator3.Indicator.new(
+        "backup-status",
+        icon,
+        AppIndicator3.IndicatorCategory.APPLICATION_STATUS,
+    )
+    indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+    indicator.set_title("Backup Status")
+
+    menu = Gtk.Menu()
+
+    menu_status = Gtk.MenuItem(label=tooltip)
+    menu_status.set_sensitive(False)
+    menu.append(menu_status)
+
+    menu_open = Gtk.MenuItem(label="Open Backrest UI")
+    menu_open.connect("activate", open_backrest)
+    menu.append(menu_open)
+
+    menu_sep = Gtk.SeparatorMenuItem()
+    menu.append(menu_sep)
+
+    menu_quit = Gtk.MenuItem(label="Quit")
+    menu_quit.connect("activate", lambda _: Gtk.main_quit())
+    menu.append(menu_quit)
+
+    menu.show_all()
+    indicator.set_menu(menu)
+
+    GLib.timeout_add_seconds(REFRESH_SECONDS, refresh, indicator, menu_status)
+
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

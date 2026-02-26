@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.backup-staleness</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{ ansible_facts.env.HOME }}/.local/bin/backup-staleness-check</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>{{ restic_stale_check_interval_seconds }}</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{{ ansible_facts.env.HOME }}/.local/log/backup-staleness.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{ ansible_facts.env.HOME }}/.local/log/backup-staleness.log</string>
+</dict>
+</plist>

@@ -1,0 +1,73 @@
+---
+# Staleness watcher: background process that checks heartbeat freshness.
+
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/bin"
+    state: directory
+    mode: "0755"
+
+- name: Template staleness check script
+  ansible.builtin.template:
+    src: backup-staleness-check.sh.j2
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/backup-staleness-check"
+    mode: "0755"
+
+# ── Linux: systemd user timer ──────────────────────────────────────
+
+- name: Configure staleness watcher (Linux)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure systemd user directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Template staleness check service
+      ansible.builtin.template:
+        src: backup-staleness.service.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/backup-staleness.service"
+        mode: "0644"
+
+    - name: Template staleness check timer
+      ansible.builtin.template:
+        src: backup-staleness.timer.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/backup-staleness.timer"
+        mode: "0644"
+
+    - name: Reload systemd user daemon for staleness watcher
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+
+    - name: Enable and start staleness check timer
+      ansible.builtin.systemd:
+        name: backup-staleness.timer
+        state: started
+        enabled: true
+        scope: user
+
+# ── macOS: launchd agent ───────────────────────────────────────────
+
+- name: Configure staleness watcher (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Ensure LaunchAgents directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+        state: directory
+        mode: "0755"
+
+    - name: Template staleness check launchd plist
+      ansible.builtin.template:
+        src: com.user.backup-staleness.plist.j2
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backup-staleness.plist"
+        mode: "0644"
+
+    - name: Load staleness check launchd agent
+      ansible.builtin.command:
+        cmd: launchctl load -w {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backup-staleness.plist
+      register: _staleness_launchctl
+      changed_when: _staleness_launchctl.rc == 0
+      failed_when: false
