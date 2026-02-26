@@ -1,0 +1,4 @@
+---
+# Acronis Cyber Protect Connect agent download URL (Debian/Ubuntu .deb).
+# go.acronis.com redirects to the latest release.
+acronis_connect_deb_url: "https://go.acronis.com/AcronisCyberProtectConnect_AgentForLinux_DEB"

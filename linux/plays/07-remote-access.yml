@@ -1,0 +1,12 @@
+---
+- name: "Phase 7: Remote access"
+  hosts: localhost
+  connection: local
+
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: 300
+
+  roles:
+    - role: remote-access
+      tags: [remote-access, acronis-connect]
