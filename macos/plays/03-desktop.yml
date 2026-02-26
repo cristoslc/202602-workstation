@@ -13,6 +13,9 @@
     - role: text-expansion
       tags: [text-expansion, espanso, desktop]
 
+    - role: notes
+      tags: [notes, antinote, desktop]
+
     - role: calendar
       tags: [calendar, dato, busycal, desktop]
 

@@ -1,0 +1,10 @@
+---
+# Notes role: Antinote (macOS) + NormCap (Linux)
+
+- name: Install Antinote
+  ansible.builtin.include_tasks: antinote.yml
+  tags: [antinote]
+
+- name: Install NormCap
+  ansible.builtin.include_tasks: normcap.yml
+  tags: [normcap]

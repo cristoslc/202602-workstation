@@ -1,0 +1,8 @@
+---
+# Antinote sub-task (macOS only)
+# Ephemeral notes with OCR, inline calculations, and searchable history.
+- name: Install Antinote (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: antinote
+    state: present
