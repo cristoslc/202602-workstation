@@ -36,10 +36,14 @@ automatically configured to:
 
 1. Back up `$HOME` (with exclude patterns) directly to Backblaze B2.
 2. Run Backrest as a background service for scheduling, monitoring, browsing,
-   and restoring — with notifications on backup success/failure.
+   and restoring — with error-only notifications (desktop + email).
 3. Retain 365+ days of deduplicated, encrypted file history.
 4. Isolate each workstation's snapshots by hostname.
-5. Allow the user to pause and resume backups from the Backrest web UI.
+5. Detect stale backups via a background staleness watcher that alerts if
+   the heartbeat file goes stale.
+6. Show at-a-glance backup health in the system tray with one-click access
+   to the Backrest web UI.
+7. Allow the user to pause and resume backups from the Backrest web UI.
 
 ## Scope
 
@@ -70,14 +74,21 @@ automatically configured to:
    verification steps and Backrest web UI access.
 10. **`make` targets** — `backup-status` (show last snapshot), `backup-browse`
     (open Backrest web UI).
+11. **Staleness watcher** — Background process
+    (`~/.local/bin/backup-staleness-check`) that periodically reads the
+    heartbeat file and fires desktop notification + SMTP email if backups
+    are stale. Runs via systemd user timer (Linux) / launchd agent (macOS).
+    Deployed by the Ansible role; runs from the user's home directory.
+12. **System tray indicator** — Tray icon that shows backup status
+    (green/yellow/red based on heartbeat freshness) and opens the Backrest
+    web UI on click. Linux: AppIndicator script (`~/.local/bin/`).
+    macOS: SwiftBar plugin (`~/Library/Application Support/SwiftBar/Plugins/`).
 
 ### Out of scope
 
 - Replacing Backblaze Personal on macOS (stays as a belt-and-suspenders layer).
 - Replacing Timeshift on Linux (stays for system-level rollback).
 - B2 bucket creation and IAM (one-time manual setup in B2 console).
-- Native tray icon (Backrest is web UI; tray indicators are a future
-  nice-to-have via SwiftBar/xbar on macOS, polybar/waybar on Linux).
 - Weekly digest emails with data-uploaded stats (Backrest doesn't support
   aggregated weekly summaries natively; custom post-backup reporting is a v2
   candidate).
@@ -89,19 +100,30 @@ automatically configured to:
 ### v1: B2-direct (this PRD)
 
 ```
-┌──────────────────────┐
-│  macOS workstation    │──── restic backup ────▶ B2 bucket
-│  restic + Backrest    │     (direct, encrypted)
-│                       │──── on error ────▶ desktop notification + SMTP email
-│                       │──── on success ──▶ heartbeat file (~/.local/log/)
-└──────────────────────┘
-
-┌──────────────────────┐
-│  Linux workstation    │──── restic backup ────▶ same B2 bucket
-│  restic + Backrest    │     (--host isolates snapshots)
-│                       │──── on error ────▶ desktop notification + SMTP email
-│                       │──── on success ──▶ heartbeat file (~/.local/log/)
-└──────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│  Workstation (macOS or Linux)                                     │
+│                                                                   │
+│  ┌─────────────────────┐                                          │
+│  │  Backrest daemon     │──── restic backup ────▶ B2 bucket       │
+│  │  (systemd / launchd) │     (direct, encrypted)                 │
+│  │                      │──── on error ────▶ notify-send/osascript│
+│  │                      │──── on error ────▶ Shoutrrr → SMTP email│
+│  │                      │──── on success ──▶ heartbeat file       │
+│  └─────────────────────┘              │                           │
+│                                       ▼                           │
+│  ┌─────────────────────┐    ~/.local/log/                         │
+│  │  Staleness watcher   │◀── restic-heartbeat.log                 │
+│  │  (timer / launchd)   │                                         │
+│  │                      │──── if stale ──▶ notify-send/osascript  │
+│  │                      │──── if stale ──▶ Shoutrrr → SMTP email  │
+│  └─────────────────────┘                                          │
+│                                                                   │
+│  ┌─────────────────────┐                                          │
+│  │  Tray indicator      │◀── reads heartbeat file for status      │
+│  │  (AppIndicator /     │──── click ────▶ opens localhost:9898    │
+│  │   SwiftBar)          │                                         │
+│  └─────────────────────┘                                          │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
 Each workstation talks directly to B2. No intermediate server. Restic encrypts
@@ -162,22 +184,38 @@ dependencies.
 
 | Mechanism | Trigger | What it does | How |
 |-----------|---------|-------------|-----|
-| **Desktop notification** | Error only | Immediate visual alert | Backrest command hook: `notify-send` (Linux) / `osascript` (macOS) on `CONDITION_SNAPSHOT_ERROR` |
-| **SMTP email** (Shoutrrr) | Error only | Alert when away from machine | Backrest Shoutrrr hook on `CONDITION_SNAPSHOT_ERROR` via user's own SMTP relay |
+| **Desktop notification** | Backup error | Immediate visual alert | Backrest command hook: `notify-send` (Linux) / `osascript` (macOS) on `CONDITION_SNAPSHOT_ERROR` |
+| **SMTP email** (Shoutrrr) | Backup error | Alert when away from machine | Backrest Shoutrrr hook on `CONDITION_SNAPSHOT_ERROR` via user's own SMTP relay |
 | **Heartbeat file** | Every backup | Staleness detection | Backrest command hook writes timestamp + stats to `~/.local/log/restic-heartbeat.log` on `CONDITION_SNAPSHOT_END` |
+| **Staleness watcher** | Periodic (timer) | Catches silent failures | Background script reads heartbeat file; if stale >N hours → desktop notification + SMTP email |
+| **Tray indicator** | Always running | At-a-glance status | System tray icon: green (fresh) / yellow (stale) / red (error). Click opens Backrest web UI |
 | **`make backup-status`** | On demand | Quick CLI check | Reads heartbeat file (warns if stale >8h) + runs `restic snapshots --latest 3` |
 | **Backrest web UI** | On demand | Full dashboard: history, sizes, errors, next run | `localhost:9898` |
 | **Systemd/launchd** | Daemon crash | Auto-restart Backrest | `Restart=on-failure` (systemd) / `KeepAlive` (launchd) |
 
-**Staleness detection:** `make backup-status` reads the heartbeat file and
-warns if the last successful backup is older than the expected interval (2x
-the schedule period, e.g., 8 hours for a 4-hour schedule). This catches the
-"daemon silently died" case without requiring an external monitoring service.
+**Staleness watcher:** A background process
+(`~/.local/bin/backup-staleness-check`) runs on a timer (every 2 hours by
+default). It reads the heartbeat file and fires desktop notification + SMTP
+email if the last successful backup is older than
+`restic_stale_threshold_hours`. This catches the "daemon silently died" and
+"Backrest config broke after update" cases without requiring an external
+monitoring service. Runs as a systemd user timer (Linux) or launchd agent
+(macOS). Ansible deploys the script and timer/agent; installed artifacts live
+in `~/.local/bin/` and `~/.config/systemd/user/` (Linux) or
+`~/Library/LaunchAgents/` (macOS).
 
-**Trade-off:** If the machine is powered off for days, nothing alerts you —
-but you already know the machine is off. For true remote monitoring (machine
-off, network down), a self-hosted Healthchecks.io instance on Proxmox is a
-v2 candidate.
+**Tray indicator:** A lightweight system tray icon that reads the heartbeat
+file to determine status. Green = backup within threshold. Yellow = backup
+approaching staleness (>50% of threshold). Red = stale or heartbeat file
+missing. Left-click opens the Backrest web UI (`localhost:9898`). On Linux,
+uses a Python AppIndicator3 script (GTK bindings are pre-installed on
+desktop systems). On macOS, uses a SwiftBar plugin (SwiftBar installed via
+Homebrew). Both auto-start on login.
+
+**Trade-off:** If the machine is powered off for days, neither the watcher
+nor the tray can alert you — but you already know the machine is off. For
+true remote monitoring (machine off, network down), a self-hosted
+Healthchecks.io instance on Proxmox is a v2 candidate.
 
 Backrest does **not** support aggregated weekly digest emails (e.g., "X GB
 uploaded this week"). For data-volume reporting, a v2 enhancement could add a
@@ -318,7 +356,9 @@ restic_download_limit: 0
 # Notifications (error-only alerts; heartbeat file is always written)
 restic_shoutrrr_url: ""            # e.g. "smtp://user:pass@smtp.example.com:587/?to=you@example.com"
 restic_heartbeat_file: "~/.local/log/restic-heartbeat.log"
-restic_stale_threshold_hours: 8    # make backup-status warns if last backup older than this
+restic_stale_threshold_hours: 8    # staleness watcher + make backup-status warn threshold
+restic_stale_check_interval: "2h"  # systemd timer interval (Linux)
+restic_stale_check_interval_seconds: 7200  # launchd StartInterval (macOS)
 
 # Excludes
 restic_extra_excludes: []  # user-extensible list appended to template
@@ -460,6 +500,101 @@ backup-browse: ## Open Backrest web UI
 	$(if $(filter darwin,$(PLATFORM)),open,xdg-open) http://localhost:9898
 ```
 
+### D14: Staleness watcher (background process)
+
+A shell script + timer that periodically checks the heartbeat file and
+alerts if backups are stale. Deployed by the Ansible role; all installed
+artifacts live in the user's home directory.
+
+**Script:** `~/.local/bin/backup-staleness-check`
+
+```bash
+#!/usr/bin/env bash
+# Reads heartbeat file, alerts if last backup is older than threshold.
+# Deployed by Ansible backups role — do not edit manually.
+
+HEARTBEAT="${RESTIC_HEARTBEAT_FILE:-$HOME/.local/log/restic-heartbeat.log}"
+THRESHOLD_HOURS="${RESTIC_STALE_THRESHOLD_HOURS:-8}"
+SHOUTRRR_URL="${RESTIC_SHOUTRRR_URL:-}"  # empty = skip email
+
+if [[ ! -f "$HEARTBEAT" ]]; then
+  MSG="Backup heartbeat file missing — has a backup ever completed?"
+elif # ... timestamp comparison logic (see D13 for pattern) ...
+  MSG="Last successful backup was ${AGE}h ago (threshold: ${THRESHOLD_HOURS}h)"
+fi
+
+# Desktop notification
+if command -v notify-send &>/dev/null; then
+  notify-send -u critical "Backup Stale" "$MSG"
+elif command -v osascript &>/dev/null; then
+  osascript -e "display notification \"$MSG\" with title \"Backup Stale\""
+fi
+
+# SMTP email (optional)
+if [[ -n "$SHOUTRRR_URL" ]]; then
+  shoutrrr send --url "$SHOUTRRR_URL" --message "$MSG" || true
+fi
+```
+
+**Linux timer:** Two systemd user units deployed to
+`~/.config/systemd/user/`:
+
+- `backup-staleness.service` — runs the check script once.
+- `backup-staleness.timer` — triggers every `{{ restic_stale_check_interval }}`
+  (default: `2h`). Enabled via `systemctl --user enable --now`.
+
+**macOS agent:** A launchd plist deployed to `~/Library/LaunchAgents/`:
+
+- `com.user.backup-staleness.plist` — runs the check script every
+  `{{ restic_stale_check_interval_seconds }}` (default: 7200) via
+  `StartInterval`.
+
+**Ansible templates:**
+- `shared/roles/backups/templates/backup-staleness-check.sh.j2`
+- `shared/roles/backups/templates/backup-staleness.service.j2` (Linux)
+- `shared/roles/backups/templates/backup-staleness.timer.j2` (Linux)
+- `shared/roles/backups/templates/com.user.backup-staleness.plist.j2` (macOS)
+
+The script reads its configuration from environment variables set in the
+systemd service / launchd plist, which Ansible templates from role defaults.
+
+### D15: System tray indicator
+
+A lightweight tray icon that shows backup health at a glance and provides
+one-click access to the Backrest web UI. Deployed by the Ansible role;
+installed artifacts live in the user's home directory. Auto-starts on login.
+
+**Status logic** (reads heartbeat file):
+- **Green:** Last backup within `restic_stale_threshold_hours`.
+- **Yellow:** Last backup older than 50% of threshold (approaching stale).
+- **Red:** Last backup exceeds threshold, or heartbeat file missing.
+
+**Click action:** Opens `http://localhost:{{ backrest_port }}` in default
+browser.
+
+**Linux implementation:** Python script using GTK AppIndicator3
+(`gi.repository.AppIndicator3`). GTK introspection bindings are
+pre-installed on desktop Ubuntu/Mint/Fedora — no pip dependencies.
+
+- Script: `~/.local/bin/backup-tray-indicator`
+- Autostart: `~/.config/autostart/backup-tray-indicator.desktop`
+- Icons: `~/.local/share/icons/backup-status-{green,yellow,red}.svg`
+  (templated by Ansible, or bundled as static files in the role).
+
+**macOS implementation:** SwiftBar plugin shell script. SwiftBar reads
+scripts from its plugin directory and renders their stdout as menubar items.
+
+- Prerequisite: `brew install swiftbar` (added to Backrest macOS tasks).
+- Plugin: `~/Library/Application Support/SwiftBar/Plugins/backup-status.5m.sh`
+  (the `5m` suffix means SwiftBar re-runs the script every 5 minutes).
+- Output format: SwiftBar's `stdout` protocol — icon + menu items with
+  `href=` for click-to-open.
+
+**Ansible templates:**
+- `shared/roles/backups/templates/backup-tray-indicator.py.j2` (Linux)
+- `shared/roles/backups/templates/backup-tray-indicator.desktop.j2` (Linux)
+- `shared/roles/backups/templates/backup-status.swiftbar.sh.j2` (macOS)
+
 ---
 
 ## Risks
@@ -474,6 +609,8 @@ backup-browse: ## Open Backrest web UI
 | macOS `~/Library` excludes miss new cache paths | Backup grows over time | Periodic review of backup size; add new excludes to template |
 | Initial upload is large / slow | First backup takes hours over internet | Expect it; restic dedup means subsequent backups are incremental (fast). Can throttle with `--limit-upload`. |
 | Backrest scheduling conflicts with manual `restic` runs | Lock contention, failed operations | Document that Backrest owns scheduling; CLI use should be read-only (snapshots, find, mount, restore) unless Backrest is stopped |
+| Linux DE lacks AppIndicator3 support | Tray indicator doesn't appear | Graceful degradation — staleness watcher still fires notifications; `make backup-status` still works. AppIndicator3 is supported on GNOME (with extension), KDE, Cinnamon, XFCE |
+| SwiftBar not installed on macOS | Tray indicator doesn't appear | Ansible installs SwiftBar via Homebrew as part of D15; graceful degradation if user uninstalls |
 
 ---
 
@@ -498,23 +635,31 @@ Phase 3: Backrest layer
   D5:  Systemd user service template
   D2:  Backrest installation + service enable
 
-Phase 4: Integration
+Phase 4: Local monitoring
+  D14: Staleness watcher (script + timer/agent)
+  D15: System tray indicator (AppIndicator / SwiftBar)
+
+Phase 5: Integration
   D9:  Playbook tag updates
   D12: Post-install doc updates
   D13: Makefile targets
 
-Phase 5: Verification
+Phase 6: Verification
   First backup + restore test on both platforms
   Verify retention policy (simulate forget --dry-run)
   Verify desktop notification fires on error
   Verify SMTP email fires on error
   Verify heartbeat file is written on success
+  Verify staleness watcher fires alert when heartbeat is stale
+  Verify tray indicator shows correct status color
+  Verify tray indicator click opens Backrest web UI
   Verify `make backup-status` detects stale heartbeat
 ```
 
 Phase 1 is lightweight (no server to provision — just B2 console + `sops` edit
 + `restic init`). Phases 2–3 can be developed locally with `--check`/`--diff`
-mode. Phase 4 is low-risk wiring.
+mode. Phase 4 adds the local monitoring layer (no external dependencies).
+Phase 5 is low-risk wiring.
 
 ---
 
@@ -582,5 +727,9 @@ All you need is credentials + internet access.
 12. SMTP email fires on backup error (Shoutrrr → user's SMTP relay).
 13. Heartbeat file (`~/.local/log/restic-heartbeat.log`) is written after each
     successful backup. `make backup-status` warns if heartbeat is stale.
-14. Disabling a Backrest plan from the web UI stops scheduled backups;
+14. Staleness watcher (systemd timer / launchd agent) fires desktop
+    notification + SMTP email when heartbeat exceeds threshold.
+15. System tray indicator shows green/yellow/red based on heartbeat freshness.
+    Left-click opens Backrest web UI.
+16. Disabling a Backrest plan from the web UI stops scheduled backups;
     re-enabling resumes them.
