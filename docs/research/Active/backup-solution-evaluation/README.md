@@ -575,8 +575,8 @@ systemd service / launchd agent just keeps Backrest running.
 5. **First backup + retention test** — verify `forget --keep-daily 365` works
    as expected.
 
-This is scoped enough to go straight to implementation without a formal PRD.
-The Ansible role is the deliverable.
+See [(PRD-002) Restic Backup Stack](../../../prd/Draft/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md)
+for full implementation spec.
 
 ---
 
