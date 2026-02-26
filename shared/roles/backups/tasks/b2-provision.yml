@@ -13,6 +13,35 @@
     state: directory
     mode: "0700"
 
+# ── Determine provision date (stable across re-applies) ────────────
+# First provision writes the date; subsequent applies reuse it so
+# Terraform doesn't try to create a new key on every run.
+
+- name: Check for existing provision date
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/terraform/b2-backup/provision-date"
+  register: _provision_date_file
+
+- name: Read existing provision date
+  when: _provision_date_file.stat.exists
+  ansible.builtin.slurp:
+    src: "{{ ansible_facts.env.HOME }}/.local/share/terraform/b2-backup/provision-date"
+  register: _provision_date_content
+
+- name: Set provision date
+  ansible.builtin.set_fact:
+    _b2_provision_date: >-
+      {{ (_provision_date_content.content | b64decode | trim)
+         if _provision_date_file.stat.exists
+         else ansible_date_time.date }}
+
+- name: Write provision date (first run only)
+  when: not _provision_date_file.stat.exists
+  ansible.builtin.copy:
+    content: "{{ _b2_provision_date }}"
+    dest: "{{ ansible_facts.env.HOME }}/.local/share/terraform/b2-backup/provision-date"
+    mode: "0644"
+
 # ── Write tfvars (ephemeral — contains master key) ─────────────────
 
 - name: Template Terraform variables
@@ -22,6 +51,7 @@
       b2_master_key    = "{{ b2_master_key }}"
       bucket_name      = "{{ restic_b2_bucket }}"
       hostname         = "{{ ansible_facts.hostname }}"
+      provision_date   = "{{ _b2_provision_date }}"
       create_bucket    = {{ b2_create_bucket | lower }}
     dest: "{{ workstation_dir }}/infra/b2-backup/terraform.tfvars"
     mode: "0600"
@@ -62,6 +92,7 @@
           b2_master_key    = "{{ b2_master_key }}"
           bucket_name      = "{{ restic_b2_bucket }}"
           hostname         = "{{ ansible_facts.hostname }}"
+          provision_date   = "{{ _b2_provision_date }}"
           create_bucket    = false
         dest: "{{ workstation_dir }}/infra/b2-backup/terraform.tfvars"
         mode: "0600"

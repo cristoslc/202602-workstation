@@ -49,7 +49,7 @@ locals {
 # ── Per-workstation application key (scoped to bucket) ─────────────
 
 resource "b2_application_key" "workstation" {
-  key_name  = "restic-${var.hostname}"
+  key_name  = "restic-${var.hostname}-${var.provision_date}"
   bucket_id = local.bucket_id
 
   capabilities = [
