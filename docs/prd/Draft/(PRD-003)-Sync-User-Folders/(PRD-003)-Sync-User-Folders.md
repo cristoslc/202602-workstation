@@ -4,6 +4,7 @@
 **Author:** cristos
 **Created:** 2026-02-26
 **Last Updated:** 2026-02-26
+**Implementation:** Ansible roles (`syncthing`, `unison`), `scripts/wsync`, `scripts/data-pull.sh`
 **Research:** [sync-user-folders](../../../research/Active/sync-user-folders/README.md)
 **ADR:** —
 

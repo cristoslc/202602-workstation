@@ -1,0 +1,12 @@
+[Unit]
+Description=wsync periodic code sync timer
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+# Persistent=true ensures the timer fires immediately after wake from suspend
+# if a scheduled run was missed during sleep.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

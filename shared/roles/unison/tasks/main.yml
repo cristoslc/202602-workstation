@@ -1,0 +1,14 @@
+---
+- name: Install Unison (OS-specific)
+  ansible.builtin.include_tasks: "{{ 'darwin.yml' if ansible_facts.os_family == 'Darwin' else 'debian.yml' }}"
+  tags: [unison]
+
+- name: Deploy Unison profile and wsync wrapper
+  ansible.builtin.include_tasks: configure.yml
+  when: unison_enabled
+  tags: [unison, unison-configure]
+
+- name: Set up background sync timers
+  ansible.builtin.include_tasks: timer.yml
+  when: unison_enabled
+  tags: [unison, wsync-timer]

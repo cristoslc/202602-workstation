@@ -1,0 +1,45 @@
+---
+# Configure Syncthing: deploy .stignore files to each user data folder.
+# Full hub-spoke topology configuration (device pairing, folder sharing)
+# requires the Syncthing REST API and is done interactively or via the
+# Syncthing GUI after first start. This task file handles the file-level
+# configuration that Ansible can manage declaratively.
+
+- name: Ensure user data folders exist
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ syncthing_user_folders }}"
+
+- name: Deploy .stignore to each user data folder
+  ansible.builtin.copy:
+    src: stignore
+    dest: "{{ ansible_facts.env.HOME }}/{{ item }}/.stignore"
+    mode: "0644"
+  loop: "{{ syncthing_user_folders }}"
+
+- name: Wait for Syncthing to generate config on first start
+  ansible.builtin.wait_for:
+    path: "{{ _syncthing_config_dir }}/config.xml"
+    timeout: 30
+  vars:
+    _syncthing_config_dir: >-
+      {{ (ansible_facts.os_family == 'Darwin')
+         | ternary(
+             ansible_facts.env.HOME ~ '/Library/Application Support/Syncthing',
+             ansible_facts.env.HOME ~ '/.local/state/syncthing')
+      }}
+
+- name: Display post-install instructions
+  ansible.builtin.debug:
+    msg: |
+      Syncthing is installed and running.
+
+      Next steps (manual, one-time):
+      1. Open {{ syncthing_gui_address }} in a browser
+      2. Add the hub server as a remote device (ID: {{ syncthing_hub_device_id | default('set in group_vars') }})
+      3. Share each user folder (Documents, Pictures, Music, Videos, Downloads) with the hub
+      4. On the hub, accept the device and folder share requests
+      5. Set folder type to "Send & Receive" on both sides
+      6. Enable Staggered file versioning on the hub for each folder

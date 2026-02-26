@@ -1,0 +1,58 @@
+---
+# Deploy background sync timers:
+# - Linux: systemd user service + timer (Persistent=true for wake-from-suspend)
+# - macOS: launchd agent (RunAtLoad + StartInterval for periodic sync)
+
+# --- Linux (systemd) ---
+- name: Deploy wsync systemd user service
+  when: ansible_facts.os_family != 'Darwin'
+  block:
+    - name: Ensure systemd user directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Copy wsync.service
+      ansible.builtin.copy:
+        src: wsync.service
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/wsync.service"
+        mode: "0644"
+      notify: Reload systemd user daemon
+
+    - name: Copy wsync.timer
+      ansible.builtin.copy:
+        src: wsync.timer
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/wsync.timer"
+        mode: "0644"
+      notify: Reload systemd user daemon
+
+    - name: Enable and start wsync timer
+      ansible.builtin.systemd:
+        name: wsync.timer
+        scope: user
+        enabled: true
+        state: started
+        daemon_reload: true
+
+# --- macOS (launchd) ---
+- name: Deploy wsync launchd agent
+  when: ansible_facts.os_family == 'Darwin'
+  block:
+    - name: Ensure LaunchAgents directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+        state: directory
+        mode: "0755"
+
+    - name: Copy wsync launchd plist
+      ansible.builtin.copy:
+        src: com.workstation.wsync.plist
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.workstation.wsync.plist"
+        mode: "0644"
+
+    - name: Load wsync launchd agent
+      ansible.builtin.command:
+        cmd: launchctl load {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.workstation.wsync.plist
+      changed_when: false
+      failed_when: false
