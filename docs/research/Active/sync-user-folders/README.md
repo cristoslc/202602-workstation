@@ -7,7 +7,8 @@ user data folders between machines after bootstrap, and (B) keeping user data
 folders in ongoing sync across 2-3 workstations.
 
 **In scope:** Documents, Pictures, Music, Videos, Downloads, and similar
-user-created content folders.
+user-created content folders. Code repositories (working tree sync — see
+[unison-code-sync.md](unison-code-sync.md)).
 
 **Out of scope:** Dotfiles (managed by Stow), system configuration (managed by
 Ansible), package installation, secrets (managed by SOPS/age).
@@ -931,6 +932,14 @@ for groupware. More infrastructure, but each tool does what it's best at.
 | Ongoing sync (server, platform) | Nextcloud | Calendar, contacts, office, sharing, mobile |
 | Offsite backup | rclone + crypt | 40+ backends, client-side encryption |
 | Initial LAN seed | tar+ssh | Avoids file-list overhead for first bulk copy |
+| **Code repo working trees** | **Unison (branch-aware)** | **Uncommitted work, branch isolation, wake trigger** |
+
+**Code sync note:** Code repositories need special handling — general file
+sync tools break `.git/` internals or garble working trees across branches
+(see [syncthing-git-repos.md](syncthing-git-repos.md)). The branch-aware
+Unison design in [unison-code-sync.md](unison-code-sync.md) is the primary
+mechanism for transferring working state between machines. Forgejo/git remotes
+handle committed history and CI only.
 
 ---
 
