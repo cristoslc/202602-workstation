@@ -5,8 +5,32 @@
 
 - name: Install Acronis Cyber Protect Connect (macOS)
   when: ansible_facts.os_family == "Darwin"
-  ansible.builtin.debug:
-    msg: "Acronis Cyber Protect Connect for macOS must be installed manually from https://www.acronis.com/en/products/cyber-protect-connect/download/"
+  block:
+    - name: Check if Acronis Connect agent is already installed
+      ansible.builtin.command:
+        cmd: pkgutil --pkg-info com.acronis.CyberProtectConnectAgent
+      register: _acronis_connect_mac_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download Acronis Connect agent .pkg
+      when: _acronis_connect_mac_installed.rc != 0
+      ansible.builtin.get_url:
+        url: "{{ acronis_connect_mac_pkg_url }}"
+        dest: "{{ ansible_env.HOME }}/Downloads/AcronisCyberProtectConnectAgent.pkg"
+        mode: "0644"
+        follow_redirects: all
+      register: _acronis_connect_mac_download
+      retries: 3
+      delay: 5
+      until: _acronis_connect_mac_download is not failed
+
+    - name: Remind user to install Acronis Connect agent manually
+      when: _acronis_connect_mac_installed.rc != 0
+      ansible.builtin.debug:
+        msg: >
+          Acronis Cyber Protect Connect agent .pkg downloaded to
+          ~/Downloads/AcronisCyberProtectConnectAgent.pkg — open it to install.
 
 - name: Install Acronis Cyber Protect Connect (Debian)
   when: ansible_facts.os_family == "Debian"
