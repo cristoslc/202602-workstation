@@ -22,7 +22,7 @@ CHECK_LOG ?= check.log
 
 # Restic backup defaults for make targets
 RESTIC_STALE_HOURS ?= 8
-RESTIC_B2_BUCKET ?=
+RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
 
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions check-sync check-playbook test test-bats test-python check apply \

@@ -1,0 +1,138 @@
+---
+# Provision B2 infrastructure via Terraform:
+# - Bucket (created on first workstation, looked up on subsequent)
+# - Per-workstation bucket-scoped application key
+# - Restic repository initialization
+
+- name: Ensure Terraform is installed
+  ansible.builtin.include_tasks: terraform-install.yml
+
+- name: Ensure Terraform state directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/terraform/b2-backup"
+    state: directory
+    mode: "0700"
+
+# ── Write tfvars (ephemeral — contains master key) ─────────────────
+
+- name: Template Terraform variables
+  ansible.builtin.copy:
+    content: |
+      b2_master_key_id = "{{ b2_master_key_id }}"
+      b2_master_key    = "{{ b2_master_key }}"
+      bucket_name      = "{{ restic_b2_bucket }}"
+      hostname         = "{{ ansible_facts.hostname }}"
+      create_bucket    = {{ b2_create_bucket | lower }}
+    dest: "{{ workstation_dir }}/infra/b2-backup/terraform.tfvars"
+    mode: "0600"
+  no_log: true
+
+# ── Terraform init ─────────────────────────────────────────────────
+
+- name: Terraform init
+  ansible.builtin.command:
+    cmd: >
+      terraform init -reconfigure
+      -backend-config=path={{ ansible_facts.env.HOME }}/.local/share/terraform/b2-backup/terraform.tfstate
+    chdir: "{{ workstation_dir }}/infra/b2-backup"
+  register: _tf_init
+  changed_when: "'Initializing' in _tf_init.stdout"
+
+# ── Terraform apply ────────────────────────────────────────────────
+
+- name: Terraform apply
+  ansible.builtin.command:
+    cmd: terraform apply -auto-approve
+    chdir: "{{ workstation_dir }}/infra/b2-backup"
+  register: _tf_apply
+  changed_when: "'Apply complete' in _tf_apply.stdout"
+  failed_when: false
+  no_log: true
+
+# If bucket creation failed because it already exists, switch to data source and retry
+- name: Handle existing bucket
+  when:
+    - _tf_apply.rc != 0
+    - b2_create_bucket | bool
+  block:
+    - name: Re-template tfvars with create_bucket=false
+      ansible.builtin.copy:
+        content: |
+          b2_master_key_id = "{{ b2_master_key_id }}"
+          b2_master_key    = "{{ b2_master_key }}"
+          bucket_name      = "{{ restic_b2_bucket }}"
+          hostname         = "{{ ansible_facts.hostname }}"
+          create_bucket    = false
+        dest: "{{ workstation_dir }}/infra/b2-backup/terraform.tfvars"
+        mode: "0600"
+      no_log: true
+
+    - name: Retry Terraform apply with existing bucket
+      ansible.builtin.command:
+        cmd: terraform apply -auto-approve
+        chdir: "{{ workstation_dir }}/infra/b2-backup"
+      register: _tf_apply_retry
+      changed_when: "'Apply complete' in _tf_apply_retry.stdout"
+      no_log: true
+
+- name: Fail if Terraform apply failed
+  when:
+    - _tf_apply.rc != 0
+    - not (b2_create_bucket | bool) or (_tf_apply_retry is defined and _tf_apply_retry.rc != 0)
+  ansible.builtin.fail:
+    msg: "Terraform apply failed. Check B2 credentials and bucket name."
+
+# ── Capture Terraform outputs ──────────────────────────────────────
+
+- name: Read Terraform outputs
+  ansible.builtin.command:
+    cmd: terraform output -json
+    chdir: "{{ workstation_dir }}/infra/b2-backup"
+  register: _tf_outputs
+  changed_when: false
+  no_log: true
+
+- name: Set B2 credentials from Terraform
+  ansible.builtin.set_fact:
+    restic_b2_account_id: "{{ (_tf_outputs.stdout | from_json).application_key_id.value }}"
+    restic_b2_account_key: "{{ (_tf_outputs.stdout | from_json).application_key.value }}"
+  no_log: true
+
+# ── Clean up tfvars (contains master key) ──────────────────────────
+
+- name: Remove ephemeral tfvars
+  ansible.builtin.file:
+    path: "{{ workstation_dir }}/infra/b2-backup/terraform.tfvars"
+    state: absent
+
+# ── Write bucket name for Makefile consumption ─────────────────────
+
+- name: Write bucket name to config
+  ansible.builtin.copy:
+    content: "{{ restic_b2_bucket }}"
+    dest: "{{ ansible_facts.env.HOME }}/.config/restic/bucket-name"
+    mode: "0644"
+
+# ── Initialize restic repository (first time only) ─────────────────
+
+- name: Check if restic repository is initialized
+  ansible.builtin.command:
+    cmd: restic -r "b2:{{ restic_b2_bucket }}:/" cat config
+  environment:
+    B2_ACCOUNT_ID: "{{ restic_b2_account_id }}"
+    B2_ACCOUNT_KEY: "{{ restic_b2_account_key }}"
+    RESTIC_PASSWORD: "{{ restic_repo_password }}"
+  register: _restic_repo_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Initialize restic repository
+  when: _restic_repo_check.rc != 0
+  ansible.builtin.command:
+    cmd: restic -r "b2:{{ restic_b2_bucket }}:/" init
+  environment:
+    B2_ACCOUNT_ID: "{{ restic_b2_account_id }}"
+    B2_ACCOUNT_KEY: "{{ restic_b2_account_key }}"
+    RESTIC_PASSWORD: "{{ restic_repo_password }}"
+  no_log: true

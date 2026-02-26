@@ -1,0 +1,71 @@
+---
+# Ensure Terraform is available (needed for B2 provisioning)
+
+- name: Check if Terraform is installed
+  ansible.builtin.command: terraform version
+  register: _terraform_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Terraform (macOS)
+  when:
+    - _terraform_check.rc != 0
+    - ansible_facts.os_family == "Darwin"
+  community.general.homebrew:
+    name: terraform
+    state: present
+
+- name: Install Terraform (Debian)
+  when:
+    - _terraform_check.rc != 0
+    - ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if HashiCorp keyring exists
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+      register: _hashicorp_keyring
+
+    - name: Install HashiCorp GPG key
+      when: not _hashicorp_keyring.stat.exists
+      block:
+        - name: Download HashiCorp GPG key
+          ansible.builtin.get_url:
+            url: https://apt.releases.hashicorp.com/gpg
+            dest: /tmp/hashicorp-key.gpg
+            mode: "0644"
+          become: true
+          register: _hashicorp_key_download
+          retries: 3
+          delay: 5
+          until: _hashicorp_key_download is not failed
+
+        - name: Dearmor HashiCorp GPG key
+          ansible.builtin.command:
+            cmd: gpg --batch --yes --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg /tmp/hashicorp-key.gpg
+          become: true
+
+        - name: Clean up HashiCorp key temp file
+          ansible.builtin.file:
+            path: /tmp/hashicorp-key.gpg
+            state: absent
+          become: true
+
+    - name: Detect Ubuntu base codename
+      ansible.builtin.shell:
+        cmd: . /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+      register: _ubuntu_codename_tf
+      changed_when: false
+
+    - name: Add HashiCorp repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ _ubuntu_codename_tf.stdout }} main"
+        filename: hashicorp
+        state: present
+      become: true
+
+    - name: Install Terraform via apt
+      ansible.builtin.apt:
+        name: terraform
+        state: present
+        update_cache: true
+      become: true

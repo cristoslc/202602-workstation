@@ -55,6 +55,13 @@
         path: "{{ _verified_download.path }}"
         state: absent
 
+# ── Provision B2 bucket + per-workstation key via Terraform ─────────
+
+- name: Provision B2 infrastructure
+  ansible.builtin.include_tasks: b2-provision.yml
+  when: restic_b2_bucket | length > 0 and b2_master_key_id | length > 0
+  tags: [b2-provision]
+
 # ── Configure Backrest (both platforms) ─────────────────────────────
 
 - name: Ensure Backrest config directory exists

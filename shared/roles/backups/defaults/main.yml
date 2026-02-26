@@ -17,10 +17,19 @@ backrest_url: "https://github.com/garethgeorge/backrest/releases/download/v{{ ba
 backrest_repo: "garethgeorge/backrest"
 
 # ── Repository — B2-direct (v1) ────────────────────────────────────
-restic_b2_bucket: ""
-restic_repo_password: ""
+restic_b2_bucket: ""               # e.g. "my-workstation-backups"
+restic_repo_password: ""           # from SOPS — restic encryption key
+
+# B2 master key (from SOPS — used by Terraform to create per-workstation keys)
+b2_master_key_id: ""
+b2_master_key: ""
+
+# Per-workstation B2 credentials (auto-provisioned by Terraform — do not set manually)
 restic_b2_account_id: ""
 restic_b2_account_key: ""
+
+# Create B2 bucket via Terraform (true for first workstation, false for subsequent)
+b2_create_bucket: true
 
 # ── Backrest ────────────────────────────────────────────────────────
 backrest_port: "127.0.0.1:9898"
