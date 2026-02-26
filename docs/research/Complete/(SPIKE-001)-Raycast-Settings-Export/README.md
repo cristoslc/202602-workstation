@@ -97,22 +97,18 @@ Raycast's built-in export (Settings > Advanced > Export) produces a `.rayconfig`
 
 The go/no-go criteria specified: "At least one approach produces a complete settings artifact that can be restored with a single manual import step and does not embed secrets."
 
-**Recommended approach — `.rayconfig` export + selective `defaults write`:**
+**Recommended approach — age-encrypted `.rayconfig` export:**
 
-1. **`.rayconfig` file** for full settings (extensions, hotkeys, snippets, quicklinks). Exported on-demand via GUI or deeplink. Committed to the repo. Imported on fresh machines via `open <file>.rayconfig` during interactive bootstrap.
-2. **SOPS-encrypted import password** stored alongside the `.rayconfig` — the export is password-protected and the password must survive for restore on a new machine.
-3. **Selective `defaults write` Ansible tasks** for the handful of plist-based preferences (global hotkey, appearance, text size) as a belt-and-suspenders supplement that runs non-interactively.
-4. **`make raycast-export` Makefile target** using the deeplink (`open "raycast://extensions/raycast/raycast/export-settings-data"`) as a convenience shortcut for re-exporting after config changes.
+1. **`.rayconfig` file without password** — exported on-demand via GUI or deeplink. Age-encrypted with the repo's public key and committed as `macos/files/raycast/raycast.rayconfig.age`.
+2. **`make raycast-export` Makefile target** — opens Raycast export UI via deeplink, waits for user to save, age-encrypts the result, cleans up plaintext.
+3. **Ansible import task** — during bootstrap, decrypts the `.age` file to `/tmp/`, opens it (triggers Raycast import dialog), pauses for user confirmation, then deletes the plaintext.
 
-This accepts a single interactive step (import dialog on fresh machine) as the cost of using a closed-source launcher — acceptable since workstation bootstrap is always run interactively on a Mac. The `.rayconfig` export is password-protected; the password is SOPS-encrypted and stored in the repo so it's available during restore.
+This accepts a single interactive step (import dialog on fresh machine) as the cost of using a closed-source launcher — acceptable since workstation bootstrap is always run interactively on a Mac. No password to manage — the age key infrastructure already handles encryption/decryption.
 
 ### Remaining TODO (during PRD-001 implementation)
 
 - [ ] Perform the actual export and inspect `.rayconfig` format (ZIP? JSON? encrypted blob?)
-- [ ] Audit export contents for embedded secrets
-- [ ] Determine if `.rayconfig` produces readable git diffs or is opaque
-- [ ] If opaque: accept binary commit, rely on `defaults write` tasks for the reviewable subset
-- [ ] SOPS-encrypt the `.rayconfig` import password (add to secrets collection flow)
+- [ ] Audit export contents for embedded secrets before first `make raycast-export`
 
 ---
 

@@ -25,7 +25,7 @@ CHECK_LOG ?= check.log
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive iterm2-export
+        log-send log-receive iterm2-export raycast-export
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -149,6 +149,18 @@ iterm2-export: ## Re-export iTerm2 plist to stow package (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	defaults export com.googlecode.iterm2 - | plutil -convert xml1 -o macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist -
 	@echo "iTerm2 plist exported. Review with: git diff macos/dotfiles/iterm2/"
+
+raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	@echo "Opening Raycast export UI..."
+	@echo "Save the .rayconfig file WITHOUT a password to: /tmp/raycast-export.rayconfig"
+	@open "raycast://extensions/raycast/raycast/export-settings-data"
+	@read -p "Press Enter after saving the export..."
+	@test -f /tmp/raycast-export.rayconfig || { echo "Export not found at /tmp/raycast-export.rayconfig"; exit 1; }
+	@AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	age -r "$$AGE_PUBKEY" -o macos/files/raycast/raycast.rayconfig.age /tmp/raycast-export.rayconfig
+	@rm -f /tmp/raycast-export.rayconfig
+	@echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
 
 template-export: ## Export clean template repo (no personal data, fresh history)
 	./scripts/templatize.sh

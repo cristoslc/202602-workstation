@@ -35,11 +35,10 @@ After `make apply`, Raycast launches with the user's full extension set, hotkeys
 
 ### In scope
 
-- Capture current Raycast settings from the source machine via `.rayconfig` export
-- Store `.rayconfig` in the repo; SOPS-encrypt the import password
-- Deploy settings during bootstrap on new machines (interactive import dialog)
-- Supplement with selective `defaults write` Ansible tasks for plist-based preferences
-- `make raycast-export` convenience target (deeplink to export UI)
+- Capture current Raycast settings from the source machine via `.rayconfig` export (no password)
+- Age-encrypt `.rayconfig` at rest in the repo (`macos/files/raycast/raycast.rayconfig.age`)
+- Decrypt and import during bootstrap on new machines (interactive import dialog)
+- `make raycast-export` convenience target (deeplink → export → age-encrypt)
 - Handle the Raycast ↔ cross-platform-action-bindings interaction (hotkeys defined in the action registry must not conflict with Raycast's own hotkey assignments)
 
 ### Out of scope
@@ -52,9 +51,9 @@ After `make apply`, Raycast launches with the user's full extension set, hotkeys
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Raycast settings format is opaque/binary | Can't produce readable git diffs | SPIKE-001 confirms `.rayconfig` is the only full export; supplement with `defaults write` for reviewable subset |
-| Settings include auth tokens or API keys | Secret leakage to git | Audit export for embedded secrets; SOPS-encrypt if needed |
-| `.rayconfig` import password must be stored | Password loss blocks restore | SOPS-encrypt the password alongside the export |
+| Raycast settings format is opaque/binary | Can't produce readable git diffs | `.rayconfig` is age-encrypted; opaque in git regardless — accept binary commit |
+| Settings may include auth tokens or API keys | Secret leakage to git | Age-encryption protects at rest; audit plaintext export before first commit |
+| Age key loss blocks restore | Cannot decrypt `.rayconfig.age` | Age key transfer already solved (wormhole, passphrase blob) |
 | Raycast updates break settings schema | Import fails on new version | Pin known-good format; test on upgrade |
 | Hotkey conflicts with Hammerspoon action bindings | Double-fire or dead keys | Define Raycast as a target _of_ the action registry, not a parallel hotkey source |
 
@@ -67,8 +66,7 @@ After `make apply`, Raycast launches with the user's full extension set, hotkeys
 ## Success Criteria
 
 1. `make apply` on a clean macOS machine + confirming the import dialog produces a Raycast instance matching the source machine's configuration (extensions, hotkeys, snippets, preferences).
-2. `.rayconfig` import password is SOPS-encrypted in the repo and surfaced during bootstrap.
-3. No unencrypted secrets in committed files.
-4. `make raycast-export` opens the Raycast export UI for on-demand re-capture.
-5. Selective `defaults write` tasks cover plist-based preferences (global hotkey, appearance, text size) non-interactively.
-6. Hotkeys are consistent with the cross-platform action registry (no conflicts, no duplication).
+2. `.rayconfig` is age-encrypted at rest in the repo — no plaintext secrets committed.
+3. `make raycast-export` opens the Raycast export UI, age-encrypts the result, and places it in the repo.
+4. Bootstrap decrypts, opens the `.rayconfig`, pauses for user confirmation, then cleans up the plaintext.
+5. Hotkeys are consistent with the cross-platform action registry (no conflicts, no duplication).
