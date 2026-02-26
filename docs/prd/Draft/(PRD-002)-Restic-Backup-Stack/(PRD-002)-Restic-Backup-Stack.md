@@ -88,7 +88,8 @@ automatically configured to:
 
 - Replacing Backblaze Personal on macOS (stays as a belt-and-suspenders layer).
 - Replacing Timeshift on Linux (stays for system-level rollback).
-- B2 bucket creation and IAM (one-time manual setup in B2 console).
+- B2 **master key** creation (one-time manual setup in B2 console; Terraform
+  uses the master key to create bucket + per-workstation scoped keys).
 - Weekly digest emails with data-uploaded stats (Backrest doesn't support
   aggregated weekly summaries natively; custom post-backup reporting is a v2
   candidate).
@@ -421,17 +422,71 @@ Update `shared/roles/backups/tasks/main.yml` to include the new task files:
   tags: [backups, backblaze, restic, backrest, desktop]
 ```
 
-### D10: B2 bucket setup (manual, one-time)
+### D10: B2 infrastructure provisioning (`infra/b2-backup/`, `b2-provision.yml`)
 
-Not Ansible-managed (B2 is external infrastructure). Document the setup
-procedure in post-install docs:
+Automated via Terraform, triggered from the Ansible role. The user workflow
+differs by scenario:
 
-1. Create B2 bucket (private, server-side encryption SSE-B2 enabled).
-2. Create bucket-scoped application key (read + write + list + delete).
-3. Add credentials to `shared/secrets/vars.sops.yml` via
-   `make edit-secrets-shared`.
-4. Init the restic repo: `restic -r b2:<bucket>:/ init`
+**First workstation (no bucket exists):**
+
+1. Create a B2 **master application key** in the B2 console (one-time,
+   account-level — needed for Terraform to manage resources).
+2. Add `b2_master_key_id` and `b2_master_key` to
+   `shared/secrets/vars.sops.yml` via `make edit-secrets-shared`.
+3. Set `restic_b2_bucket` in role defaults (or override in host vars).
+4. Run `make apply ROLE=backups`. Terraform:
+   - Creates the bucket (private, SSE-B2).
+   - Creates a **dated, bucket-scoped application key**:
+     `restic-<hostname>-<YYYY-MM-DD>` (read/write/list/delete only).
+   - Ansible captures the scoped key from Terraform outputs and uses it
+     for all subsequent restic/Backrest operations (the master key is
+     never persisted outside SOPS).
 5. (Optional) Configure SMTP relay credentials for error email alerts.
+
+**Second workstation (bucket already exists):**
+
+1. Same SOPS secrets are already in the repo (synced via git).
+2. Run `make apply ROLE=backups`. Terraform:
+   - Attempts `create_bucket = true`, which fails (bucket exists).
+   - Automatically retries with `create_bucket = false` (data source
+     lookup of existing bucket).
+   - Creates a new scoped key: `restic-<hostname2>-<YYYY-MM-DD>`.
+
+**Wipe + reinstall (same hostname, new OS install):**
+
+Terraform state lives at `~/.local/share/terraform/b2-backup/` and is
+lost on wipe. On the next bootstrap:
+
+1. A new `provision-date` is generated (today's date), since the old
+   `~/.local/share/terraform/b2-backup/provision-date` is gone.
+2. Terraform creates a new key: `restic-<hostname>-<new-date>`.
+   The old key (`restic-<hostname>-<old-date>`) is orphaned in B2 but
+   does not cause a collision — B2 allows duplicate key names, and the
+   date suffix makes them distinguishable.
+3. The restic repository already exists, so `restic init` is skipped.
+4. Backups resume with the new scoped key.
+
+**Cleaning up orphaned keys:**
+
+After a wipe+reinstall, old keys accumulate in the B2 console. To clean
+up:
+
+```bash
+# List all application keys (requires master key or account-level access)
+b2 key list
+# Delete orphaned keys by ID (identified by old dates)
+b2 key delete <key-id>
+```
+
+Orphaned keys have no access grants beyond the backup bucket and pose
+minimal risk, but periodic cleanup is good hygiene.
+
+**Re-running on the same install:**
+
+The provision date is persisted to
+`~/.local/share/terraform/b2-backup/provision-date` on first run and
+reused on subsequent `make apply` runs. Terraform sees the same key name
+and makes no changes — fully idempotent.
 
 ### D11: Notification hooks (`backrest-config.json.j2`)
 
@@ -605,6 +660,8 @@ scripts from its plugin directory and renders their stdout as menubar items.
 | Internet connection down | Backups queue up, can't upload | Backrest shows error; desktop notification + email alert; backups resume automatically when connection returns; heartbeat file goes stale |
 | Restic repo password lost | All backups unrecoverable | SOPS-encrypted in repo + 1Password entry; document in disaster recovery runbook |
 | B2 application key compromised | Attacker can read/delete backups | Use bucket-scoped key (not master); restic encryption means data is ciphertext; rotate key via `sops` edit + `make apply ROLE=backups` |
+| Wipe+reinstall orphans old B2 keys | Old scoped keys accumulate in B2 account | Dated key names (`restic-host-YYYY-MM-DD`) make orphans identifiable; periodic `b2 key list` + `b2 key delete`; orphans are bucket-scoped so low blast radius |
+| Terraform state lost without wipe | Terraform can't manage existing key | Re-import via `terraform import b2_application_key.workstation <key-id>`; state dir is in `~/.local/share/terraform/b2-backup/` — include in backup excludes? No: state contains the scoped key secret and is small, worth backing up |
 | Backrest version drift | Config format changes break template | Pin version in defaults; test upgrades manually before bumping |
 | macOS `~/Library` excludes miss new cache paths | Backup grows over time | Periodic review of backup size; add new excludes to template |
 | Initial upload is large / slow | First backup takes hours over internet | Expect it; restic dedup means subsequent backups are incremental (fast). Can throttle with `--limit-upload`. |
