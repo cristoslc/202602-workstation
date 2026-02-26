@@ -5,6 +5,7 @@
 | PRD | Title | Created | Last Updated | Notes |
 |-----|-------|---------|--------------|-------|
 | PRD-001 | Raycast Sync | 2026-02-25 | 2026-02-25 | Initial draft |
+| PRD-002 | Remote Desktop Bootstrap | 2026-02-26 | 2026-02-26 | RustDesk + GLI KVM; replaces Remotix |
 
 ## Review
 
