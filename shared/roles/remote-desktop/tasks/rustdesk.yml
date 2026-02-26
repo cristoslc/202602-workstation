@@ -1,0 +1,61 @@
+---
+# RustDesk — cross-platform remote desktop client+server.
+
+- name: Install RustDesk (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Install RustDesk via Homebrew
+      community.general.homebrew_cask:
+        name: rustdesk
+        state: present
+
+    - name: Note about RustDesk macOS permissions
+      ansible.builtin.debug:
+        msg: >
+          RustDesk requires Screen Recording and Accessibility permissions on macOS.
+          Grant access in System Settings → Privacy & Security.
+
+- name: Install RustDesk (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: RustDesk version check
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
+      vars:
+        tool_name: RustDesk
+        tool_repo: rustdesk/rustdesk
+        pinned_version: "{{ rustdesk_version }}"
+
+    - name: Check installed RustDesk version
+      ansible.builtin.command: dpkg-query -W -f='${Version}' rustdesk
+      register: _rustdesk_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Install RustDesk
+      when: _rustdesk_installed.rc != 0 or rustdesk_version not in _rustdesk_installed.stdout
+      block:
+        - name: Download and verify RustDesk .deb
+          ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
+          vars:
+            tool_name: RustDesk
+            download_url: "{{ rustdesk_deb_url }}"
+            expected_sha256: "{{ rustdesk_sha256 }}"
+
+        - name: Install RustDesk .deb
+          ansible.builtin.apt:
+            deb: "{{ _verified_download.path }}"
+            state: present
+          become: true
+
+        - name: Clean up RustDesk download
+          ansible.builtin.file:
+            path: "{{ _verified_download.path }}"
+            state: absent
+
+    - name: Enable RustDesk service
+      ansible.builtin.systemd:
+        name: rustdesk
+        enabled: true
+        state: started
+      become: true
+      failed_when: false

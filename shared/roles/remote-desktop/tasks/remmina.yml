@@ -1,0 +1,13 @@
+---
+# Remmina — VNC/RDP/SSH client for Linux.
+
+- name: Install Remmina and protocol plugins
+  ansible.builtin.apt:
+    name:
+      - remmina
+      - remmina-plugin-rdp
+      - remmina-plugin-vnc
+      - remmina-plugin-secret
+    state: present
+    update_cache: true
+  become: true

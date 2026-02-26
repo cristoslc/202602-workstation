@@ -1,14 +1,15 @@
 # ADR-001: RustDesk for Remote Desktop
 
-**Status:** Proposed
+**Status:** Adopted
 **Date:** 2026-02-26
-**PRD:** [(PRD-002) Remote Desktop Bootstrap](../../prd/Draft/(PRD-002)-Remote-Desktop/(PRD-002)-Remote-Desktop.md)
+**PRD:** [(PRD-002) Remote Desktop Bootstrap](../../prd/Implemented/(PRD-002)-Remote-Desktop/(PRD-002)-Remote-Desktop.md)
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-02-26 | d627b5b | Initial creation |
+| Adopted | 2026-02-26 | 7ccc7df | Approved and implemented |
 
 ---
 

@@ -1,0 +1,11 @@
+---
+skip_version_check: false
+
+rustdesk_version: "1.4.5"
+rustdesk_sha256: "6117ea2c2f5885830bff64b6b695b2596a2613dc35301539f19ae52747181c83"
+rustdesk_deb_url: "https://github.com/rustdesk/rustdesk/releases/download/{{ rustdesk_version }}/rustdesk-{{ rustdesk_version }}-x86_64.deb"
+
+# Self-hosted relay server address. Leave empty to use direct/public connections.
+# Example: "relay.example.com" or a Tailscale IP.
+rustdesk_relay_host: ""
+rustdesk_relay_key: ""

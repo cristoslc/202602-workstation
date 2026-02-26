@@ -1,17 +1,18 @@
 # PRD-002: Remote Desktop Bootstrap
 
-**Status:** Draft
+**Status:** Implemented
 **Author:** cristos
 **Created:** 2026-02-26
 **Last Updated:** 2026-02-26
 **Research:** None (straightforward tool installation — no spike needed)
-**ADR:** [(ADR-001) RustDesk for Remote Desktop](../../../adr/Proposed/(ADR-001)-RustDesk-for-Remote-Desktop.md)
+**ADR:** [(ADR-001) RustDesk for Remote Desktop](../../../adr/Adopted/(ADR-001)-RustDesk-for-Remote-Desktop.md)
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-02-26 | d627b5b | Initial creation |
+| Implemented | 2026-02-26 | 7ccc7df | Role implemented |
 
 ---
 

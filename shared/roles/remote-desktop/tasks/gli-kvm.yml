@@ -1,0 +1,15 @@
+---
+# GLI KVM (Comet) — hardware KVM-over-IP for BIOS-level remote access.
+
+- name: Install GLI KVM (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: glkvm
+    state: present
+
+- name: GLI KVM access note (Linux)
+  when: ansible_facts.os_family == "Debian"
+  ansible.builtin.debug:
+    msg: >
+      GLI KVM has no native Linux app. Access your Comet device via
+      its Tailscale IP in a web browser, or use https://glkvm.com
