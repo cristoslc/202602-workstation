@@ -49,6 +49,9 @@
     - role: power
       tags: [power, desktop]
 
+    - role: keyboard
+      tags: [keyboard, keybindings, hammerspoon, desktop]
+
     - role: macos-defaults
       tags: [macos-defaults, desktop]
       when: apply_macos_defaults | default(true) | bool

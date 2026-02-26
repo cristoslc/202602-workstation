@@ -21,13 +21,19 @@
       tags: [node, dev-tools]
 
     - role: docker
-      tags: [docker, dev-tools]
+      tags: [docker, mcp-gateway, dev-tools]
 
     - role: editor
       tags: [editor, vscode, dev-tools]
 
     - role: claude-code
       tags: [claude-code, dev-tools]
+
+    - role: codex-cli
+      tags: [codex-cli, dev-tools]
+
+    - role: gemini-cli
+      tags: [gemini-cli, dev-tools]
 
     - role: fonts
       tags: [fonts, dev-tools]

@@ -26,7 +26,12 @@
     find "$src" -type f -o -type l | while IFS= read -r src_file; do
       relpath="${src_file#$src/}"
       target="$target_root/$relpath"
-      if [ -f "$target" ] && [ ! -L "$target" ]; then
+      if [ -L "$target" ]; then
+        # Remove existing symlinks (including broken ones) — stow will recreate them
+        rm "$target"
+        echo "RESOLVED: $relpath (symlink)"
+      elif [ -f "$target" ]; then
+        # Back up real files before removing
         backup_path="$backup_dir/$relpath"
         mkdir -p "$(dirname "$backup_path")"
         cp "$target" "$backup_path"

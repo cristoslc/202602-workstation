@@ -21,7 +21,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from textual.widgets import Button
+from textual.widgets import Button, Input
 
 # Add scripts/ to path so setup_tui package is importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
@@ -41,11 +41,10 @@ from setup_tui.screens.bootstrap import (
     BootstrapRoleScreen,
     BootstrapRunScreen,
 )
+from setup_tui.screens.defaults import EditDefaultsScreen
+from setup_tui.screens.first_run import FirstRunSetupScreen
 from setup_tui.screens.secrets import SecretsScreen
-from setup_tui.screens.welcome import (
-    FirstRunPlaceholderScreen,
-    WelcomeScreen,
-)
+from setup_tui.screens.welcome import WelcomeScreen
 
 
 # ---------------------------------------------------------------------------
@@ -462,7 +461,48 @@ class TestNavigation:
     async def test_first_run_option_navigates(self, unpersonalized_state):
         async with _AppTestContext(unpersonalized_state) as ctx:
             await _select_option(ctx, "first-run")
-            assert isinstance(ctx.app.screen, FirstRunPlaceholderScreen)
+            assert isinstance(ctx.app.screen, FirstRunSetupScreen)
+
+    @pytest.mark.asyncio
+    async def test_first_run_personalized_chains_to_secrets(
+        self, personalized_state
+    ):
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ):
+            async with _AppTestContext(
+                personalized_state, runner_git_return=_ok_result()
+            ) as ctx:
+                await _select_option(ctx, "first-run")
+                assert isinstance(ctx.app.screen, SecretsScreen)
+
+    @pytest.mark.asyncio
+    async def test_first_run_personalized_secrets_back_opens_defaults(
+        self, personalized_state
+    ):
+        with patch(
+            "setup_tui.screens.secrets.load_existing_ansible_vars",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.secrets.load_existing_shell_exports",
+            return_value={},
+        ), patch(
+            "setup_tui.screens.defaults.load_action_registry",
+            return_value=[],
+        ):
+            async with _AppTestContext(
+                personalized_state, runner_git_return=_ok_result()
+            ) as ctx:
+                await _select_option(ctx, "first-run")
+                assert isinstance(ctx.app.screen, SecretsScreen)
+
+                await ctx.pilot.press("escape")
+                await ctx.pilot.pause()
+                assert isinstance(ctx.app.screen, EditDefaultsScreen)
 
     @pytest.mark.asyncio
     async def test_bootstrap_option_navigates(self, personalized_state):
@@ -503,9 +543,9 @@ class TestNavigation:
     async def test_back_from_first_run(self, unpersonalized_state):
         async with _AppTestContext(unpersonalized_state) as ctx:
             await _select_option(ctx, "first-run")
-            assert isinstance(ctx.app.screen, FirstRunPlaceholderScreen)
+            assert isinstance(ctx.app.screen, FirstRunSetupScreen)
 
-            await ctx.pilot.click("#back")
+            ctx.app.screen.query_one("#back", Button).press()
             await ctx.pilot.pause()
             assert isinstance(ctx.app.screen, WelcomeScreen)
 
@@ -565,7 +605,7 @@ class TestNavigation:
             # First option (first-run) is highlighted by default.
             await ctx.pilot.press("enter")
             await ctx.pilot.pause()
-            assert isinstance(ctx.app.screen, FirstRunPlaceholderScreen)
+            assert isinstance(ctx.app.screen, FirstRunSetupScreen)
 
 
 # ===========================================================================
@@ -953,30 +993,19 @@ class TestBootstrapSkipTagsIntegration:
 
 
 # ===========================================================================
-# Placeholder screens — verify they compose without errors
+# FirstRunSetupScreen — render/navigation smoke
 # ===========================================================================
 
-class TestPlaceholderScreensRender:
-    """Remaining placeholder screens should mount and show a back button."""
-
+class TestFirstRunSetupScreen:
     @pytest.mark.asyncio
-    async def test_first_run_placeholder_has_back(self, unpersonalized_state):
+    async def test_first_run_screen_has_required_fields(self, unpersonalized_state):
         async with _AppTestContext(unpersonalized_state) as ctx:
-            ctx.app.push_screen(FirstRunPlaceholderScreen())
-            await ctx.pilot.pause()
-
-            assert isinstance(ctx.app.screen, FirstRunPlaceholderScreen)
-            assert ctx.app.screen.query_one("#back") is not None
-
-    @pytest.mark.asyncio
-    async def test_first_run_placeholder_back_navigates(self, unpersonalized_state):
-        async with _AppTestContext(unpersonalized_state) as ctx:
-            ctx.app.push_screen(FirstRunPlaceholderScreen())
-            await ctx.pilot.pause()
-
-            await ctx.pilot.click("#back")
-            await ctx.pilot.pause()
-            assert isinstance(ctx.app.screen, WelcomeScreen)
+            await _select_option(ctx, "first-run")
+            assert isinstance(ctx.app.screen, FirstRunSetupScreen)
+            assert ctx.app.screen.query_one("#fr-username", Input) is not None
+            assert ctx.app.screen.query_one("#fr-repo", Input) is not None
+            assert ctx.app.screen.query_one("#run", Button) is not None
+            assert ctx.app.screen.query_one("#back", Button) is not None
 
 
 # ===========================================================================

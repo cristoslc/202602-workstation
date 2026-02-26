@@ -25,6 +25,7 @@ The Textual TUI walks you through:
 4. **Pre-commit hooks** — installs the SOPS encryption check
 5. **Create your GitHub repo** — via `gh repo create`, pushes initial commit
 6. **Edit secrets** — guided walk-through to populate each secret file with real values
+7. **Edit defaults** — update keybindings and optionally export iTerm2 settings (macOS)
 
 After first-run, the repo is yours. All subsequent machines clone from your repo.
 

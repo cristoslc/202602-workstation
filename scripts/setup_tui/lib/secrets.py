@@ -48,6 +48,15 @@ SHARED_ANSIBLE_VARS: list[SecretField] = [
         description="1Password SSH public key for commit signing",
         used_by="git role",
     ),
+    SecretField(
+        key="docker_mcp_brave_api_key",
+        label="Brave Search API key",
+        placeholder="BSA...",
+        description="Web search for Docker MCP Gateway (Brave Search server)",
+        used_by="docker role (mcp-gateway)",
+        doc_url="https://brave.com/search/api/",
+        password=True,
+    ),
 ]
 
 # Shell secrets -- written to secrets.zsh.sops as export statements.

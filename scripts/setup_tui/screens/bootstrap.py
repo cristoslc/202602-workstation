@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 from textual import work
@@ -393,6 +394,10 @@ class BootstrapRunScreen(Screen):
         self._finished = False
         self._success = False
         self._log_file = None
+        self._start_time: float = 0.0
+        self._timer = None
+        self._spinner_frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+        self._spinner_idx = 0
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -400,6 +405,7 @@ class BootstrapRunScreen(Screen):
             with Vertical(id="step-sidebar"):
                 yield Static("[bold]Steps[/bold]", id="sidebar-title")
                 yield Static("", id="step-list")
+                yield Static("", id="elapsed-timer")
             with Vertical(id="run-main"):
                 yield RichLog(id="output", highlight=True, markup=True, wrap=True)
         with Horizontal(id="run-footer-buttons"):
@@ -413,6 +419,8 @@ class BootstrapRunScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
+        self._start_time = time.monotonic()
+        self._timer = self.set_interval(1, self._tick_elapsed)
         self._run_bootstrap()
 
     @work(thread=True)
@@ -767,6 +775,30 @@ class BootstrapRunScreen(Screen):
             self._log_file.write(text + "\n")
             self._log_file.flush()
 
+    def _tick_elapsed(self) -> None:
+        """Tick the elapsed-time display in the sidebar."""
+        elapsed = int(time.monotonic() - self._start_time)
+        minutes, seconds = divmod(elapsed, 60)
+        hours, minutes = divmod(minutes, 60)
+        if hours:
+            time_str = f"{hours}:{minutes:02d}:{seconds:02d}"
+        else:
+            time_str = f"{minutes}:{seconds:02d}"
+
+        if self._finished:
+            label = f"[dim]Elapsed: {time_str}[/dim]"
+            if self._timer is not None:
+                self._timer.stop()
+                self._timer = None
+        else:
+            spinner = self._spinner_frames[self._spinner_idx]
+            self._spinner_idx = (self._spinner_idx + 1) % len(
+                self._spinner_frames
+            )
+            label = f"[bold yellow]{spinner}[/bold yellow] [dim]Elapsed: {time_str}[/dim]"
+
+        self.query_one("#elapsed-timer", Static).update(label)
+
     def _update_sidebar(
         self, steps: list[tuple[str, object]], current: int
     ) -> None:
@@ -787,8 +819,25 @@ class BootstrapRunScreen(Screen):
         self.query_one("#back", Button).disabled = False
         self.query_one("#send-log", Button).disabled = False
 
+    def _generate_post_install_doc(self) -> None:
+        """Write a post-install checklist HTML file and stash the path on the app."""
+        try:
+            from ..lib.post_install import generate_and_open
+
+            doc_path = generate_and_open(
+                plat=self.app.platform,
+                phases=self.phases,
+                skip_tags=self.skip_tags,
+                log_path=str(BOOTSTRAP_LOG),
+            )
+            self.app.post_install_doc = doc_path  # type: ignore[attr-defined]
+        except Exception:
+            logger.exception("Failed to generate post-install checklist")
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "done":
+            if self._success:
+                self._generate_post_install_doc()
             self.app.exit(result="reload_shell" if self._success else None)
         elif event.button.id == "back":
             # Pop all bootstrap screens back to welcome.

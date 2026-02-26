@@ -1,0 +1,22 @@
+---
+# iTerm2: load settings from stow-managed plist in ~/.config/iterm2/.
+# All profile settings (colors, font, terminal behavior) live in the
+# exported plist at macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist
+# and are deployed by the stow role. This task just tells iTerm2 where to find them.
+
+- name: "iTerm2: Set custom preferences folder"
+  community.general.osx_defaults:
+    domain: com.googlecode.iterm2
+    key: PrefsCustomFolder
+    type: string
+    value: "~/.config/iterm2"
+    state: present
+
+- name: "iTerm2: Load preferences from custom folder"
+  community.general.osx_defaults:
+    domain: com.googlecode.iterm2
+    key: LoadPrefsFromCustomFolder
+    type: bool
+    value: true
+    state: present
+  notify: restart iterm2

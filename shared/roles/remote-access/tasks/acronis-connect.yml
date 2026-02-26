@@ -1,0 +1,73 @@
+---
+# Acronis Cyber Protect Connect — remote desktop/management agent.
+# Downloads the .deb from the Acronis redirect URL (always latest version)
+# and installs it. No apt repo exists for this product.
+
+- name: Install Acronis Cyber Protect Connect (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Check if Acronis Connect agent is already installed
+      ansible.builtin.command:
+        cmd: pkgutil --pkg-info com.acronis.CyberProtectConnectAgent
+      register: _acronis_connect_mac_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download Acronis Connect agent .pkg
+      when: _acronis_connect_mac_installed.rc != 0
+      ansible.builtin.get_url:
+        url: "{{ acronis_connect_mac_pkg_url }}"
+        dest: "{{ ansible_env.HOME }}/Downloads/AcronisCyberProtectConnectAgent.pkg"
+        mode: "0644"
+        follow_redirects: all
+      register: _acronis_connect_mac_download
+      retries: 3
+      delay: 5
+      until: _acronis_connect_mac_download is not failed
+
+    - name: Remind user to install Acronis Connect agent manually
+      when: _acronis_connect_mac_installed.rc != 0
+      ansible.builtin.debug:
+        msg: >
+          Acronis Cyber Protect Connect agent .pkg downloaded to
+          ~/Downloads/AcronisCyberProtectConnectAgent.pkg — open it to install.
+
+- name: Install Acronis Cyber Protect Connect (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if Acronis Connect agent is already installed
+      ansible.builtin.shell:
+        cmd: dpkg-query -W 'acronis*connect*' 2>/dev/null || dpkg -l | grep -qi 'acronis.*connect'
+      register: _acronis_connect_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Install Acronis Connect agent from latest .deb
+      when: _acronis_connect_installed.rc != 0
+      block:
+        - name: Create temp file for Acronis Connect download
+          ansible.builtin.tempfile:
+            suffix: .deb
+          register: _acronis_connect_tmp
+
+        - name: Download latest Acronis Connect agent .deb
+          ansible.builtin.get_url:
+            url: "{{ acronis_connect_deb_url }}"
+            dest: "{{ _acronis_connect_tmp.path }}"
+            mode: "0644"
+            force: true
+          register: _acronis_connect_download
+          retries: 3
+          delay: 5
+          until: _acronis_connect_download is not failed
+
+        - name: Install Acronis Connect agent .deb
+          ansible.builtin.apt:
+            deb: "{{ _acronis_connect_tmp.path }}"
+            state: present
+          become: true
+
+        - name: Clean up Acronis Connect temp file
+          ansible.builtin.file:
+            path: "{{ _acronis_connect_tmp.path }}"
+            state: absent

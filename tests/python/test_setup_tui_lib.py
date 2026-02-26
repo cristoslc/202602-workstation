@@ -45,6 +45,7 @@ from setup_tui.lib.secrets import (
 )
 from setup_tui.lib.prereqs import detect_platform, install_precommit
 from setup_tui.lib.setup_logging import LOG_DIR, LOG_FILE, setup_logging
+from setup_tui.lib.defaults import export_iterm2_plist
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +214,29 @@ class TestRepoConfig:
         assert config.github_repo_url == "https://github.com/user/my-repo-2025.git"
 
 
+class TestExportIterm2Plist:
+    def test_runs_make_target(self, mock_runner):
+        export_iterm2_plist(mock_runner)
+        mock_runner.run.assert_called_once_with(
+            ["make", "iterm2-export"],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+
+    def test_raises_on_failure(self, mock_runner):
+        mock_runner.run = MagicMock(
+            return_value=subprocess.CompletedProcess(
+                args=[],
+                returncode=1,
+                stdout="",
+                stderr="boom",
+            )
+        )
+
+        with pytest.raises(RuntimeError, match="boom"):
+            export_iterm2_plist(mock_runner)
+
+
 class TestResumeState:
     def test_defaults(self):
         state = ResumeState()
@@ -242,10 +266,13 @@ class TestSecretFieldDeclarations:
         for sf in SHARED_ANSIBLE_VARS + SHELL_SECRETS:
             assert sf.used_by, f"{sf.key} should have a used_by"
 
-    def test_ansible_vars_not_password(self):
-        """Ansible vars (git email, name) should not be masked."""
+    def test_ansible_vars_password_matches_sensitivity(self):
+        """Non-key ansible vars should not be masked; API keys should be."""
         for sf in SHARED_ANSIBLE_VARS:
-            assert sf.password is False
+            if "api_key" in sf.key or "token" in sf.key:
+                assert sf.password is True, f"{sf.key} is sensitive and should be masked"
+            else:
+                assert sf.password is False, f"{sf.key} should not be masked"
 
     def test_shell_secrets_are_passwords(self):
         """Shell secrets (API keys) should be masked."""

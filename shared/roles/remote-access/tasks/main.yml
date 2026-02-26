@@ -1,0 +1,6 @@
+---
+# Remote access role: Acronis Cyber Protect Connect
+
+- name: Install Acronis Cyber Protect Connect
+  ansible.builtin.include_tasks: acronis-connect.yml
+  tags: [acronis-connect]

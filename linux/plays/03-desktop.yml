@@ -33,7 +33,7 @@
       tags: [backups, timeshift, desktop]
 
     - role: screenshots
-      tags: [screenshots, desktop]
+      tags: [screenshots, flameshot, desktop]
 
     - role: link-handler
       tags: [link-handler, xdg-mime, desktop]
@@ -49,6 +49,9 @@
 
     - role: power
       tags: [power, desktop]
+
+    - role: keyboard
+      tags: [keyboard, keybindings, desktop]
 
     - role: desktop-env
       tags: [desktop-env, cinnamon, desktop]

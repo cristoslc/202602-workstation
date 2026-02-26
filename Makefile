@@ -18,12 +18,14 @@ export SOPS_AGE_KEY_FILE
 # Ensure uv and other ~/.local/bin tools are on PATH (uv installs there).
 export PATH := $(HOME)/.local/bin:$(PATH)
 
+CHECK_LOG ?= check.log
+
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
-        check-collisions check-playbook test test-bats test-python check apply \
+        check-collisions check-sync check-playbook test test-bats test-python check apply \
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive
+        log-send log-receive iterm2-export raycast-export
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -95,6 +97,9 @@ status: ## Show workstation status (stub — Rich dashboard planned)
 check-collisions: ## Check for stow filename collisions between layers
 	./scripts/check-stow-collisions.sh
 
+check-sync: ## Check cross-platform settings haven't drifted
+	./scripts/check-synced-settings.sh
+
 check-playbook: ## Syntax-check Ansible playbooks (no sudo needed)
 	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/linux/ansible.cfg ansible-playbook linux/site.yml --syntax-check
 	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/macos/ansible.cfg ansible-playbook macos/site.yml --syntax-check
@@ -103,11 +108,23 @@ test-bats: ## Run bats shell unit tests
 	bats tests/bats/
 
 test-python: ## Run Python unit tests (first-run wizard + setup TUI)
-	uv run --with rich,pyyaml,textual,pytest,pytest-asyncio pytest tests/python/ -v
+	uv run --with rich,pyyaml,textual,jinja2,pytest,pytest-asyncio pytest tests/python/ -v
 
 test: lint test-bats test-python ## Run all linters and tests
 
-check: shellcheck yamllint check-collisions check-playbook test-bats test-python ## Quick local verification (no ansible-lint)
+check: ## Quick local verification (no ansible-lint); writes output to $(CHECK_LOG)
+	@echo "Writing check log to: $(CHECK_LOG)"
+	@set -euo pipefail; { \
+		echo "=== make check started: $$(date '+%Y-%m-%d %H:%M:%S %Z') ==="; \
+		$(MAKE) shellcheck; \
+		$(MAKE) yamllint; \
+		$(MAKE) check-collisions; \
+		$(MAKE) check-sync; \
+		$(MAKE) check-playbook; \
+		$(MAKE) test-bats; \
+		$(MAKE) test-python; \
+		echo "=== make check completed: $$(date '+%Y-%m-%d %H:%M:%S %Z') ==="; \
+	} 2>&1 | tee "$(CHECK_LOG)"
 
 key-send: ## Send age key to another machine via Magic Wormhole
 	./scripts/transfer-key.sh send
@@ -127,6 +144,23 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
+
+iterm2-export: ## Re-export iTerm2 plist to stow package (macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	defaults export com.googlecode.iterm2 - | plutil -convert xml1 -o macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist -
+	@echo "iTerm2 plist exported. Review with: git diff macos/dotfiles/iterm2/"
+
+raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	@echo "Opening Raycast export UI..."
+	@echo "Save the .rayconfig file WITHOUT a password to: /tmp/raycast-export.rayconfig"
+	@open "raycast://extensions/raycast/raycast/export-settings-data"
+	@read -p "Press Enter after saving the export..."
+	@test -f /tmp/raycast-export.rayconfig || { echo "Export not found at /tmp/raycast-export.rayconfig"; exit 1; }
+	@AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	age -r "$$AGE_PUBKEY" -o macos/files/raycast/raycast.rayconfig.age /tmp/raycast-export.rayconfig
+	@rm -f /tmp/raycast-export.rayconfig
+	@echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
 
 template-export: ## Export clean template repo (no personal data, fresh history)
 	./scripts/templatize.sh

@@ -10,3 +10,7 @@
 - name: restart systemuiserver
   ansible.builtin.command: killall SystemUIServer
   failed_when: false
+
+- name: restart iterm2
+  ansible.builtin.debug:
+    msg: "iTerm2 defaults applied. Restart iTerm2 to see changes."
