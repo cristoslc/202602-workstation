@@ -6,3 +6,4 @@
 - import_playbook: plays/04-dotfiles.yml
 - import_playbook: plays/05-gaming.yml
 - import_playbook: plays/06-bureau-veritas.yml
+- import_playbook: plays/08-sync.yml

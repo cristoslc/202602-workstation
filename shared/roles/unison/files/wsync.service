@@ -1,0 +1,14 @@
+[Unit]
+Description=wsync — branch-aware code sync via Unison
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/wsync
+Environment=HOME=%h
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,28 @@
+---
+# Install Syncthing on macOS via Homebrew.
+
+- name: Install Syncthing via Homebrew
+  community.general.homebrew:
+    name: syncthing
+    state: present
+
+- name: Set up Syncthing launchd service
+  block:
+    - name: Check if Syncthing plist exists in LaunchAgents
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.syncthing.syncthing.plist"
+      register: syncthing_plist
+
+    - name: Copy Syncthing plist to LaunchAgents
+      ansible.builtin.copy:
+        src: "/opt/homebrew/opt/syncthing/homebrew.mxcl.syncthing.plist"
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.syncthing.syncthing.plist"
+        remote_src: true
+        mode: "0644"
+      when: not syncthing_plist.stat.exists
+
+    - name: Load Syncthing launchd agent
+      ansible.builtin.command:
+        cmd: launchctl load {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.syncthing.syncthing.plist
+      changed_when: false
+      failed_when: false

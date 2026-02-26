@@ -1,0 +1,11 @@
+---
+- name: "Phase 8: File sync (Syncthing + Unison)"
+  hosts: localhost
+  connection: local
+
+  roles:
+    - role: syncthing
+      tags: [syncthing, sync]
+
+    - role: unison
+      tags: [unison, wsync, sync]

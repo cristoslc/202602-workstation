@@ -1,0 +1,15 @@
+---
+- name: "Phase 8: File sync (Syncthing + Unison)"
+  hosts: localhost
+  connection: local
+
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: 300
+
+  roles:
+    - role: syncthing
+      tags: [syncthing, sync]
+
+    - role: unison
+      tags: [unison, wsync, sync]

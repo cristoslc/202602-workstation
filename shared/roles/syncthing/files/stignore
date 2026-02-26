@@ -1,0 +1,35 @@
+// Syncthing ignore patterns for user data folders.
+// Deployed by Ansible to each synced folder as .stignore.
+
+// Version control internals (should not be in user data folders,
+// but exclude defensively)
+.git
+.svn
+.hg
+
+// OS metadata
+.DS_Store
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+.Trash-*
+
+// Build artifacts and caches
+node_modules
+__pycache__
+*.pyc
+.cache
+.npm
+.yarn
+
+// Temporary and backup files
+*.tmp
+*.swp
+*.swo
+*~
+.~lock.*
+
+// Syncthing's own versioning directory
+.stversions
+.stfolder
