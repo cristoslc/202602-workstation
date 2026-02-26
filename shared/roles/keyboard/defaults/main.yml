@@ -240,7 +240,7 @@ workstation_actions:
     macos:
       mods:
       - ctrl
-      - cmd
+      - alt
       key: d
   implementation:
     linux:
@@ -260,7 +260,7 @@ workstation_actions:
     macos:
       mods:
       - ctrl
-      - cmd
+      - alt
       key: f
   implementation:
     linux:
@@ -280,7 +280,7 @@ workstation_actions:
     macos:
       mods:
       - ctrl
-      - cmd
+      - alt
       key: g
   implementation:
     linux:
@@ -293,6 +293,46 @@ workstation_actions:
       lua: |
         local win = hs.window.focusedWindow()
         if win then win:moveToUnit({x = 2/3, y = 0, w = 1/3, h = 1}) end
+- action: window_left_two_thirds
+  description: Tile window left two-thirds
+  keybinding:
+    linux: <Ctrl><Super>e
+    macos:
+      mods:
+      - ctrl
+      - alt
+      key: e
+  implementation:
+    linux:
+      type: dconf
+      command: >-
+        bash -c 'read W H < <(xdotool getdisplaygeometry);
+        xdotool getactivewindow windowsize $((2*W/3)) $H windowmove 0 0'
+    macos:
+      type: hammerspoon
+      lua: |
+        local win = hs.window.focusedWindow()
+        if win then win:moveToUnit({x = 0, y = 0, w = 2/3, h = 1}) end
+- action: window_right_two_thirds
+  description: Tile window right two-thirds
+  keybinding:
+    linux: <Ctrl><Super>r
+    macos:
+      mods:
+      - ctrl
+      - alt
+      key: r
+  implementation:
+    linux:
+      type: dconf
+      command: >-
+        bash -c 'read W H < <(xdotool getdisplaygeometry);
+        xdotool getactivewindow windowsize $((2*W/3)) $H windowmove $((W/3)) 0'
+    macos:
+      type: hammerspoon
+      lua: |
+        local win = hs.window.focusedWindow()
+        if win then win:moveToUnit({x = 1/3, y = 0, w = 2/3, h = 1}) end
 - action: window_hide
   description: Hide window
   keybinding:
