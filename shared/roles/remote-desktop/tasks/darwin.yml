@@ -1,0 +1,10 @@
+---
+# macOS: RustDesk + GLI KVM app
+
+- name: Install RustDesk
+  ansible.builtin.include_tasks: rustdesk.yml
+  tags: [rustdesk]
+
+- name: Install GLI KVM
+  ansible.builtin.include_tasks: gli-kvm.yml
+  tags: [gli-kvm]

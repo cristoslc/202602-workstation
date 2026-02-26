@@ -22,6 +22,7 @@ Roles are organized by **function** (capability), not by tool name. Before creat
 | A calendar or date/time app | `shared/roles/calendar` |
 | A screenshot or screen capture tool | `shared/roles/screenshots` |
 | A link/file routing handler | `shared/roles/link-handler` |
+| A remote desktop client/server | `shared/roles/remote-desktop` |
 | Stream Deck companion software | `shared/roles/stream-deck` |
 
 ## Add a Sub-Task to an Existing Role
