@@ -17,7 +17,9 @@ _None._
 
 ## Implemented
 
-_None._
+| PRD | Title | Created | Last Updated | Notes |
+|-----|-------|---------|--------------|-------|
+| PRD-002 | Remote Desktop Bootstrap | 2026-02-26 | 2026-02-26 | RustDesk + GLI KVM + Remmina; replaces Remotix |
 
 ## Deprecated
 

@@ -1,0 +1,51 @@
+---
+# RustDesk — cross-platform remote desktop client+server.
+# No official apt repo exists; Linux uses the GitHub releases/latest redirect
+# to always fetch the newest .deb.
+
+- name: Install RustDesk (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Install RustDesk via Homebrew
+      community.general.homebrew_cask:
+        name: rustdesk
+        state: present
+
+    - name: Note about RustDesk macOS permissions
+      ansible.builtin.debug:
+        msg: >
+          RustDesk requires Screen Recording and Accessibility permissions on macOS.
+          Grant access in System Settings → Privacy & Security.
+
+- name: Install RustDesk (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Download latest RustDesk .deb
+      ansible.builtin.get_url:
+        url: https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-x86_64.deb
+        dest: /tmp/rustdesk.deb
+        mode: "0644"
+        force: true
+      register: _rustdesk_download
+      retries: 3
+      delay: 5
+      until: _rustdesk_download is not failed
+
+    - name: Install RustDesk .deb
+      ansible.builtin.apt:
+        deb: /tmp/rustdesk.deb
+        state: present
+      become: true
+
+    - name: Clean up .deb
+      ansible.builtin.file:
+        path: /tmp/rustdesk.deb
+        state: absent
+
+    - name: Enable RustDesk service
+      ansible.builtin.systemd:
+        name: rustdesk
+        enabled: true
+        state: started
+      become: true
+      failed_when: false

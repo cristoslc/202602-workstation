@@ -1,0 +1,6 @@
+---
+# Remote desktop role: RustDesk (client+server), Remmina (VNC/RDP client),
+# and GLI KVM (hardware KVM-over-IP).
+
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"

@@ -29,6 +29,9 @@
     - role: vpn
       tags: [vpn, tailscale, surfshark, desktop]
 
+    - role: remote-desktop
+      tags: [remote-desktop, rustdesk, remmina, gli-kvm, desktop]
+
     - role: backups
       tags: [backups, timeshift, desktop]
 
