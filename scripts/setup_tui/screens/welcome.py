@@ -98,6 +98,7 @@ class WelcomeScreen(Screen):
             )
             menu.add_options([
                 Option("Bootstrap This Machine", id="bootstrap"),
+                Option("Migrate Data", id="migrate-data"),
                 Option("Edit Defaults", id="edit-defaults"),
                 Option("Edit Secrets", id="edit-secrets"),
                 Option("Re-Run First-Time Setup", id="first-run"),
@@ -134,6 +135,9 @@ class WelcomeScreen(Screen):
             else:
                 from .first_run import FirstRunSetupScreen
                 self.app.push_screen(FirstRunSetupScreen())
+        elif option_id == "migrate-data":
+            from .migration import DataMigrationScreen
+            self.app.push_screen(DataMigrationScreen())
         elif option_id == "edit-defaults":
             from .defaults import EditDefaultsScreen
             self.app.push_screen(EditDefaultsScreen())

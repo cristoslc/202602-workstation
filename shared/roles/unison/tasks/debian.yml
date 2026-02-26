@@ -1,0 +1,71 @@
+---
+# Install pinned Unison binary on Linux from GitHub releases.
+# CRITICAL: Must be compiled with OCaml 4.14, NOT OCaml 5.x (data loss risk).
+
+- name: Check if Unison is already installed at correct version
+  ansible.builtin.command:
+    cmd: "{{ unison_bin_dir }}/unison -version"
+  register: unison_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Unison from GitHub release
+  when: >-
+    unison_version_check.rc != 0 or
+    unison_version not in (unison_version_check.stdout | default(''))
+  block:
+    - name: Determine architecture
+      ansible.builtin.set_fact:
+        _unison_arch: "{{ 'x86_64' if ansible_facts.architecture == 'x86_64' else 'aarch64' }}"
+
+    - name: Create temporary directory for Unison download
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: unison-
+      register: unison_tmpdir
+
+    - name: Download Unison binary archive
+      ansible.builtin.get_url:
+        url: "{{ unison_github_release_url }}/unison-{{ unison_version }}-ubuntu-{{ _unison_arch }}.tar.gz"
+        dest: "{{ unison_tmpdir.path }}/unison.tar.gz"
+        mode: "0644"
+      retries: 3
+      delay: 5
+
+    - name: Extract Unison binary
+      ansible.builtin.unarchive:
+        src: "{{ unison_tmpdir.path }}/unison.tar.gz"
+        dest: "{{ unison_tmpdir.path }}/"
+        remote_src: true
+
+    - name: Install Unison binary
+      ansible.builtin.copy:
+        src: "{{ unison_tmpdir.path }}/bin/unison"
+        dest: "{{ unison_bin_dir }}/unison"
+        mode: "0755"
+        remote_src: true
+      become: true
+
+    - name: Install Unison fsmonitor if present
+      ansible.builtin.copy:
+        src: "{{ unison_tmpdir.path }}/bin/unison-fsmonitor"
+        dest: "{{ unison_bin_dir }}/unison-fsmonitor"
+        mode: "0755"
+        remote_src: true
+      become: true
+      failed_when: false
+
+    - name: Clean up temporary download directory
+      ansible.builtin.file:
+        path: "{{ unison_tmpdir.path }}"
+        state: absent
+
+- name: Verify Unison is not compiled with OCaml 5
+  ansible.builtin.command:
+    cmd: "{{ unison_bin_dir }}/unison -version"
+  register: unison_final_version
+  changed_when: false
+
+- name: Display installed Unison version
+  ansible.builtin.debug:
+    msg: "Unison version: {{ unison_final_version.stdout }}"

@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# wsync — Branch-aware code sync wrapper for Unison.
+#
+# Syncs working trees (excluding .git/) to a hub server, keyed by <repo>/<branch>.
+# Each branch gets an isolated directory on the server so switching branches on
+# one machine does not affect another machine's working tree.
+#
+# Usage:
+#   wsync                     # auto-discover and sync all git repos under CODE_DIR
+#   wsync <repo-dir>          # sync a specific repo
+#   wsync --status            # show sync status for all repos
+#   wsync --version           # show Unison version info
+#
+# Configuration (environment variables or ~/.config/wsync/config):
+#   WSYNC_CODE_DIR    — local directory containing git repos (default: ~/code)
+#   WSYNC_HUB_HOST    — SSH destination for hub server
+#   WSYNC_HUB_BASE    — hub-side base directory (default: /srv/code-sync)
+#   WSYNC_PROFILE     — Unison profile name (default: code-sync)
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Source guard for testability
+# ---------------------------------------------------------------------------
+_WSYNC_SOURCED=1
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  _WSYNC_SOURCED=0
+fi
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+WSYNC_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/wsync"
+WSYNC_CONFIG_FILE="${WSYNC_CONFIG_DIR}/config"
+
+# Load config file if it exists
+# shellcheck source=/dev/null
+[[ -f "$WSYNC_CONFIG_FILE" ]] && source "$WSYNC_CONFIG_FILE"
+
+WSYNC_CODE_DIR="${WSYNC_CODE_DIR:-$HOME/code}"
+WSYNC_HUB_HOST="${WSYNC_HUB_HOST:-}"
+WSYNC_HUB_BASE="${WSYNC_HUB_BASE:-/srv/code-sync}"
+WSYNC_PROFILE="${WSYNC_PROFILE:-code-sync}"
+WSYNC_LOG_DIR="${HOME}/.local/log"
+WSYNC_LOG_FILE="${WSYNC_LOG_DIR}/wsync.log"
+
+# Minimum required Unison major.minor version
+WSYNC_UNISON_MIN_VERSION="2.53"
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+wsync_log() {
+  local level="$1"
+  shift
+  local timestamp
+  timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+  local msg="[$timestamp] [$level] $*"
+  echo "$msg"
+  if [[ -d "$WSYNC_LOG_DIR" ]]; then
+    echo "$msg" >> "$WSYNC_LOG_FILE"
+  fi
+}
+
+wsync_info()  { wsync_log INFO  "$@"; }
+wsync_warn()  { wsync_log WARN  "$@"; }
+wsync_error() { wsync_log ERROR "$@"; }
+
+# ---------------------------------------------------------------------------
+# Preflight checks
+# ---------------------------------------------------------------------------
+wsync_check_unison() {
+  if ! command -v unison &>/dev/null; then
+    wsync_error "Unison not found. Install via: make apply ROLE=unison"
+    return 1
+  fi
+
+  local version_output
+  version_output="$(unison -version 2>&1)"
+  local version
+  version="$(echo "$version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+
+  if [[ -z "$version" ]]; then
+    wsync_warn "Could not parse Unison version from: $version_output"
+    return 0
+  fi
+
+  local major_minor="${version%.*}"
+  if [[ "$major_minor" != "$WSYNC_UNISON_MIN_VERSION" ]]; then
+    wsync_error "Unison version mismatch: found $version, need ${WSYNC_UNISON_MIN_VERSION}.x"
+    wsync_error "All machines must run the same Unison version."
+    return 1
+  fi
+
+  wsync_info "Unison version: $version"
+}
+
+wsync_check_hub() {
+  if [[ -z "$WSYNC_HUB_HOST" ]]; then
+    wsync_error "WSYNC_HUB_HOST is not set."
+    wsync_error "Configure in $WSYNC_CONFIG_FILE or set the environment variable."
+    return 1
+  fi
+
+  if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$WSYNC_HUB_HOST" true 2>/dev/null; then
+    wsync_error "Cannot connect to hub server '$WSYNC_HUB_HOST' via SSH."
+    wsync_error "Ensure SSH key auth is configured and the host is reachable."
+    return 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Git helpers
+# ---------------------------------------------------------------------------
+wsync_get_branch() {
+  local repo_dir="$1"
+  git -C "$repo_dir" symbolic-ref --short HEAD 2>/dev/null || \
+    git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || \
+    echo "unknown"
+}
+
+wsync_get_repo_name() {
+  local repo_dir="$1"
+  basename "$repo_dir"
+}
+
+wsync_discover_repos() {
+  local code_dir="$1"
+  local repos=()
+  local dir
+
+  if [[ ! -d "$code_dir" ]]; then
+    wsync_warn "Code directory does not exist: $code_dir"
+    return
+  fi
+
+  for dir in "$code_dir"/*/; do
+    [[ -d "$dir/.git" ]] && repos+=("${dir%/}")
+  done
+
+  printf '%s\n' "${repos[@]}"
+}
+
+# ---------------------------------------------------------------------------
+# Sync logic
+# ---------------------------------------------------------------------------
+wsync_sync_repo() {
+  local repo_dir="$1"
+  local repo_name branch hub_path
+
+  repo_name="$(wsync_get_repo_name "$repo_dir")"
+  branch="$(wsync_get_branch "$repo_dir")"
+
+  # Sanitize branch name for filesystem (replace / with _)
+  local safe_branch="${branch//\//_}"
+
+  hub_path="${WSYNC_HUB_BASE}/${repo_name}/${safe_branch}"
+
+  wsync_info "Syncing $repo_name (branch: $branch) -> $WSYNC_HUB_HOST:$hub_path"
+
+  # Ensure hub-side directory exists
+  ssh "$WSYNC_HUB_HOST" "mkdir -p '$hub_path'"
+
+  # Run Unison with the code-sync profile and dynamic roots
+  unison "$WSYNC_PROFILE" \
+    -root "$repo_dir" \
+    -root "ssh://$WSYNC_HUB_HOST/$hub_path" \
+    -batch \
+    -auto \
+    -times \
+    -prefer newer \
+    -logfile "$WSYNC_LOG_DIR/unison-${repo_name}-${safe_branch}.log" \
+    2>&1 | while IFS= read -r line; do
+      wsync_info "  [$repo_name] $line"
+    done
+
+  local rc=${PIPESTATUS[0]}
+  if [[ "$rc" -eq 0 ]]; then
+    wsync_info "Sync complete: $repo_name ($branch)"
+  else
+    wsync_warn "Sync finished with warnings for $repo_name ($branch) (exit code: $rc)"
+  fi
+
+  return "$rc"
+}
+
+wsync_sync_all() {
+  local code_dir="${1:-$WSYNC_CODE_DIR}"
+  local repos failed=0
+
+  wsync_info "=== wsync started ==="
+  wsync_info "Code directory: $code_dir"
+  wsync_info "Hub: $WSYNC_HUB_HOST:$WSYNC_HUB_BASE"
+
+  mapfile -t repos < <(wsync_discover_repos "$code_dir")
+
+  if [[ ${#repos[@]} -eq 0 ]]; then
+    wsync_warn "No git repositories found in $code_dir"
+    return 0
+  fi
+
+  wsync_info "Found ${#repos[@]} repositories"
+
+  for repo in "${repos[@]}"; do
+    if ! wsync_sync_repo "$repo"; then
+      ((failed++))
+    fi
+  done
+
+  wsync_info "=== wsync finished (${#repos[@]} repos, $failed failed) ==="
+  return "$failed"
+}
+
+# ---------------------------------------------------------------------------
+# Status display
+# ---------------------------------------------------------------------------
+wsync_status() {
+  local code_dir="${1:-$WSYNC_CODE_DIR}"
+  local repos
+
+  echo "wsync status"
+  echo "============"
+  echo "Hub:        ${WSYNC_HUB_HOST:-<not configured>}"
+  echo "Code dir:   $code_dir"
+  echo "Profile:    $WSYNC_PROFILE"
+  echo ""
+
+  mapfile -t repos < <(wsync_discover_repos "$code_dir")
+
+  if [[ ${#repos[@]} -eq 0 ]]; then
+    echo "No git repositories found in $code_dir"
+    return 0
+  fi
+
+  printf "%-30s %-25s %s\n" "REPOSITORY" "BRANCH" "STATUS"
+  printf "%-30s %-25s %s\n" "----------" "------" "------"
+
+  for repo in "${repos[@]}"; do
+    local name branch dirty
+    name="$(wsync_get_repo_name "$repo")"
+    branch="$(wsync_get_branch "$repo")"
+    if git -C "$repo" diff --quiet 2>/dev/null && git -C "$repo" diff --cached --quiet 2>/dev/null; then
+      dirty="clean"
+    else
+      dirty="modified"
+    fi
+    printf "%-30s %-25s %s\n" "$name" "$branch" "$dirty"
+  done
+}
+
+# ---------------------------------------------------------------------------
+# Usage
+# ---------------------------------------------------------------------------
+wsync_usage() {
+  cat <<'EOF'
+Usage: wsync [OPTIONS] [<repo-dir>]
+
+Branch-aware code sync between workstations via Unison.
+
+Commands:
+  wsync                  Sync all git repos under CODE_DIR
+  wsync <repo-dir>       Sync a specific repository
+  wsync --status         Show sync status for all repos
+  wsync --version        Show Unison version info
+  wsync --help           Show this help message
+
+Environment:
+  WSYNC_CODE_DIR    Local code directory (default: ~/code)
+  WSYNC_HUB_HOST    Hub server SSH destination
+  WSYNC_HUB_BASE    Hub base path (default: /srv/code-sync)
+  WSYNC_PROFILE     Unison profile (default: code-sync)
+
+Config file: ~/.config/wsync/config
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+wsync_main() {
+  mkdir -p "$WSYNC_LOG_DIR"
+
+  case "${1:-}" in
+    --help|-h)
+      wsync_usage
+      exit 0
+      ;;
+    --version|-V)
+      wsync_check_unison
+      exit $?
+      ;;
+    --status|-s)
+      wsync_status
+      exit 0
+      ;;
+    "")
+      # Sync all repos
+      wsync_check_unison
+      wsync_check_hub
+      wsync_sync_all
+      ;;
+    *)
+      # Sync specific repo
+      local repo_dir="$1"
+      if [[ ! -d "$repo_dir/.git" ]]; then
+        wsync_error "'$repo_dir' is not a git repository"
+        exit 1
+      fi
+      wsync_check_unison
+      wsync_check_hub
+      wsync_sync_repo "$repo_dir"
+      ;;
+  esac
+}
+
+if [[ "$_WSYNC_SOURCED" -eq 0 ]]; then
+  wsync_main "$@"
+fi

@@ -410,6 +410,7 @@ class BootstrapRunScreen(Screen):
                 yield RichLog(id="output", highlight=True, markup=True, wrap=True)
         with Horizontal(id="run-footer-buttons"):
             yield Button("Done", id="done", variant="primary", disabled=True)
+            yield Button("Migrate Data", id="migrate-data", disabled=True)
             yield Button("Back to Menu", id="back", disabled=True)
             yield Button("Send Log", id="send-log", disabled=True)
         yield Static(
@@ -494,6 +495,9 @@ class BootstrapRunScreen(Screen):
                 "\n[bold green]Bootstrap complete![/bold green]\n"
                 "[dim]Shell configs will reload automatically "
                 "when you press Done.[/dim]\n"
+                "[dim]If this is a new machine, use "
+                "[bold]Migrate Data[/bold] to copy user folders "
+                "from an existing machine.[/dim]\n"
                 f"[dim]Log: {log_path}[/dim]\n"
             )
         else:
@@ -816,6 +820,7 @@ class BootstrapRunScreen(Screen):
 
     def _enable_done_buttons(self) -> None:
         self.query_one("#done", Button).disabled = False
+        self.query_one("#migrate-data", Button).disabled = False
         self.query_one("#back", Button).disabled = False
         self.query_one("#send-log", Button).disabled = False
 
@@ -839,6 +844,9 @@ class BootstrapRunScreen(Screen):
             if self._success:
                 self._generate_post_install_doc()
             self.app.exit(result="reload_shell" if self._success else None)
+        elif event.button.id == "migrate-data":
+            from .migration import DataMigrationScreen
+            self.app.push_screen(DataMigrationScreen())
         elif event.button.id == "back":
             # Pop all bootstrap screens back to welcome.
             from .welcome import WelcomeScreen

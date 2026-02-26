@@ -1,0 +1,22 @@
+---
+# Install pinned Unison on macOS via Homebrew.
+# Homebrew formula uses OCaml 4.14 by default (as of 2025).
+
+- name: Install Unison via Homebrew
+  community.general.homebrew:
+    name: unison
+    state: present
+
+- name: Verify Unison version
+  ansible.builtin.command:
+    cmd: unison -version
+  register: unison_macos_version
+  changed_when: false
+
+- name: Warn if Unison version does not match pinned version
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: Installed Unison version ({{ unison_macos_version.stdout }})
+      may not match pinned version {{ unison_version }}.
+      Ensure all machines run the same Unison version.
+  when: unison_version not in (unison_macos_version.stdout | default(''))

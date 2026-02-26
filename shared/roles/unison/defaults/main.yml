@@ -1,0 +1,34 @@
+---
+# Unison role defaults
+# Override these in group_vars or host_vars as needed.
+
+# Whether to enable Unison code sync on this machine
+unison_enabled: true
+
+# Pinned Unison version (must match across all machines and hub)
+unison_version: "2.53.5"
+
+# Hub server SSH destination for Unison sync
+unison_hub_host: ""
+
+# Hub server base directory for code sync working trees
+unison_hub_base_path: "/srv/code-sync"
+
+# Local directory containing code repositories
+unison_code_dir: "{{ ansible_facts.env.HOME }}/code"
+
+# Repositories to sync (list of directory names under unison_code_dir)
+# Empty means wsync will auto-discover git repos.
+unison_repos: []
+
+# Unison conflict resolution: prefer newer file
+unison_prefer: newer
+
+# Unison binary install path
+unison_bin_dir: "/usr/local/bin"
+
+# wsync polling interval for systemd timer / launchd agent (minutes)
+wsync_interval_minutes: 5
+
+# GitHub releases URL for Unison binary (Linux)
+unison_github_release_url: "https://github.com/bcpierce00/unison/releases/download/v{{ unison_version }}"

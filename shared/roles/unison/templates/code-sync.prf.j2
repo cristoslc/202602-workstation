@@ -1,0 +1,53 @@
+# Unison code-sync profile — deployed by Ansible.
+# This is the base profile. wsync invokes Unison with dynamic -root arguments
+# per repo+branch.
+
+# --- Conflict resolution ---
+prefer = {{ unison_prefer }}
+# Keep backup of losing side
+backuplocation = local
+backupprefix = .unison-backup.$VERSION.
+backupsuffix =
+maxbackups = 3
+
+# --- Performance ---
+# Use rsync-like delta transfer for large files
+rsync = true
+# Follow symlinks (working tree files, not .git)
+links = false
+
+# --- Ignore patterns ---
+# .git internals (never sync — Forgejo handles committed history)
+ignore = Path .git
+# Build artifacts
+ignore = Name node_modules
+ignore = Name __pycache__
+ignore = Name *.pyc
+ignore = Name .cache
+ignore = Name dist
+ignore = Name build
+ignore = Name target
+ignore = Name .tox
+ignore = Name .mypy_cache
+ignore = Name .pytest_cache
+ignore = Name .ruff_cache
+ignore = Name .venv
+ignore = Name venv
+# OS metadata
+ignore = Name .DS_Store
+ignore = Name Thumbs.db
+ignore = Name .Trash-*
+# Editor swap and temp files
+ignore = Name *.swp
+ignore = Name *.swo
+ignore = Name *~
+ignore = Name .~lock.*
+# IDE directories
+ignore = Name .idea
+ignore = Name .vscode
+# Unison archives (don't sync sync state)
+ignore = Name .unison*
+
+# --- Logging ---
+log = true
+logfile = {{ ansible_facts.env.HOME }}/.local/log/unison-code-sync.log

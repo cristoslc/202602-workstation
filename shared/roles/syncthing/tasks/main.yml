@@ -1,0 +1,9 @@
+---
+- name: Install Syncthing (OS-specific)
+  ansible.builtin.include_tasks: "{{ 'darwin.yml' if ansible_facts.os_family == 'Darwin' else 'debian.yml' }}"
+  tags: [syncthing]
+
+- name: Configure Syncthing folders and hub-spoke topology
+  ansible.builtin.include_tasks: configure.yml
+  when: syncthing_enabled
+  tags: [syncthing, syncthing-configure]

@@ -30,7 +30,8 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
         log-send log-receive iterm2-export raycast-export \
-        backup-status backup-browse
+        backup-status backup-browse \
+        data-pull data-pull-dry
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -55,7 +56,7 @@ shellcheck: ## Run shellcheck on all shell scripts
 	shellcheck --severity=warning \
 		setup.sh bootstrap.sh first-run.sh \
 		linux/bootstrap.sh macos/bootstrap.sh \
-		shared/lib/wizard.sh scripts/*.sh
+		shared/lib/wizard.sh scripts/*.sh scripts/wsync
 
 ansible-lint: ## Run ansible-lint on all playbooks (SOPS disabled)
 	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/linux/ansible.cfg ansible-lint linux/site.yml
@@ -166,6 +167,18 @@ raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS o
 	age -r "$$AGE_PUBKEY" -o macos/files/raycast/raycast.rayconfig.age /tmp/raycast-export.rayconfig
 	@rm -f /tmp/raycast-export.rayconfig
 	@echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
+
+data-pull: ## Bulk-copy user data from another machine: make data-pull SOURCE=<hostname>
+ifndef SOURCE
+	$(error SOURCE is required. Usage: make data-pull SOURCE=desktop)
+endif
+	./scripts/data-pull.sh $(SOURCE)
+
+data-pull-dry: ## Preview data pull without copying: make data-pull-dry SOURCE=<hostname>
+ifndef SOURCE
+	$(error SOURCE is required. Usage: make data-pull-dry SOURCE=desktop)
+endif
+	./scripts/data-pull.sh $(SOURCE) --dry-run
 
 template-export: ## Export clean template repo (no personal data, fresh history)
 	./scripts/templatize.sh

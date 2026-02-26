@@ -1,0 +1,5 @@
+---
+# Self-hosted relay server address. Leave empty to use direct/public connections.
+# Example: "relay.example.com" or a Tailscale IP.
+rustdesk_relay_host: ""
+rustdesk_relay_key: ""

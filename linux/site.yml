@@ -7,3 +7,4 @@
 - import_playbook: plays/05-gaming.yml
 - import_playbook: plays/06-bureau-veritas.yml
 - import_playbook: plays/07-remote-access.yml
+- import_playbook: plays/08-sync.yml

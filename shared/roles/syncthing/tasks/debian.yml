@@ -1,0 +1,51 @@
+---
+# Install Syncthing on Debian/Ubuntu/Mint via official apt repository.
+
+- name: Check if Syncthing GPG keyring exists
+  ansible.builtin.stat:
+    path: /usr/share/keyrings/syncthing-archive-keyring.gpg
+  register: syncthing_keyring
+
+- name: Download and dearmor Syncthing GPG key
+  when: not syncthing_keyring.stat.exists
+  block:
+    - name: Download Syncthing release key
+      ansible.builtin.get_url:
+        url: https://syncthing.net/release-key.gpg
+        dest: /tmp/syncthing-release-key.gpg
+        mode: "0644"
+      retries: 3
+      delay: 5
+
+    - name: Dearmor Syncthing GPG key to keyring
+      ansible.builtin.command:
+        cmd: gpg --dearmor -o /usr/share/keyrings/syncthing-archive-keyring.gpg /tmp/syncthing-release-key.gpg
+        creates: /usr/share/keyrings/syncthing-archive-keyring.gpg
+      become: true
+
+    - name: Clean up temporary GPG key
+      ansible.builtin.file:
+        path: /tmp/syncthing-release-key.gpg
+        state: absent
+
+- name: Add Syncthing apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing {{ syncthing_release_channel }}"
+    filename: syncthing
+    state: present
+  become: true
+
+- name: Install Syncthing
+  ansible.builtin.apt:
+    name: syncthing
+    state: present
+    update_cache: true
+  become: true
+
+- name: Enable and start Syncthing user service
+  ansible.builtin.systemd:
+    name: "syncthing@{{ ansible_user_id }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

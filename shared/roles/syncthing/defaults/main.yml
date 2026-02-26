@@ -1,0 +1,36 @@
+---
+# Syncthing role defaults
+# Override these in group_vars or host_vars as needed.
+
+# Whether to enable Syncthing service on this machine
+syncthing_enabled: true
+
+# Syncthing version to install (Linux apt repo tracks latest stable)
+syncthing_release_channel: stable
+
+# Hub server device ID — must be set in group_vars or secrets for pairing
+syncthing_hub_device_id: ""
+
+# Hub server address (Tailscale IP or hostname) for static discovery
+syncthing_hub_address: ""
+
+# User data folders to sync via Syncthing (relative to $HOME)
+syncthing_user_folders:
+  - Documents
+  - Pictures
+  - Music
+  - Videos
+  - Downloads
+
+# Syncthing GUI listen address (localhost only for security)
+syncthing_gui_address: "127.0.0.1:8384"
+
+# Enable Staggered file versioning on synced folders
+syncthing_versioning_type: staggered
+syncthing_versioning_params:
+  maxAge: "2592000"       # 30 days in seconds
+  cleanInterval: "3600"   # check every hour
+  versionsPath: ""        # empty = .stversions inside folder
+
+# Enable case-sensitive FS handling (important for macOS APFS)
+syncthing_case_sensitive_fs: "{{ ansible_facts.os_family == 'Darwin' }}"
