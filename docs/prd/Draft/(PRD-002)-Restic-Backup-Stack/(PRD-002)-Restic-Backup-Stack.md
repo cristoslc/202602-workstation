@@ -57,9 +57,11 @@ automatically configured to:
    password reference, retention counts, Backrest port, exclude list.
 5. **SOPS-encrypted secrets** — repo password and B2 credentials in
    `shared/secrets/vars.sops.yml`.
-6. **Backup notifications** — Backrest Shoutrrr hook for email/Gotify
-   notifications on backup success, failure, and errors. Healthchecks.io
-   integration for heartbeat monitoring (detect missing backups).
+6. **Backup notifications** — Error-only alerts via desktop notifications
+   (`notify-send` on Linux, `osascript` on macOS) and Shoutrrr `smtp://`
+   email via user's own SMTP relay. Local heartbeat file
+   (`~/.local/log/restic-heartbeat.log`) writes on every backup for
+   staleness detection. No SaaS dependencies.
 7. **Pause/resume** — Backrest plan management (disable/enable plans from
    web UI). Documented in post-install.
 8. **Playbook tag updates** — add `restic` and `backrest` tags to both platform
@@ -77,8 +79,8 @@ automatically configured to:
 - Native tray icon (Backrest is web UI; tray indicators are a future
   nice-to-have via SwiftBar/xbar on macOS, polybar/waybar on Linux).
 - Weekly digest emails with data-uploaded stats (Backrest doesn't support
-  aggregated weekly summaries natively; Healthchecks.io provides a monitoring
-  dashboard as a partial substitute; custom reporting is a v2 candidate).
+  aggregated weekly summaries natively; custom post-backup reporting is a v2
+  candidate).
 
 ---
 
@@ -90,16 +92,16 @@ automatically configured to:
 ┌──────────────────────┐
 │  macOS workstation    │──── restic backup ────▶ B2 bucket
 │  restic + Backrest    │     (direct, encrypted)
+│                       │──── on error ────▶ desktop notification + SMTP email
+│                       │──── on success ──▶ heartbeat file (~/.local/log/)
 └──────────────────────┘
 
 ┌──────────────────────┐
 │  Linux workstation    │──── restic backup ────▶ same B2 bucket
 │  restic + Backrest    │     (--host isolates snapshots)
+│                       │──── on error ────▶ desktop notification + SMTP email
+│                       │──── on success ──▶ heartbeat file (~/.local/log/)
 └──────────────────────┘
-
-         ┌──────────────────┐
-         │  Healthchecks.io  │◀── heartbeat ping on each backup
-         └──────────────────┘
 ```
 
 Each workstation talks directly to B2. No intermediate server. Restic encrypts
@@ -148,27 +150,39 @@ simpler choice for the server-side layer.
    client-side, and uploads to `b2:<bucket>:/`.
 3. **Backrest** runs `restic forget` with retention policy after each backup,
    then periodic `restic prune` and `restic check`.
-4. **Backrest** sends a notification on backup completion or failure
-   (Shoutrrr → email/Gotify) and pings Healthchecks.io as a heartbeat.
+4. **On success:** Backrest command hook writes timestamp + stats to
+   `~/.local/log/restic-heartbeat.log` (silent — no user-facing alert).
+5. **On error:** Backrest fires desktop notification (`notify-send` /
+   `osascript`) and Shoutrrr sends email via SMTP.
 
 ### Notifications and monitoring
 
-| Mechanism | What it tells you | How |
-|-----------|------------------|-----|
-| **Shoutrrr** (email/Gotify) | Backup succeeded or failed | Backrest hook on `CONDITION_SNAPSHOT_END` / `CONDITION_SNAPSHOT_ERROR` |
-| **Healthchecks.io** | Backup is still running on schedule | Backrest hook pings HC URL on success; HC alerts if ping is missed |
-| **Backrest web UI** | Full dashboard: history, sizes, errors, next run | `localhost:9898` |
-| **`make backup-status`** | Quick CLI check: latest 3 snapshots | Runs `restic snapshots --latest 3` |
+All notification infrastructure runs on the workstation — zero SaaS
+dependencies.
 
-Healthchecks.io provides the "Backblaze-like heartbeat" — if a workstation
-stops backing up (machine off, network down, daemon crashed), HC sends an
-alert after the grace period. The free tier covers up to 20 checks.
+| Mechanism | Trigger | What it does | How |
+|-----------|---------|-------------|-----|
+| **Desktop notification** | Error only | Immediate visual alert | Backrest command hook: `notify-send` (Linux) / `osascript` (macOS) on `CONDITION_SNAPSHOT_ERROR` |
+| **SMTP email** (Shoutrrr) | Error only | Alert when away from machine | Backrest Shoutrrr hook on `CONDITION_SNAPSHOT_ERROR` via user's own SMTP relay |
+| **Heartbeat file** | Every backup | Staleness detection | Backrest command hook writes timestamp + stats to `~/.local/log/restic-heartbeat.log` on `CONDITION_SNAPSHOT_END` |
+| **`make backup-status`** | On demand | Quick CLI check | Reads heartbeat file (warns if stale >8h) + runs `restic snapshots --latest 3` |
+| **Backrest web UI** | On demand | Full dashboard: history, sizes, errors, next run | `localhost:9898` |
+| **Systemd/launchd** | Daemon crash | Auto-restart Backrest | `Restart=on-failure` (systemd) / `KeepAlive` (launchd) |
+
+**Staleness detection:** `make backup-status` reads the heartbeat file and
+warns if the last successful backup is older than the expected interval (2x
+the schedule period, e.g., 8 hours for a 4-hour schedule). This catches the
+"daemon silently died" case without requiring an external monitoring service.
+
+**Trade-off:** If the machine is powered off for days, nothing alerts you —
+but you already know the machine is off. For true remote monitoring (machine
+off, network down), a self-hosted Healthchecks.io instance on Proxmox is a
+v2 candidate.
 
 Backrest does **not** support aggregated weekly digest emails (e.g., "X GB
 uploaded this week"). For data-volume reporting, a v2 enhancement could add a
 custom post-backup hook that logs `restic stats` output and feeds a weekly
-cron summary. For now, Backrest's web UI shows per-snapshot sizes and the
-Healthchecks.io dashboard shows check-in history.
+cron summary. For now, Backrest's web UI shows per-snapshot sizes.
 
 ### Pause and resume
 
@@ -229,8 +243,10 @@ Must configure:
 - **Retention:** `keep-daily: 365`, `keep-weekly: 52`, `keep-monthly: 24`,
   `keep-yearly: 5`.
 - **Maintenance:** Prune schedule, check schedule.
-- **Notifications:** Shoutrrr hook for email/Gotify on `CONDITION_SNAPSHOT_END`
-  and `CONDITION_SNAPSHOT_ERROR`. Healthchecks.io hook for heartbeat ping.
+- **Notifications:** Command hook for desktop notifications on
+  `CONDITION_SNAPSHOT_ERROR`. Shoutrrr `smtp://` hook for email on
+  `CONDITION_SNAPSHOT_ERROR`. Command hook to write heartbeat file on
+  `CONDITION_SNAPSHOT_END`.
 - **Environment:** `B2_ACCOUNT_ID`, `B2_ACCOUNT_KEY` (from SOPS),
   `RESTIC_PASSWORD` (from SOPS).
 - **Backrest port:** `{{ backrest_port }}` (default `127.0.0.1:9898`).
@@ -299,9 +315,10 @@ restic_prune_schedule: "0 3 * * 0"     # weekly Sunday 3am
 restic_upload_limit: 0
 restic_download_limit: 0
 
-# Notifications
-restic_healthchecks_url: ""        # e.g. "https://hc-ping.com/<uuid>"
+# Notifications (error-only alerts; heartbeat file is always written)
 restic_shoutrrr_url: ""            # e.g. "smtp://user:pass@smtp.example.com:587/?to=you@example.com"
+restic_heartbeat_file: "~/.local/log/restic-heartbeat.log"
+restic_stale_threshold_hours: 8    # make backup-status warns if last backup older than this
 
 # Excludes
 restic_extra_excludes: []  # user-extensible list appended to template
@@ -322,9 +339,7 @@ master key). This limits blast radius if credentials are leaked — the key
 can only access the backup bucket, not the entire B2 account.
 
 Optional (for notifications):
-- `restic_healthchecks_url` — Healthchecks.io ping URL (contains UUID, mildly
-  sensitive).
-- `restic_shoutrrr_url` — Shoutrrr notification URL (may contain SMTP
+- `restic_shoutrrr_url` — Shoutrrr notification URL (contains SMTP
   credentials).
 
 ### D8: `main.yml` orchestrator update
@@ -376,22 +391,29 @@ procedure in post-install docs:
 3. Add credentials to `shared/secrets/vars.sops.yml` via
    `make edit-secrets-shared`.
 4. Init the restic repo: `restic -r b2:<bucket>:/ init`
-5. (Optional) Create a Healthchecks.io check for each workstation.
+5. (Optional) Configure SMTP relay credentials for error email alerts.
 
 ### D11: Notification hooks (`backrest-config.json.j2`)
 
-Configured within the Backrest config template (D3):
+Configured within the Backrest config template (D3). All notification
+infrastructure runs on the workstation — no SaaS dependencies.
 
-1. **Shoutrrr hook** — fires on `CONDITION_SNAPSHOT_END` and
-   `CONDITION_SNAPSHOT_ERROR`. Sends backup result (success/failure, duration,
-   snapshot size) to the configured Shoutrrr URL (email via SMTP, Gotify, etc.).
-   Uses `ON_ERROR_IGNORE` so notification failures don't block backups.
+1. **Desktop notification hook** (command hook) — fires on
+   `CONDITION_SNAPSHOT_ERROR`. Runs `notify-send` (Linux) or `osascript`
+   (macOS) to show an immediate desktop alert with the error summary.
+   Always enabled (no configuration needed).
 
-2. **Healthchecks.io hook** — fires on `CONDITION_SNAPSHOT_END`. Pings the
-   HC URL on success, pings `<url>/fail` on error. HC alerts if ping is missed
-   for the configured grace period (e.g., 8 hours for a 4-hour schedule).
+2. **SMTP email hook** (Shoutrrr) — fires on `CONDITION_SNAPSHOT_ERROR`.
+   Sends error details via user's own SMTP relay. Uses `ON_ERROR_IGNORE` so
+   notification failures don't block backups. Optional — if
+   `restic_shoutrrr_url` is empty, the template omits it.
 
-Both hooks are optional — if the SOPS vars are empty, the template omits them.
+3. **Heartbeat file hook** (command hook) — fires on
+   `CONDITION_SNAPSHOT_END`. Appends a line to
+   `~/.local/log/restic-heartbeat.log` with ISO-8601 timestamp, hostname,
+   and snapshot summary. `make backup-status` reads this file and warns if
+   the last entry is older than `restic_stale_threshold_hours`. Always
+   enabled.
 
 ### D12: Post-install doc updates
 
@@ -416,7 +438,19 @@ Update `docs/post-install.md`:
 ### D13: Makefile targets
 
 ```makefile
-backup-status: ## Show latest restic snapshot for this host
+backup-status: ## Check heartbeat staleness + show latest restic snapshots
+	@HEARTBEAT="$$HOME/.local/log/restic-heartbeat.log"; \
+	if [ -f "$$HEARTBEAT" ]; then \
+	  LAST=$$(tail -1 "$$HEARTBEAT" | cut -d' ' -f1); \
+	  AGE=$$(( ($$(date +%s) - $$(date -d "$$LAST" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "$$LAST" +%s)) / 3600 )); \
+	  if [ "$$AGE" -gt $(RESTIC_STALE_HOURS) ]; then \
+	    echo "WARNING: Last successful backup was $$AGE hours ago (threshold: $(RESTIC_STALE_HOURS)h)"; \
+	  else \
+	    echo "OK: Last successful backup $$AGE hours ago"; \
+	  fi; \
+	else \
+	  echo "WARNING: No heartbeat file found — has a backup ever completed?"; \
+	fi
 	@B2_ACCOUNT_ID=$$(sops -d --extract '["restic_b2_account_id"]' shared/secrets/vars.sops.yml) \
 	B2_ACCOUNT_KEY=$$(sops -d --extract '["restic_b2_account_key"]' shared/secrets/vars.sops.yml) \
 	RESTIC_PASSWORD=$$(sops -d --extract '["restic_repo_password"]' shared/secrets/vars.sops.yml) \
@@ -432,8 +466,8 @@ backup-browse: ## Open Backrest web UI
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| B2 outage or rate limit | Backups fail temporarily | Healthchecks.io alerts on missed heartbeat; Backrest retries on next schedule; B2 has 99.9% SLA |
-| Internet connection down | Backups queue up, can't upload | Backrest shows error; backups resume automatically when connection returns; HC alerts after grace period |
+| B2 outage or rate limit | Backups fail temporarily | Desktop notification + email on error; Backrest retries on next schedule; `make backup-status` shows stale heartbeat; B2 has 99.9% SLA |
+| Internet connection down | Backups queue up, can't upload | Backrest shows error; desktop notification + email alert; backups resume automatically when connection returns; heartbeat file goes stale |
 | Restic repo password lost | All backups unrecoverable | SOPS-encrypted in repo + 1Password entry; document in disaster recovery runbook |
 | B2 application key compromised | Attacker can read/delete backups | Use bucket-scoped key (not master); restic encryption means data is ciphertext; rotate key via `sops` edit + `make apply ROLE=backups` |
 | Backrest version drift | Config format changes break template | Pin version in defaults; test upgrades manually before bumping |
@@ -460,7 +494,7 @@ Phase 2: Core role implementation
 
 Phase 3: Backrest layer
   D3:  Backrest config template (including notification hooks)
-  D11: Notification hooks (Shoutrrr + Healthchecks)
+  D11: Notification hooks (desktop + SMTP email + heartbeat file)
   D5:  Systemd user service template
   D2:  Backrest installation + service enable
 
@@ -472,8 +506,10 @@ Phase 4: Integration
 Phase 5: Verification
   First backup + restore test on both platforms
   Verify retention policy (simulate forget --dry-run)
-  Verify notifications fire on success/failure
-  Verify Healthchecks.io heartbeat
+  Verify desktop notification fires on error
+  Verify SMTP email fires on error
+  Verify heartbeat file is written on success
+  Verify `make backup-status` detects stale heartbeat
 ```
 
 Phase 1 is lightweight (no server to provision — just B2 console + `sops` edit
@@ -542,7 +578,9 @@ All you need is credentials + internet access.
 9. After 2+ test runs, `restic forget --keep-daily 365 --dry-run` correctly
    identifies which snapshots would be retained.
 10. `make backup-status` and `make backup-browse` work on both platforms.
-11. Shoutrrr notification fires on backup completion (email/Gotify received).
-12. Healthchecks.io shows green check-in after first successful backup.
-13. Disabling a Backrest plan from the web UI stops scheduled backups;
+11. Desktop notification fires on backup error (`notify-send` / `osascript`).
+12. SMTP email fires on backup error (Shoutrrr → user's SMTP relay).
+13. Heartbeat file (`~/.local/log/restic-heartbeat.log`) is written after each
+    successful backup. `make backup-status` warns if heartbeat is stale.
+14. Disabling a Backrest plan from the web UI stops scheduled backups;
     re-enabling resumes them.
