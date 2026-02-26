@@ -31,7 +31,6 @@
             url: "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
             dest: "{{ _vscode_tmp.path }}"
             mode: "0644"
-            follow_redirects: all
             force: true
           register: _vscode_download
           retries: 3

@@ -31,7 +31,7 @@
   register: _dd_mcp_enabled
 
 - name: Restart Docker Desktop after enabling MCP Toolkit
-  when: _dd_mcp_enabled is changed
+  when: _dd_mcp_enabled is changed  # noqa: no-handler
   block:
     - name: Restart Docker Desktop (Linux)
       ansible.builtin.systemd:

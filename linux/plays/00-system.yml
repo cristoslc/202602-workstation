@@ -54,7 +54,7 @@
       ansible.builtin.command: dpkg --configure -a
       become: true
       changed_when: false
-      when: _stale_apt_kill is changed
+      when: _stale_apt_kill is changed  # noqa: no-handler
       tags: [always]
 
     - name: Wait for dpkg/apt locks to be released

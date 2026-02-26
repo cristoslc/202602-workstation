@@ -1,9 +1,17 @@
 ---
-- import_playbook: plays/00-system.yml
-- import_playbook: plays/01-security.yml
-- import_playbook: plays/02-dev-tools.yml
-- import_playbook: plays/03-desktop.yml
-- import_playbook: plays/04-dotfiles.yml
-- import_playbook: plays/05-gaming.yml
-- import_playbook: plays/06-bureau-veritas.yml
-- import_playbook: plays/08-sync.yml
+- name: "Phase 0: System foundation"
+  import_playbook: plays/00-system.yml
+- name: "Phase 1: Security"
+  import_playbook: plays/01-security.yml
+- name: "Phase 2: Dev tools"
+  import_playbook: plays/02-dev-tools.yml
+- name: "Phase 3: Desktop"
+  import_playbook: plays/03-desktop.yml
+- name: "Phase 4: Dotfiles"
+  import_playbook: plays/04-dotfiles.yml
+- name: "Phase 5: Gaming"
+  import_playbook: plays/05-gaming.yml
+- name: "Phase 6: Bureau Veritas"
+  import_playbook: plays/06-bureau-veritas.yml
+- name: "Phase 8: Sync"
+  import_playbook: plays/08-sync.yml
