@@ -202,6 +202,30 @@ Screen {
     height: auto;
     margin: 1 0;
 }
+
+#source-host {
+    width: 50;
+    margin: 1 0;
+}
+
+#migration-error {
+    height: auto;
+    margin: 0 0 1 0;
+}
+
+#migration-buttons {
+    height: auto;
+    margin: 0 0 1 0;
+}
+
+#migration-buttons Button {
+    margin: 0 1;
+}
+
+#migration-output {
+    width: 1fr;
+    height: 1fr;
+}
 """
 
 
