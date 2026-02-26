@@ -14,9 +14,9 @@ TARGET_DIR="${1:-$(dirname "$REPO_DIR")/iac-workstation-template}"
 
 # --- Personalized values to strip ---
 AGE_PUBLIC_KEY="age156zdlx3ysm24xcc0sac4hvfr4dxkx9kp8pr7enu9k2el6jrfqazqkpgear"
-GITHUB_REPO_URL="https://github.com/cristoslc/202602-workstation.git"
+GITHUB_REPO_URL="https://github.com/cristoslc/plumbline.git"
 GITHUB_USERNAME="cristoslc"
-REPO_NAME="202602-workstation"
+REPO_NAME="plumbline"
 
 # --- Phase 1: Validate ---
 

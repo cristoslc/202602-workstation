@@ -1,4 +1,4 @@
-# 202602-workstation
+# plumbline
 
 IaC-driven setup that makes Linux and macOS dev workstations fungible. Run `./setup.sh` on a fresh install or an existing system and get a fully configured development environment.
 
@@ -40,7 +40,7 @@ mkdir -p ~/.config/sops/age
 chmod 600 ~/.config/sops/age/keys.txt
 
 # Clone and bootstrap
-git clone https://github.com/cristoslc/202602-workstation.git ~/.workstation
+git clone https://github.com/cristoslc/plumbline.git ~/.workstation
 cd ~/.workstation
 ./bootstrap.sh
 ```

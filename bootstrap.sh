@@ -29,7 +29,7 @@ if [ ! -f "$SCRIPT_DIR/$PLATFORM/bootstrap.sh" ]; then
     xcode-select --install 2>/dev/null || true
     until xcode-select -p &>/dev/null; do sleep 5; done
   fi
-  git clone "https://github.com/cristoslc/202602-workstation.git" "$WORKSTATION_DIR"
+  git clone "https://github.com/cristoslc/plumbline.git" "$WORKSTATION_DIR"
   SCRIPT_DIR="$WORKSTATION_DIR"
 fi
 
