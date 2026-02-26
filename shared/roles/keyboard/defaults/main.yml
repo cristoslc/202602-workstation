@@ -239,7 +239,7 @@ workstation_actions:
     linux: <Ctrl><Super>d
     macos:
       mods:
-      - cmd
+      - ctrl
       - alt
       key: d
   implementation:
@@ -259,7 +259,7 @@ workstation_actions:
     linux: <Ctrl><Super>f
     macos:
       mods:
-      - cmd
+      - ctrl
       - alt
       key: f
   implementation:
@@ -279,7 +279,7 @@ workstation_actions:
     linux: <Ctrl><Super>g
     macos:
       mods:
-      - cmd
+      - ctrl
       - alt
       key: g
   implementation:
@@ -299,7 +299,7 @@ workstation_actions:
     linux: <Ctrl><Super>e
     macos:
       mods:
-      - cmd
+      - ctrl
       - alt
       key: e
   implementation:
@@ -319,7 +319,7 @@ workstation_actions:
     linux: <Ctrl><Super>r
     macos:
       mods:
-      - cmd
+      - ctrl
       - alt
       key: r
   implementation:
