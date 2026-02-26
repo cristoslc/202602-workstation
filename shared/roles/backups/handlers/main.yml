@@ -1,0 +1,7 @@
+---
+- name: restart backrest
+  when: ansible_facts.os_family == "Debian"
+  ansible.builtin.systemd:
+    name: backrest
+    state: restarted
+    scope: user

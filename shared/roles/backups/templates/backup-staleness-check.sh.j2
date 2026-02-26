@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# Staleness watcher — reads heartbeat file, alerts if backups are stale.
+# Deployed by Ansible backups role — do not edit manually.
+
+set -euo pipefail
+
+HEARTBEAT="{{ restic_heartbeat_file }}"
+THRESHOLD_HOURS="{{ restic_stale_threshold_hours }}"
+SHOUTRRR_URL="{{ restic_shoutrrr_url }}"
+
+alert() {
+  local msg="$1"
+
+  # Desktop notification
+  if command -v notify-send &>/dev/null; then
+    notify-send -u critical "Backup Stale" "$msg"
+  elif command -v osascript &>/dev/null; then
+    osascript -e "display notification \"$msg\" with title \"Backup Stale\""
+  fi
+
+  # SMTP email (optional)
+  if [[ -n "$SHOUTRRR_URL" ]] && command -v shoutrrr &>/dev/null; then
+    shoutrrr send --url "$SHOUTRRR_URL" --message "$(hostname): $msg" || true
+  fi
+}
+
+if [[ ! -f "$HEARTBEAT" ]]; then
+  alert "Backup heartbeat file missing — has a backup ever completed?"
+  exit 0
+fi
+
+LAST_LINE="$(tail -1 "$HEARTBEAT")"
+LAST_TS="$(echo "$LAST_LINE" | cut -d' ' -f1)"
+
+# Cross-platform epoch conversion
+if date -d "$LAST_TS" +%s &>/dev/null 2>&1; then
+  LAST_EPOCH="$(date -d "$LAST_TS" +%s)"
+elif date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s &>/dev/null 2>&1; then
+  LAST_EPOCH="$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s)"
+else
+  alert "Cannot parse heartbeat timestamp: $LAST_TS"
+  exit 0
+fi
+
+NOW_EPOCH="$(date +%s)"
+AGE_HOURS="$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))"
+
+if [[ "$AGE_HOURS" -gt "$THRESHOLD_HOURS" ]]; then
+  alert "Last successful backup was ${AGE_HOURS}h ago (threshold: ${THRESHOLD_HOURS}h)"
+fi

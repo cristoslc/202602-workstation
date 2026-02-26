@@ -1,0 +1,77 @@
+---
+# Restic sub-task: install restic binary (cross-platform)
+
+- name: Install restic (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew:
+    name: restic
+    state: present
+
+- name: Install restic (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check restic version
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
+      vars:
+        tool_name: restic
+        tool_repo: "{{ restic_repo }}"
+        pinned_version: "{{ restic_version }}"
+
+    - name: Check if restic is installed at correct version
+      ansible.builtin.shell: restic version 2>/dev/null | grep -qF '{{ restic_version }}'
+      register: _restic_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download and verify restic
+      when: _restic_installed.rc != 0
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
+      vars:
+        download_url: "{{ restic_url }}"
+        expected_sha256: "{{ restic_sha256 }}"
+        tool_name: restic
+
+    - name: Decompress restic bz2 archive
+      when: _restic_installed.rc != 0
+      ansible.builtin.shell:
+        cmd: bunzip2 -c "{{ _verified_download.path }}" > "{{ _verified_download.path }}.bin"
+      changed_when: true
+
+    - name: Install restic binary
+      when: _restic_installed.rc != 0
+      ansible.builtin.copy:
+        src: "{{ _verified_download.path }}.bin"
+        dest: /usr/local/bin/restic
+        mode: "0755"
+        remote_src: true
+      become: true
+
+    - name: Clean up restic temp files
+      when: _restic_installed.rc != 0 and _verified_download is defined
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ _verified_download.path }}"
+        - "{{ _verified_download.path }}.bin"
+
+- name: Verify restic is working
+  ansible.builtin.command: restic version
+  register: _restic_version
+  changed_when: false
+
+- name: Show restic version
+  ansible.builtin.debug:
+    msg: "{{ _restic_version.stdout }}"
+
+- name: Ensure exclude patterns directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/restic"
+    state: directory
+    mode: "0755"
+
+- name: Template restic exclude patterns
+  ansible.builtin.template:
+    src: restic-excludes.txt.j2
+    dest: "{{ ansible_facts.env.HOME }}/.config/restic/excludes.txt"
+    mode: "0644"

@@ -1,0 +1,59 @@
+---
+# System tray indicator: shows backup health at a glance.
+
+# ── Linux: AppIndicator3 Python script ─────────────────────────────
+
+- name: Install tray indicator (Linux)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure ~/.local/bin directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.local/bin"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure icon directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.local/share/icons"
+        state: directory
+        mode: "0755"
+
+    - name: Template tray indicator script
+      ansible.builtin.template:
+        src: backup-tray-indicator.py.j2
+        dest: "{{ ansible_facts.env.HOME }}/.local/bin/backup-tray-indicator"
+        mode: "0755"
+
+    - name: Ensure autostart directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/autostart"
+        state: directory
+        mode: "0755"
+
+    - name: Template tray indicator autostart entry
+      ansible.builtin.template:
+        src: backup-tray-indicator.desktop.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/autostart/backup-tray-indicator.desktop"
+        mode: "0644"
+
+# ── macOS: SwiftBar plugin ─────────────────────────────────────────
+
+- name: Install tray indicator (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Install SwiftBar via Homebrew
+      community.general.homebrew_cask:
+        name: swiftbar
+        state: present
+
+    - name: Ensure SwiftBar plugin directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins"
+        state: directory
+        mode: "0755"
+
+    - name: Template SwiftBar backup status plugin
+      ansible.builtin.template:
+        src: backup-status.swiftbar.sh.j2
+        dest: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins/backup-status.5m.sh"
+        mode: "0755"

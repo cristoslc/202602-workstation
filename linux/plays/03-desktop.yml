@@ -30,7 +30,7 @@
       tags: [vpn, tailscale, surfshark, desktop]
 
     - role: backups
-      tags: [backups, timeshift, desktop]
+      tags: [backups, timeshift, restic, backrest, desktop]
 
     - role: screenshots
       tags: [screenshots, flameshot, desktop]

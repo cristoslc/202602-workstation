@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic restic backup staleness check
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec={{ restic_stale_check_interval }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
