@@ -1,4 +1,4 @@
-# PRD-002: Sync User Folders
+# PRD-003: Sync User Folders
 
 **Status:** Draft
 **Author:** cristos
