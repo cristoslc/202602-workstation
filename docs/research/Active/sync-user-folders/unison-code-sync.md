@@ -85,15 +85,36 @@ workstation A                    hub server                    workstation B
 3. Invokes Unison: local working tree ↔ `hub:/srv/code-sync/<repo>/<branch>/`.
 4. Excludes `.git/`, build artifacts, dependency directories.
 
-### On-demand invocation
+### Invocation modes
 
-This is **not** a daemon. Sync is triggered:
+Sync happens two ways: explicitly via `wsync`, and automatically via a
+background polling service.
 
-- **Explicitly:** `wsync` (all repos) or `wsync <repo>` (one repo).
-- **On wake:** systemd unit triggered by `suspend.target` / macOS `sleepwatcher`.
-- **Optionally on branch switch:** git `post-checkout` hook calls `wsync <repo>`.
+**Explicit (on-demand):**
 
-No background process, no battery drain, no resource usage when idle.
+- `wsync` — sync all repos now.
+- `wsync <repo>` — sync one repo now.
+- `wsync --status` — show branch and last-sync time for each repo.
+
+**Background service (polling):**
+
+A lightweight timer-driven service runs `wsync` periodically. Not a daemon
+that watches files — a timer that wakes up, runs the sync, and goes back to
+sleep. No fsmonitor, no inotify, no file watching.
+
+- **Linux:** systemd timer fires every N minutes + on wake from suspend.
+- **macOS:** launchd agent fires on interval + `sleepwatcher` on wake.
+- **Idle cost:** near zero. Unison's incremental scan of a typical code repo
+  (thousands of files) completes in seconds. If nothing changed, it exits
+  immediately after comparing archives.
+- **Hub unreachable:** `wsync` fails gracefully (SSH timeout), timer fires
+  again next interval. No crash loop, no backlog.
+
+**On branch switch (optional):**
+
+A git `post-checkout` hook calls `wsync <repo>` to sync immediately after
+`git checkout`. This ensures the hub picks up the new branch target before
+the next timer interval.
 
 ---
 
@@ -229,6 +250,136 @@ else
 fi
 ```
 
+---
+
+## Background service
+
+### Linux: systemd user timer + service
+
+Two units, installed to `~/.config/systemd/user/`:
+
+**`wsync.service`** — runs `wsync` once per invocation:
+
+```ini
+[Unit]
+Description=Branch-aware code sync (Unison)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/wsync
+Environment=WSYNC_HUB=hub
+# Timeout per sync run — generous for first sync of large repos
+TimeoutStartSec=300
+# Log to journal; wsync also appends to ~/.local/log/wsync.log
+StandardOutput=journal
+StandardError=journal
+```
+
+**`wsync.timer`** — periodic polling + wake-from-suspend trigger:
+
+```ini
+[Unit]
+Description=Poll for code sync every 5 minutes and on wake
+
+[Timer]
+# Fire 30 seconds after boot (let network settle)
+OnBootSec=30s
+# Then every 5 minutes
+OnUnitActiveSec=5min
+# Also fire immediately after resume from suspend
+# (systemd timers catch up on missed intervals after sleep)
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable with `systemctl --user enable --now wsync.timer`.
+
+**Why `Persistent=true` matters:** When the machine sleeps for an hour and
+wakes, systemd sees the timer has missed multiple intervals. With
+`Persistent=true`, it fires immediately on wake rather than waiting for the
+next interval. This is the "sleeping machine catches up" behavior.
+
+**On-suspend pre-sync (optional):** To push local changes to the hub *before*
+the machine sleeps (so the other machine has the latest state immediately):
+
+```ini
+# wsync-pre-sleep.service
+[Unit]
+Description=Sync code to hub before suspend
+Before=sleep.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/wsync
+Environment=WSYNC_HUB=hub
+TimeoutStartSec=60
+
+[Install]
+WantedBy=sleep.target
+```
+
+This creates a push-before-sleep + pull-on-wake cycle. The machine you walk
+away from pushes its state; the machine you walk to pulls it.
+
+### macOS: launchd agent
+
+**`~/Library/LaunchAgents/com.user.wsync.plist`:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.wsync</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/wsync</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>WSYNC_HUB</key>
+        <string>hub</string>
+    </dict>
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>StandardOutPath</key>
+    <string>/tmp/wsync.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/wsync.stderr.log</string>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+```
+
+Load with `launchctl load ~/Library/LaunchAgents/com.user.wsync.plist`.
+
+**Wake trigger on macOS:** launchd does not have a native "fire on wake"
+event. Two options:
+
+1. **`sleepwatcher`** (`brew install sleepwatcher`): runs `~/.wakeup` on
+   resume. Add `#!/bin/sh\n/usr/local/bin/wsync` to `~/.wakeup`.
+2. **Rely on the 5-minute interval.** After wake, the next timer fire is at
+   most 5 minutes away. For most workflows this is fast enough.
+
+### Tuning the interval
+
+| Interval | Tradeoff |
+|---|---|
+| 1 min | Near-real-time. Marginal CPU cost — Unison's no-change scan is fast. Frequent SSH connections to hub. |
+| 5 min | Good default. At most 5 minutes stale. Negligible resource usage. |
+| 15 min | Conservative. Fine if you switch machines infrequently. |
+
+The interval is a preference, not a correctness concern. Even at 15 minutes,
+the wake-from-suspend trigger ensures you're never more than seconds stale
+when opening the laptop.
+
 ### Branch name sanitization
 
 Git branch names can contain `/` (e.g., `feature/auth`). These must be
@@ -248,15 +399,17 @@ sanitized for the server-side directory path. The wrapper replaces `/` with
 ### Normal workflow: sequential editing
 
 1. Work on desktop (branch `main`), edit files, don't commit.
-2. Run `wsync` (or it triggers on sleep/lock). Desktop → hub.
-3. Walk to laptop. Open laptop (wake). `wsync` triggers on wake.
-4. Hub → laptop. Working tree now matches desktop's state.
-5. Continue editing on laptop.
-6. Run `wsync`. Laptop → hub.
-7. Back to desktop. `wsync` on wake. Hub → desktop.
+2. Background timer syncs desktop → hub every 5 minutes. Or: desktop
+   suspends, `wsync-pre-sleep.service` pushes to hub before sleep.
+3. Walk to laptop. Open laptop (wake). Timer fires on wake (`Persistent=true`)
+   or `sleepwatcher` runs `wsync`. Hub → laptop automatically.
+4. Working tree matches desktop's state. Continue editing.
+5. Background timer syncs laptop → hub periodically.
+6. Back to desktop. Wake triggers sync. Hub → desktop.
 
-At each step, only one machine has newer changes. Unison propagates them
-cleanly. No conflicts.
+You never run `wsync` manually in this flow. The background service handles
+everything. `wsync` exists for when you want to force an immediate sync (e.g.,
+about to switch machines and don't want to wait for the timer).
 
 ### Branch switching
 
@@ -409,9 +562,10 @@ for code sync:
 | Risk | Severity | Mitigation |
 |---|---|---|
 | OCaml 5 silent corruption | Critical | Use pre-built binary (OCaml 4.14). Brew cask on macOS, GitHub release on Linux. |
-| No macOS fsmonitor | N/A | On-demand invocation — no fsmonitor needed |
+| No macOS fsmonitor | N/A | Timer-based polling — no fsmonitor needed |
 | Memory scaling | Low | Code repos are small (thousands of files, not hundreds of thousands) |
 | Version mismatch | Low | Pin 2.53.x everywhere via Ansible |
+| Battery drain from polling | Very low | Unison no-change scan takes seconds, sleeps between intervals. Not a watcher — no inotify/FSEvents overhead. |
 
 ### Architecture risks
 
@@ -452,8 +606,12 @@ for code sync:
 4. **Set up hub directory** (`/srv/code-sync/`). Ansible task on the server
    role.
 
-5. **Wire up wake trigger.** Linux: systemd unit after `suspend.target`.
-   macOS: `sleepwatcher` + `~/.wakeup` script.
+5. **Deploy background service.**
+   - Linux: `wsync.service` + `wsync.timer` + `wsync-pre-sleep.service` as
+     systemd user units. Deploy via Ansible (`ansible.builtin.copy` to
+     `~/.config/systemd/user/`, then `systemctl --user enable --now`).
+   - macOS: `com.user.wsync.plist` to `~/Library/LaunchAgents/`. Optionally
+     install `sleepwatcher` via Homebrew for wake trigger.
 
 6. **Optional: git post-checkout hook.** Auto-sync on branch switch.
    Place in `shared/dotfiles/git/hooks/` or configure via
