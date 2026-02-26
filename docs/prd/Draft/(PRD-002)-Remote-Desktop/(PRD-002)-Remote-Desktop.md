@@ -41,6 +41,7 @@ After `make apply`, both macOS and Linux workstations have:
 - **RustDesk relay server** address configuration (pointing to self-hosted or Tailscale-accessible relay)
 - **GLI KVM app** install on macOS (Homebrew cask or DMG)
 - **GLI KVM Linux** — debug message directing user to browser via Tailscale IP
+- **Remmina** install on Linux (apt) as a standard VNC/RDP client for connecting to machines that don't run RustDesk
 - New `shared/roles/remote-desktop/` role following `adding-tools.md` conventions
 - Role added to `03-desktop.yml` on both platforms
 - Brewfile entries for macOS tools
@@ -50,8 +51,8 @@ After `make apply`, both macOS and Linux workstations have:
 - Deploying a RustDesk relay server (that's infrastructure, not workstation provisioning)
 - VNC/RDP server setup (xrdp, x11vnc) — RustDesk subsumes this need
 - Remotix / Acronis Cyber Protect Connect — deprecated, will not be provisioned
-- Remmina — RustDesk covers multi-protocol needs; Remmina can be added later via `adding-tools.md` if needed
 - macOS Screen Sharing configuration (already built-in, no provisioning needed)
+- macOS VNC/RDP client — built-in Screen Sharing (VNC) and Microsoft Remote Desktop (RDP) cover this; Remmina is Linux-only
 
 ## Risks
 
@@ -69,9 +70,9 @@ No spike is needed. RustDesk and GLI KVM are well-documented tools with straight
 
 ## Success Criteria
 
-1. `make apply` on a clean Linux machine installs RustDesk and prints a GLI KVM browser-access note.
+1. `make apply` on a clean Linux machine installs RustDesk and Remmina, and prints a GLI KVM browser-access note.
 2. `make apply` on a clean macOS machine installs RustDesk and the GLI KVM app.
 3. `make apply ROLE=remote-desktop` runs only the remote-desktop role.
-4. `make apply ROLE=rustdesk` runs only RustDesk tasks; `make apply ROLE=gli-kvm` runs only GLI KVM tasks.
+4. Sub-tool tags work independently: `rustdesk`, `gli-kvm`, `remmina`.
 5. RustDesk is configured to use the self-hosted relay address (when available) without manual intervention.
 6. No Remotix or Acronis software is installed.

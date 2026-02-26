@@ -37,7 +37,7 @@ Key properties:
 
 ### Limitations accepted
 
-- **RustDesk uses its own protocol** — it cannot connect to standard VNC/RDP servers. If raw VNC/RDP access is needed in the future, Remmina can be added on Linux; macOS has built-in Screen Sharing (VNC) and Microsoft Remote Desktop (RDP).
+- **RustDesk uses its own protocol** — it cannot connect to standard VNC/RDP servers. The `remote-desktop` role includes Remmina on Linux for VNC/RDP client needs; macOS has built-in Screen Sharing (VNC) and Microsoft Remote Desktop (RDP).
 - **macOS permissions are manual** — Screen Recording and Accessibility must be granted via System Settings. Ansible cannot automate this (same limitation as Hammerspoon).
 - **RustDesk .deb comes from GitHub releases** — not from an apt repository, so updates require re-running the role or a separate update mechanism.
 
@@ -53,7 +53,7 @@ Key properties:
 
 ### Negative
 
-- **Own-protocol only** — no VNC/RDP interop out of the box.
+- **Own-protocol only** — no VNC/RDP interop out of the box (mitigated by Remmina on Linux, built-in tools on macOS).
 - **macOS permissions are manual** — cannot be fully automated.
 - **New infrastructure dependency** — full unattended access benefits from deploying a relay server, which is outside workstation provisioning scope.
 - **GitHub-release-based install** — no apt repo means no automatic security updates.
@@ -71,10 +71,6 @@ Acquired by Acronis (2021), rebranded, perpetual licenses killed (2022), free ti
 ### RealVNC Connect — Rejected
 
 Free "Lite" tier limited to 3 devices, 1 concurrent connection, non-commercial only. The old fully-free Home plan was discontinued in 2024. Paid plans start at ~$99/year. Proprietary. Not self-hostable.
-
-### Remmina — Rejected as primary, available as future add-on
-
-Excellent open-source multi-protocol client (VNC/RDP/SSH/X2Go) on Linux. However: no real macOS support (requires XQuartz), client-only (no inbound access), and RustDesk covers the primary use case. Can be added later if raw VNC/RDP client access is needed on Linux.
 
 ### Apache Guacamole — Rejected for workstation role
 
