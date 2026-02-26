@@ -17,6 +17,9 @@
     - role: text-expansion
       tags: [text-expansion, espanso, desktop]
 
+    - role: notes
+      tags: [notes, normcap, linnote, desktop]
+
     - role: calendar
       tags: [calendar, desktop]
 

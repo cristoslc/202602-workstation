@@ -1,0 +1,53 @@
+---
+# LinNote sub-task (Debian only)
+# Ephemeral encrypted scratchpad — keyboard-driven notes with master-password
+# encryption and history. Built from source (no .deb/Flatpak yet).
+# https://github.com/sfnemis/linnote
+- name: Install LinNote (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if LinNote is already installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/linnote
+      register: _linnote_bin
+
+    - name: Install LinNote build dependencies
+      ansible.builtin.apt:
+        name:
+          - build-essential
+          - cmake
+          - qt6-base-dev
+          - libkf6windowsystem-dev
+          - libqt6sql6-sqlite
+        state: present
+      become: true
+      when: not _linnote_bin.stat.exists
+
+    - name: Clone LinNote source
+      ansible.builtin.git:
+        repo: https://github.com/sfnemis/linnote.git
+        dest: /tmp/linnote-build
+        version: v1.0.0
+        depth: 1
+      when: not _linnote_bin.stat.exists
+
+    - name: Build LinNote
+      ansible.builtin.shell: |
+        cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local ..
+        cmake --build build -j{{ ansible_processor_vcpus | default(2) }}
+      args:
+        chdir: /tmp/linnote-build
+      when: not _linnote_bin.stat.exists
+
+    - name: Install LinNote
+      ansible.builtin.shell: cmake --install build
+      args:
+        chdir: /tmp/linnote-build
+      become: true
+      when: not _linnote_bin.stat.exists
+
+    - name: Clean up build directory
+      ansible.builtin.file:
+        path: /tmp/linnote-build
+        state: absent
+      when: not _linnote_bin.stat.exists
