@@ -1,6 +1,7 @@
 ---
 - name: Install Unison (OS-specific)
-  ansible.builtin.include_tasks: "{{ 'darwin.yml' if ansible_facts.os_family == 'Darwin' else 'debian.yml' }}"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts.os_family | lower }}.yml"
   tags: [unison]
 
 - name: Deploy Unison profile and wsync wrapper

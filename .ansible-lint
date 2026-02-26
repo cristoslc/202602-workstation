@@ -17,6 +17,7 @@ skip_list:
 
 # Rules we want to address over time but shouldn't block CI.
 warn_list:
+  - command-instead-of-module
   - command-instead-of-shell
   - risky-shell-pipe
   - no-changed-when

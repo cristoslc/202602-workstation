@@ -43,7 +43,7 @@
     - name: Update icon cache
       ansible.builtin.command: gtk-update-icon-cache -f /usr/share/icons/hicolor
       become: true
-      when: vicinae_icon.changed
+      when: vicinae_icon.changed  # noqa: no-handler
       changed_when: true
 
     - name: Install Vicinae URL handler

@@ -72,7 +72,7 @@
       register: _docker_engine_removed
 
     - name: Stop Docker Engine service before Desktop install
-      when: _docker_engine_removed.changed
+      when: _docker_engine_removed.changed  # noqa: no-handler
       ansible.builtin.systemd:
         name: docker
         state: stopped

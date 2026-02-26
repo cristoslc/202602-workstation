@@ -19,7 +19,6 @@
         url: "{{ acronis_connect_mac_pkg_url }}"
         dest: "{{ ansible_env.HOME }}/Downloads/AcronisCyberProtectConnectAgent.pkg"
         mode: "0644"
-        follow_redirects: all
       register: _acronis_connect_mac_download
       retries: 3
       delay: 5

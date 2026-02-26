@@ -80,6 +80,6 @@ teardown() {
 
   # Key file should be 600
   local perms
-  perms=$(stat -f "%Lp" "$HOME/.config/sops/age/keys.txt" 2>/dev/null || stat -c "%a" "$HOME/.config/sops/age/keys.txt" 2>/dev/null)
+  perms=$(stat -c "%a" "$HOME/.config/sops/age/keys.txt" 2>/dev/null || stat -f "%Lp" "$HOME/.config/sops/age/keys.txt" 2>/dev/null)
   [ "$perms" = "600" ]
 }
