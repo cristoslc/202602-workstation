@@ -41,8 +41,7 @@ class DataMigrationScreen(Screen):
             yield Static(
                 "[bold]Data Migration[/bold]\n\n"
                 "Copy user data folders from another machine via rsync/SSH.\n"
-                "[dim]Folders: Documents, Pictures, Music, Videos, "
-                "Downloads[/dim]\n\n"
+                "[dim]Folders: Desktop, Documents, Downloads[/dim]\n\n"
                 "Enter the hostname or IP of the source machine.",
                 id="migration-status",
             )

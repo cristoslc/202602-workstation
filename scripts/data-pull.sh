@@ -15,7 +15,7 @@ fi
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-USER_FOLDERS=(Documents Pictures Music Videos Downloads)
+USER_FOLDERS=(Desktop Documents Downloads)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXCLUDE_FILE="${SCRIPT_DIR}/data-pull-excludes.txt"
 
@@ -37,7 +37,7 @@ Usage: scripts/data-pull.sh <source-hostname> [--dry-run]
 
 Bulk-copy user data folders from a remote machine to this one via rsync/SSH.
 
-Folders synced: Documents, Pictures, Music, Videos, Downloads
+Folders synced: Desktop, Documents, Downloads
 
 Options:
   --dry-run   Preview the transfer without copying anything (rsync -n)
