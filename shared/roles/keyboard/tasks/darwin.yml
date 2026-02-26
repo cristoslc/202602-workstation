@@ -18,6 +18,10 @@
     dest: "{{ ansible_facts.env.HOME }}/.hammerspoon/actions.lua"
     mode: "0644"
 
+- name: Launch Hammerspoon
+  ansible.builtin.command: open -a Hammerspoon
+  changed_when: false
+
 - name: Remind about Accessibility permission
   ansible.builtin.debug:
     msg: >-
