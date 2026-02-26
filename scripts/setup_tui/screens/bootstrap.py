@@ -819,8 +819,25 @@ class BootstrapRunScreen(Screen):
         self.query_one("#back", Button).disabled = False
         self.query_one("#send-log", Button).disabled = False
 
+    def _generate_post_install_doc(self) -> None:
+        """Write a post-install checklist HTML file and stash the path on the app."""
+        try:
+            from ..lib.post_install import generate_and_open
+
+            doc_path = generate_and_open(
+                plat=self.app.platform,
+                phases=self.phases,
+                skip_tags=self.skip_tags,
+                log_path=str(BOOTSTRAP_LOG),
+            )
+            self.app.post_install_doc = doc_path  # type: ignore[attr-defined]
+        except Exception:
+            logger.exception("Failed to generate post-install checklist")
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "done":
+            if self._success:
+                self._generate_post_install_doc()
             self.app.exit(result="reload_shell" if self._success else None)
         elif event.button.id == "back":
             # Pop all bootstrap screens back to welcome.

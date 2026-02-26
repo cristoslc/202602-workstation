@@ -35,6 +35,12 @@ def main() -> None:
         # Re-exec through the same entry point after Textual restores the terminal.
         os.execv(sys.executable, [sys.executable] + sys.argv)
     elif result == "reload_shell":
+        # Open the post-install checklist if bootstrap generated one.
+        doc_path = getattr(app, "post_install_doc", None)
+        if doc_path:
+            from setup_tui.lib.post_install import open_file
+
+            open_file(doc_path)
         # Signal setup.sh to exec the user's login shell for config reload.
         sys.exit(7)
 

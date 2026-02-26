@@ -108,7 +108,7 @@ test-bats: ## Run bats shell unit tests
 	bats tests/bats/
 
 test-python: ## Run Python unit tests (first-run wizard + setup TUI)
-	uv run --with rich,pyyaml,textual,pytest,pytest-asyncio pytest tests/python/ -v
+	uv run --with rich,pyyaml,textual,jinja2,pytest,pytest-asyncio pytest tests/python/ -v
 
 test: lint test-bats test-python ## Run all linters and tests
 
