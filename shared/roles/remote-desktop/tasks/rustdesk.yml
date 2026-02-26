@@ -1,5 +1,7 @@
 ---
 # RustDesk — cross-platform remote desktop client+server.
+# No official apt repo exists; Linux uses the GitHub releases/latest redirect
+# to always fetch the newest .deb.
 
 - name: Install RustDesk (macOS)
   when: ansible_facts.os_family == "Darwin"
@@ -18,39 +20,27 @@
 - name: Install RustDesk (Debian)
   when: ansible_facts.os_family == "Debian"
   block:
-    - name: RustDesk version check
-      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
-      vars:
-        tool_name: RustDesk
-        tool_repo: rustdesk/rustdesk
-        pinned_version: "{{ rustdesk_version }}"
+    - name: Download latest RustDesk .deb
+      ansible.builtin.get_url:
+        url: https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-x86_64.deb
+        dest: /tmp/rustdesk.deb
+        mode: "0644"
+        force: true
+      register: _rustdesk_download
+      retries: 3
+      delay: 5
+      until: _rustdesk_download is not failed
 
-    - name: Check installed RustDesk version
-      ansible.builtin.command: dpkg-query -W -f='${Version}' rustdesk
-      register: _rustdesk_installed
-      changed_when: false
-      failed_when: false
+    - name: Install RustDesk .deb
+      ansible.builtin.apt:
+        deb: /tmp/rustdesk.deb
+        state: present
+      become: true
 
-    - name: Install RustDesk
-      when: _rustdesk_installed.rc != 0 or rustdesk_version not in _rustdesk_installed.stdout
-      block:
-        - name: Download and verify RustDesk .deb
-          ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
-          vars:
-            tool_name: RustDesk
-            download_url: "{{ rustdesk_deb_url }}"
-            expected_sha256: "{{ rustdesk_sha256 }}"
-
-        - name: Install RustDesk .deb
-          ansible.builtin.apt:
-            deb: "{{ _verified_download.path }}"
-            state: present
-          become: true
-
-        - name: Clean up RustDesk download
-          ansible.builtin.file:
-            path: "{{ _verified_download.path }}"
-            state: absent
+    - name: Clean up .deb
+      ansible.builtin.file:
+        path: /tmp/rustdesk.deb
+        state: absent
 
     - name: Enable RustDesk service
       ansible.builtin.systemd:
