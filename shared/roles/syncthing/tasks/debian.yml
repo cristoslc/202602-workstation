@@ -49,3 +49,9 @@
     state: started
     daemon_reload: true
   become: true
+
+- name: Install Syncthing Tray (system tray GUI)
+  ansible.builtin.apt:
+    name: syncthingtray
+    state: present
+  become: true

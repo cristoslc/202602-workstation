@@ -34,10 +34,13 @@
 - name: Display post-install instructions
   ansible.builtin.debug:
     msg: |
-      Syncthing is installed and running.
+      Syncthing is installed and running with a GUI.
+      - macOS: menu bar icon (Syncthing app). Click to open the web GUI.
+      - Linux: Syncthing Tray in the system tray. Launch it from the app menu
+        if it isn't running; it connects to the existing Syncthing daemon.
 
       Next steps (manual, one-time):
-      1. Open {{ syncthing_gui_address }} in a browser
+      1. Open the Syncthing GUI (via tray icon or {{ syncthing_gui_address }})
       2. Add the hub server as a remote device (ID: {{ syncthing_hub_device_id | default('set in group_vars') }})
       3. Share each user folder (Documents, Pictures, Music, Videos, Downloads) with the hub
       4. On the hub, accept the device and folder share requests
