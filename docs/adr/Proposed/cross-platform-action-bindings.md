@@ -39,7 +39,7 @@ Actions are the stable abstraction. Apps and dispatchers are implementation deta
 - Auto-reload on config file change
 - A single Lua config at `~/.hammerspoon/` — fully Stow-able
 
-**Modifier namespace: `Ctrl+Opt` (Control+Option).** This modifier combination is essentially unused by macOS system shortcuts and applications, giving us a conflict-free namespace without needing Karabiner-Elements for low-level key interception. Adding `Shift` provides a second tier for extended actions.
+**Modifier namespace** is defined in the role's user defaults (`shared/roles/keyboard/defaults/main.yml`). The chosen modifiers should avoid conflicts with macOS system shortcuts and common application keybindings. Adding `Shift` provides a second tier for extended actions.
 
 The Lua config lives in a Stow package at `macos/dotfiles/hammerspoon/.hammerspoon/`. An Ansible template generates `actions.lua` from the action registry.
 
@@ -67,19 +67,14 @@ Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), config
 
 ### 4. Initial action set
 
-| Action | Linux binding | macOS binding | Linux app | macOS app |
-|--------|-------------|---------------|-----------|-----------|
-| `open_launcher` | Super+Space | Ctrl+Opt+Space | Vicinae | Raycast |
-| `clipboard_history` | Super+V | Ctrl+Opt+V | Vicinae | Raycast |
-| `emoji_picker` | Super+E | Ctrl+Opt+E | Vicinae | Raycast |
-| `screenshot_region` | Super+Shift+4 | Ctrl+Opt+Shift+4 | Flameshot | CleanShot X |
-| `screenshot_full` | Super+Shift+3 | Ctrl+Opt+Shift+3 | Flameshot | macOS built-in |
-| `window_left_half` | Super+Left | Ctrl+Opt+Left | Cinnamon tiling | Hammerspoon |
-| `window_right_half` | Super+Right | Ctrl+Opt+Right | Cinnamon tiling | Hammerspoon |
-| `window_maximize` | Super+Up | Ctrl+Opt+Up | Cinnamon tiling | Hammerspoon |
-| `window_restore` | Super+Down | Ctrl+Opt+Down | Cinnamon tiling | Hammerspoon |
-| `window_next_monitor` | Super+Shift+Right | Ctrl+Opt+Shift+Right | Cinnamon tiling | Hammerspoon |
-| `window_prev_monitor` | Super+Shift+Left | Ctrl+Opt+Shift+Left | Cinnamon tiling | Hammerspoon |
+The canonical action list with current keybindings lives in `shared/roles/keyboard/defaults/main.yml`. The following table summarizes the action categories and per-platform dispatchers:
+
+| Category | Actions | Linux dispatcher | macOS dispatcher |
+|----------|---------|-----------------|-----------------|
+| Launchers | open_launcher, clipboard_history, emoji_picker | dconf custom keybinding | Hammerspoon → URL scheme |
+| Screenshots | screenshot_region, screenshot_full | dconf → Flameshot | Hammerspoon → CleanShot X / built-in |
+| Window tiling | left/right half, maximize, restore, thirds, two-thirds | Cinnamon WM dconf keys | Hammerspoon `hs.window` |
+| Window movement | next/prev monitor, hide, fullscreen | Cinnamon WM dconf keys | Hammerspoon `hs.window` |
 
 ## Consequences
 
@@ -90,7 +85,7 @@ Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), config
 - **Apps are swappable** — change the `implementation` entry without touching keybindings.
 - **No more manual post-install** — screenshot, launcher, and window management shortcuts are deployed by bootstrap.
 - **Stow-managed config** — Hammerspoon Lua is a dotfile like everything else.
-- **Ctrl+Opt avoids conflicts** — the namespace is unused by macOS system and application shortcuts.
+- **Configurable modifier namespace** — keybindings are defined in role defaults, easy to change without touching dispatch logic.
 - **Window management included** — Hammerspoon replaces the need for Rectangle/Magnet on macOS; Cinnamon's built-in tiling is configured consistently on Linux.
 - **One macOS tool, one permission** — only Hammerspoon (Accessibility). No Karabiner means no Input Monitoring, no Driver Extension, no Login Items, no macOS upgrade breakage risk.
 
@@ -99,7 +94,7 @@ Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), config
 - **One new macOS tool** — Hammerspoon requires manual Accessibility permission grant that Ansible cannot automate.
 - **Learning curve** — Hammerspoon Lua is a new config format to maintain.
 - **Increased complexity** — the action registry YAML, Jinja2 template, and dispatch mechanism are more moving parts than the current hardcoded dconf tasks.
-- **Cannot intercept system shortcuts** — Hammerspoon's `hs.hotkey.bind()` cannot override macOS system shortcuts (Cmd+Shift+4, Cmd+Space, etc.). This is acceptable because `Ctrl+Opt` avoids those entirely, but it means we cannot remap existing system shortcuts if desired in the future.
+- **Cannot intercept system shortcuts** — Hammerspoon's `hs.hotkey.bind()` cannot override macOS system shortcuts (Cmd+Shift+4, Cmd+Space, etc.). Modifier choices should avoid those; this means we cannot remap existing system shortcuts if desired in the future.
 
 ### Neutral
 
@@ -134,7 +129,7 @@ Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), config
 ## Alternatives Considered
 
 See [research doc](../../research/Active/cross-platform-action-bindings/README.md#alternatives-considered) for detailed evaluation of:
-- Karabiner-Elements Hyper key pattern (unnecessary complexity — Ctrl+Opt avoids conflicts without a second tool)
+- Karabiner-Elements Hyper key pattern (unnecessary complexity — a well-chosen modifier avoids conflicts without a second tool)
 - Karabiner only (too limited for rich action dispatch and window management)
 - sxhkd on Linux (conflicts with Cinnamon, not integrated)
 - macOS Shortcuts.app (not programmable enough)

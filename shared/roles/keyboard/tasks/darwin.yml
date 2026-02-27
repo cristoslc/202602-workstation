@@ -6,21 +6,39 @@
     name: hammerspoon
     state: present
 
-- name: Ensure Hammerspoon config directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_facts.env.HOME }}/.hammerspoon"
-    state: directory
-    mode: "0755"
-
-- name: Deploy Hammerspoon action bindings
+- name: Generate Hammerspoon action bindings into stow package
   ansible.builtin.template:
     src: actions.lua.j2
-    dest: "{{ ansible_facts.env.HOME }}/.hammerspoon/actions.lua"
+    dest: "{{ workstation_dir }}/macos/dotfiles/hammerspoon/.hammerspoon/actions.lua"
     mode: "0644"
+  register: _hs_actions
 
-- name: Launch Hammerspoon
-  ansible.builtin.command: open -a Hammerspoon
+- name: Check if Hammerspoon is running
+  ansible.builtin.command: pgrep -x Hammerspoon
+  register: _hs_running
   changed_when: false
+  failed_when: false
+
+- name: Quit Hammerspoon before relaunch (config changed)
+  ansible.builtin.command: osascript -e 'tell application "Hammerspoon" to quit'
+  when: _hs_actions.changed and _hs_running.rc == 0
+  changed_when: true
+  failed_when: false
+
+- name: Wait for Hammerspoon to exit
+  ansible.builtin.command: pgrep -x Hammerspoon
+  register: _hs_quit_wait
+  until: _hs_quit_wait.rc != 0
+  retries: 5
+  delay: 1
+  when: _hs_actions.changed and _hs_running.rc == 0
+  changed_when: false
+  failed_when: false
+
+- name: Relaunch Hammerspoon (config changed, was running)
+  ansible.builtin.command: open -a Hammerspoon
+  when: _hs_actions.changed and _hs_running.rc == 0
+  changed_when: true
 
 - name: Remind about Accessibility permission
   ansible.builtin.debug:
