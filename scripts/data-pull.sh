@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 # Bulk-copy user data folders from a remote machine via rsync over SSH.
-# Usage: scripts/data-pull.sh <source-hostname> [--dry-run]
+# Usage: scripts/data-pull.sh <source-hostname> [--dry-run] [--scan-only]
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -20,8 +20,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXCLUDE_FILE="${SCRIPT_DIR}/data-pull-excludes.txt"
 
 RSYNC_OPTS=(
-  -avz                  # archive, verbose, compress
-  --progress            # per-file progress
+  -az                   # archive, compress
+  --info=progress2      # overall transfer progress (% / speed / ETA)
   --partial             # resume interrupted transfers
   --human-readable      # human-readable sizes
   --exclude-from="$EXCLUDE_FILE"
@@ -32,20 +32,22 @@ RSYNC_OPTS=(
 # ---------------------------------------------------------------------------
 data_pull_usage() {
   cat <<'EOF'
-Usage: scripts/data-pull.sh <source-hostname> [--dry-run]
+Usage: scripts/data-pull.sh <source-hostname> [--dry-run] [--scan-only]
 
 Bulk-copy user data folders from a remote machine to this one via rsync/SSH.
 
 Folders synced: Desktop, Documents, Downloads, Movies, Music, Pictures, Videos
 
 Options:
-  --dry-run   Preview the transfer without copying anything (rsync -n)
+  --dry-run     Preview the transfer without copying anything (rsync -n)
+  --scan-only   Report remote folder sizes and exit (no transfer)
 
 Examples:
   make data-pull SOURCE=desktop        # copy from 'desktop'
   make data-pull-dry SOURCE=desktop    # preview what would be copied
   scripts/data-pull.sh desktop         # direct invocation
   scripts/data-pull.sh desktop --dry-run
+  scripts/data-pull.sh desktop --scan-only
 EOF
 }
 
@@ -56,6 +58,35 @@ data_pull_check_ssh() {
     echo "Ensure SSH key auth is configured and the host is reachable."
     return 1
   fi
+}
+
+data_pull_scan_folder() {
+  # Get the total file size of a remote folder (bytes) via SSH du.
+  local host="$1" folder="$2"
+  local bytes
+  bytes="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+    "du -sb ~/$folder/ 2>/dev/null | cut -f1" 2>/dev/null)" || bytes=0
+  [[ -z "$bytes" ]] && bytes=0
+  echo "$bytes"
+}
+
+data_pull_scan_sizes() {
+  # Print a structured size summary for each folder on the remote host.
+  # Output lines: @@SCAN:<folder>:<bytes>@@
+  # Final line:   @@TOTAL:<total_bytes>@@
+  local host="$1"
+  local total=0
+
+  echo "Scanning remote folder sizes on $host..."
+
+  for folder in "${USER_FOLDERS[@]}"; do
+    local bytes
+    bytes="$(data_pull_scan_folder "$host" "$folder")"
+    echo "@@SCAN:${folder}:${bytes}@@"
+    total=$((total + bytes))
+  done
+
+  echo "@@TOTAL:${total}@@"
 }
 
 data_pull_sync_folder() {
@@ -69,14 +100,17 @@ data_pull_sync_folder() {
   fi
 
   echo ""
+  echo "@@FOLDER_START:${folder}@@"
   echo "=== Syncing $folder from $host ==="
   mkdir -p "$dst"
   rsync "${opts[@]}" "$src" "$dst"
+  echo "@@FOLDER_DONE:${folder}@@"
 }
 
 data_pull_main() {
   local source_host="${1:-}"
   local dry_run="false"
+  local scan_only="false"
 
   if [[ -z "$source_host" ]]; then
     data_pull_usage
@@ -87,10 +121,18 @@ data_pull_main() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --dry-run) dry_run="true"; shift ;;
+      --scan-only) scan_only="true"; shift ;;
       -h|--help) data_pull_usage; exit 0 ;;
       *) echo "Unknown option: $1"; data_pull_usage; exit 1 ;;
     esac
   done
+
+  data_pull_check_ssh "$source_host"
+
+  if [[ "$scan_only" == "true" ]]; then
+    data_pull_scan_sizes "$source_host"
+    return 0
+  fi
 
   if [[ "$dry_run" == "true" ]]; then
     echo "=== DRY RUN — no files will be copied ==="
@@ -101,7 +143,9 @@ data_pull_main() {
   echo "Folders: ${USER_FOLDERS[*]}"
   echo ""
 
-  data_pull_check_ssh "$source_host"
+  # Scan remote sizes for progress tracking
+  data_pull_scan_sizes "$source_host"
+  echo ""
 
   for folder in "${USER_FOLDERS[@]}"; do
     data_pull_sync_folder "$source_host" "$folder" "$dry_run"

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 from textual import work
@@ -18,6 +20,7 @@ from textual.widgets import (
     Footer,
     Header,
     Input,
+    ProgressBar,
     RichLog,
     Static,
 )
@@ -29,6 +32,112 @@ logger = logging.getLogger("setup")
 DATA_PULL_SCRIPT = REPO_ROOT / "scripts" / "data-pull.sh"
 SSH_KEY_PATH = Path.home() / ".ssh" / "id_ed25519"
 MIGRATION_LOG = Path.home() / ".local" / "log" / "migration.log"
+
+# Regex for rsync --info=progress2 output lines, e.g.:
+#   1,234,567,890  45%  12.34MB/s    0:01:23 (xfr#1, ir-chk=100/200)
+# The bytes field may use commas. Percentage is integer. Speed has units.
+# Time is H:MM:SS or M:SS.
+_PROGRESS2_RE = re.compile(
+    r"^\s*"
+    r"(?P<bytes>[\d,]+)\s+"
+    r"(?P<pct>\d+)%\s+"
+    r"(?P<speed>\S+)\s+"
+    r"(?P<eta>\d[\d:]+)"
+)
+
+# Structured markers emitted by data-pull.sh
+_SCAN_RE = re.compile(r"^@@SCAN:(\w+):(\d+)@@$")
+_TOTAL_RE = re.compile(r"^@@TOTAL:(\d+)@@$")
+_FOLDER_START_RE = re.compile(r"^@@FOLDER_START:(\w+)@@$")
+_FOLDER_DONE_RE = re.compile(r"^@@FOLDER_DONE:(\w+)@@$")
+
+
+def _format_bytes(n: int | float) -> str:
+    """Human-friendly byte size (e.g. 1.23 GB)."""
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(n) < 1024:
+            if unit == "B":
+                return f"{int(n)} {unit}"
+            return f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
+class MigrationProgress:
+    """Track transfer progress across multiple folders."""
+
+    def __init__(self) -> None:
+        self.folder_sizes: dict[str, int] = {}
+        self.total_bytes: int = 0
+        self.completed_folders: list[str] = []
+        self.current_folder: str | None = None
+        self.current_pct: int = 0
+        self.current_speed: str = ""
+        self.current_eta: str = ""
+        self._start_time: float | None = None
+
+    @property
+    def bytes_completed(self) -> int:
+        """Estimated bytes transferred so far."""
+        done = sum(self.folder_sizes.get(f, 0) for f in self.completed_folders)
+        if self.current_folder and self.current_folder in self.folder_sizes:
+            cur_size = self.folder_sizes[self.current_folder]
+            done += int(cur_size * self.current_pct / 100)
+        return done
+
+    @property
+    def overall_pct(self) -> float:
+        if self.total_bytes <= 0:
+            return 0.0
+        return min(100.0, self.bytes_completed / self.total_bytes * 100)
+
+    @property
+    def elapsed_seconds(self) -> float:
+        if self._start_time is None:
+            return 0.0
+        return time.monotonic() - self._start_time
+
+    @property
+    def eta_display(self) -> str:
+        """Rough wall-clock ETA based on overall progress."""
+        pct = self.overall_pct
+        elapsed = self.elapsed_seconds
+        if pct <= 0 or elapsed <= 0:
+            return "estimating..."
+        remaining = elapsed / pct * (100 - pct)
+        return _format_duration(remaining)
+
+    def start(self) -> None:
+        self._start_time = time.monotonic()
+
+    def summary_line(self) -> str:
+        """One-line progress summary for the UI."""
+        done = _format_bytes(self.bytes_completed)
+        total = _format_bytes(self.total_bytes)
+        pct = self.overall_pct
+        eta = self.eta_display
+        folder = self.current_folder or "—"
+        parts = [
+            f"{done} / {total}",
+            f"{pct:.1f}%",
+        ]
+        if self.current_speed:
+            parts.append(self.current_speed)
+        parts.append(f"~{eta} remaining")
+        parts.append(f"[dim]{folder}[/dim]")
+        return "  ".join(parts)
+
+
+def _format_duration(seconds: float) -> str:
+    """Format seconds as H:MM:SS or M:SS."""
+    s = int(seconds)
+    if s < 0:
+        return "0:00"
+    h, remainder = divmod(s, 3600)
+    m, sec = divmod(remainder, 60)
+    if h > 0:
+        return f"{h}:{m:02d}:{sec:02d}"
+    return f"{m}:{sec:02d}"
 
 
 class DataMigrationScreen(Screen):
@@ -75,6 +184,8 @@ class DataMigrationScreen(Screen):
                     variant="primary",
                     disabled=True,
                 )
+            yield Static("", id="progress-summary")
+            yield ProgressBar(id="migration-progress", show_eta=False)
             yield RichLog(
                 id="migration-output", highlight=True, markup=True, wrap=True
             )
@@ -89,7 +200,10 @@ class DataMigrationScreen(Screen):
 
     def on_mount(self) -> None:
         self.query_one("#migration-output", RichLog).display = False
+        self.query_one("#migration-progress", ProgressBar).display = False
+        self.query_one("#progress-summary", Static).display = False
         self.query_one("#migration-done-buttons", Horizontal).display = False
+        self._progress = MigrationProgress()
 
     def action_go_back(self) -> None:
         self.app.pop_screen()
@@ -217,7 +331,7 @@ class DataMigrationScreen(Screen):
         self.app.call_from_thread(self._enable_pull)
 
     # ------------------------------------------------------------------
-    # Copy SSH key (suspend Textual → real terminal)
+    # Copy SSH key (suspend Textual -> real terminal)
     # ------------------------------------------------------------------
 
     def _run_copy_key(self) -> None:
@@ -317,6 +431,14 @@ class DataMigrationScreen(Screen):
             f"[bold cyan]>>> {mode_label}: "
             f"Copying user folders from {host}[/bold cyan]\n"
         )
+
+        # Reset progress state
+        self._progress = MigrationProgress()
+        bar = self.query_one("#migration-progress", ProgressBar)
+        bar.update(total=100, progress=0)
+        bar.display = not dry_run
+        self.query_one("#progress-summary", Static).display = not dry_run
+
         self._run_data_pull(host, dry_run)
 
     @work(thread=True)
@@ -329,6 +451,8 @@ class DataMigrationScreen(Screen):
         env = os.environ.copy()
         env["PATH"] = f"{Path.home()}/.local/bin:{env.get('PATH', '')}"
 
+        progress = self._progress
+
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -337,8 +461,8 @@ class DataMigrationScreen(Screen):
                 env=env,
             )
             for raw_line in proc.stdout:
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                self.app.call_from_thread(self._log_output, line)
+                stripped = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                self._handle_output_line(stripped, progress, dry_run)
             proc.wait()
 
             if proc.returncode == 0:
@@ -350,6 +474,15 @@ class DataMigrationScreen(Screen):
                         "[bold]Start Migration[/bold] to copy for real.",
                     )
                 else:
+                    # Set progress to 100%
+                    self.app.call_from_thread(self._set_progress, 100.0)
+                    self.app.call_from_thread(
+                        self._update_summary,
+                        f"{_format_bytes(progress.total_bytes)} / "
+                        f"{_format_bytes(progress.total_bytes)}  "
+                        f"100.0%  "
+                        f"completed in {_format_duration(progress.elapsed_seconds)}",
+                    )
                     self.app.call_from_thread(
                         self._log,
                         "\n[bold green]Migration complete![/bold green] "
@@ -370,6 +503,76 @@ class DataMigrationScreen(Screen):
 
         self.app.call_from_thread(self._enable_pull)
         self.app.call_from_thread(self._show_done_buttons)
+
+    def _handle_output_line(
+        self, line: str, progress: MigrationProgress, dry_run: bool,
+    ) -> None:
+        """Parse a single output line for structured markers or progress."""
+        # Scan markers
+        m = _SCAN_RE.match(line)
+        if m:
+            folder, size_str = m.group(1), m.group(2)
+            size = int(size_str)
+            progress.folder_sizes[folder] = size
+            human = _format_bytes(size)
+            self.app.call_from_thread(
+                self._log, f"  {folder}: {human}"
+            )
+            return
+
+        m = _TOTAL_RE.match(line)
+        if m:
+            progress.total_bytes = int(m.group(1))
+            human = _format_bytes(progress.total_bytes)
+            self.app.call_from_thread(
+                self._log,
+                f"\n[bold]Total remote data: {human}[/bold]\n",
+            )
+            return
+
+        m = _FOLDER_START_RE.match(line)
+        if m:
+            folder = m.group(1)
+            progress.current_folder = folder
+            progress.current_pct = 0
+            progress.current_speed = ""
+            progress.current_eta = ""
+            if progress._start_time is None:
+                progress.start()
+            return
+
+        m = _FOLDER_DONE_RE.match(line)
+        if m:
+            folder = m.group(1)
+            if folder not in progress.completed_folders:
+                progress.completed_folders.append(folder)
+            progress.current_pct = 0
+            if not dry_run:
+                self.app.call_from_thread(
+                    self._set_progress, progress.overall_pct
+                )
+                self.app.call_from_thread(
+                    self._update_summary, progress.summary_line()
+                )
+            return
+
+        # rsync --info=progress2 lines (only during real transfers)
+        if not dry_run:
+            m = _PROGRESS2_RE.match(line)
+            if m:
+                progress.current_pct = int(m.group("pct"))
+                progress.current_speed = m.group("speed")
+                progress.current_eta = m.group("eta")
+                self.app.call_from_thread(
+                    self._set_progress, progress.overall_pct
+                )
+                self.app.call_from_thread(
+                    self._update_summary, progress.summary_line()
+                )
+                return
+
+        # Regular output — show in log
+        self.app.call_from_thread(self._log_output, line)
 
     # ------------------------------------------------------------------
     # UI helpers
@@ -413,6 +616,13 @@ class DataMigrationScreen(Screen):
         if self._log_file and not self._log_file.closed:
             self._log_file.write(text + "\n")
             self._log_file.flush()
+
+    def _set_progress(self, pct: float) -> None:
+        bar = self.query_one("#migration-progress", ProgressBar)
+        bar.update(total=100, progress=pct)
+
+    def _update_summary(self, text: str) -> None:
+        self.query_one("#progress-summary", Static).update(text)
 
     def _disable_all(self) -> None:
         self.query_one("#check-conn", Button).disabled = True

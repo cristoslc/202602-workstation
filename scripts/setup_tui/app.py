@@ -226,6 +226,17 @@ Screen {
     width: 1fr;
     height: 1fr;
 }
+
+#progress-summary {
+    height: auto;
+    padding: 0 0 1 0;
+    color: $text;
+}
+
+#migration-progress {
+    width: 1fr;
+    margin: 0 0 1 0;
+}
 """
 
 
