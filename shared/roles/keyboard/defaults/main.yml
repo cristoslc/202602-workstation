@@ -2,10 +2,11 @@
 # Action registry: semantic actions with per-platform keybindings and implementations.
 # The keyboard role reads this to configure Hammerspoon (macOS) and dconf (Linux).
 #
-# Modifier strategy: Choose modifiers that avoid conflicts with system and
-# application shortcuts on each platform.  +Shift provides a second tier
-# for extended actions.  Edit bindings here; the keyboard role generates
-# platform configs (Hammerspoon on macOS, dconf on Linux) from this registry.
+# Modifier strategy — same physical keys on both platforms:
+#   macOS Cmd  =  Linux Super  (same physical key)
+#   +Shift where the bare combo conflicts (e.g. Cmd+V = paste → Cmd+Shift+V)
+#
+# This means muscle memory transfers 1:1 between machines.
 
 workstation_actions:
 - action: open_launcher
@@ -43,12 +44,11 @@ workstation_actions:
 - action: emoji_picker
   description: Emoji picker
   keybinding:
-    linux: <Super><Shift>e
+    linux: <Alt>period
     macos:
       mods:
-      - cmd
-      - shift
-      key: e
+      - alt
+      key: .
   implementation:
     linux:
       type: dconf
@@ -91,11 +91,11 @@ workstation_actions:
 - action: window_left_half
   description: Tile window left half
   keybinding:
-    linux: <Super><Shift>Left
+    linux: <Ctrl><Alt>Left
     macos:
       mods:
-      - cmd
-      - shift
+      - ctrl
+      - alt
       key: left
   implementation:
     linux:
@@ -109,11 +109,11 @@ workstation_actions:
 - action: window_right_half
   description: Tile window right half
   keybinding:
-    linux: <Super><Shift>Right
+    linux: <Ctrl><Alt>Right
     macos:
       mods:
-      - cmd
-      - shift
+      - ctrl
+      - alt
       key: right
   implementation:
     linux:
@@ -127,11 +127,11 @@ workstation_actions:
 - action: window_maximize
   description: Maximize window
   keybinding:
-    linux: <Super><Shift>Up
+    linux: <Ctrl><Alt>Up
     macos:
       mods:
-      - cmd
-      - shift
+      - ctrl
+      - alt
       key: up
   implementation:
     linux:
@@ -145,11 +145,11 @@ workstation_actions:
 - action: window_restore
   description: Restore window
   keybinding:
-    linux: <Super><Shift>Down
+    linux: <Ctrl><Alt>Down
     macos:
       mods:
-      - cmd
-      - shift
+      - ctrl
+      - alt
       key: down
   implementation:
     linux:
@@ -163,12 +163,12 @@ workstation_actions:
 - action: window_next_monitor
   description: Move window to next monitor
   keybinding:
-    linux: <Super><Shift><Alt>Right
+    linux: <Ctrl><Alt><Super>Right
     macos:
       mods:
-      - cmd
-      - shift
+      - ctrl
       - alt
+      - cmd
       key: right
   implementation:
     linux:
@@ -182,12 +182,12 @@ workstation_actions:
 - action: window_prev_monitor
   description: Move window to previous monitor
   keybinding:
-    linux: <Super><Shift><Alt>Left
+    linux: <Ctrl><Alt><Super>Left
     macos:
       mods:
-      - cmd
-      - shift
+      - ctrl
       - alt
+      - cmd
       key: left
   implementation:
     linux:
