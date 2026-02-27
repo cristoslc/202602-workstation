@@ -26,6 +26,9 @@ if command -v duf &>/dev/null; then
   alias df='duf'
 fi
 
+# Claude Code
+alias claude-danger='claude --allow-dangerously-skip-permissions'
+
 # Shell
 alias reload='source ~/.zshrc'
 alias h='history'
