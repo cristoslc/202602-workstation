@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import subprocess
 import sys
@@ -52,10 +53,12 @@ from setup_tui.lib.defaults import (
     RAYCAST_IMPORT_TMP,
     cleanup_raycast_import,
     export_iterm2_plist,
+    export_streamdeck_plugin_list,
     get_export_fn,
     import_iterm2_settings,
     import_raycast_settings,
     run_all_imports,
+    scan_streamdeck_plugins,
 )
 
 
@@ -369,12 +372,15 @@ class TestRunAllImports:
         ), patch(
             "setup_tui.lib.defaults.STREAMDECK_BACKUP_AGE_PATH",
             RAYCAST_CONFIG_AGE_PATH,  # reuse existing mock path
+        ), patch(
+            "setup_tui.lib.defaults.STREAMDECK_PLUGINS_HTML",
+            RAYCAST_CONFIG_AGE_PATH,  # .exists() returns True → opens HTML
         ):
             messages, confirmations = run_all_imports(mock_runner)
         assert len(messages) == 3  # iTerm2 + Raycast + Stream Deck
         assert len(confirmations) == 2  # Raycast + Stream Deck need confirm
-        # iTerm2 (2 calls) + Raycast (2 calls) + Stream Deck (2 calls) = 6
-        assert mock_runner.run.call_count == 6
+        # iTerm2 (2) + Raycast (2) + Stream Deck (2 decrypt+open + 1 open HTML) = 7
+        assert mock_runner.run.call_count == 7
 
     def test_no_confirm_when_no_exports(self, mock_runner):
         with patch.object(
@@ -1712,3 +1718,136 @@ class TestToolRunner:
         runner = ToolRunner()
         with pytest.raises(FileNotFoundError, match="Command not found"):
             runner.run(["nonexistent_binary_xyz_123", "--version"], check=True)
+
+
+# ---------------------------------------------------------------------------
+# Stream Deck plugin scanner
+# ---------------------------------------------------------------------------
+
+SAMPLE_MANIFEST = {
+    "Name": "Counter",
+    "UUID": "com.elgato.counter",
+    "Version": "1.4",
+    "URL": "https://marketplace.elgato.com/product/counter",
+}
+
+
+@pytest.fixture
+def fake_plugins_dir(tmp_path):
+    """Create a mock Plugins/ directory with sample .sdPlugin bundles."""
+    plugins = tmp_path / "Plugins"
+    plugins.mkdir()
+
+    # Plugin with full manifest
+    p1 = plugins / "com.elgato.counter.sdPlugin"
+    p1.mkdir()
+    (p1 / "manifest.json").write_text(json.dumps(SAMPLE_MANIFEST))
+
+    # Plugin without URL — should get marketplace fallback
+    p2 = plugins / "com.vendor.nourl.sdPlugin"
+    p2.mkdir()
+    (p2 / "manifest.json").write_text(json.dumps({
+        "Name": "No URL Plugin",
+        "UUID": "com.vendor.nourl",
+        "Version": "2.0",
+    }))
+
+    # Directory that isn't .sdPlugin — should be ignored
+    misc = plugins / "SomeOtherDir"
+    misc.mkdir()
+
+    # .sdPlugin without manifest.json — should be ignored
+    empty = plugins / "com.broken.empty.sdPlugin"
+    empty.mkdir()
+
+    return plugins
+
+
+class TestScanStreamdeckPlugins:
+    def test_returns_list_of_dicts(self, fake_plugins_dir):
+        result = scan_streamdeck_plugins(fake_plugins_dir)
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+    def test_dict_structure(self, fake_plugins_dir):
+        result = scan_streamdeck_plugins(fake_plugins_dir)
+        for p in result:
+            assert set(p.keys()) == {"name", "uuid", "url", "version"}
+
+    def test_reads_manifest_fields(self, fake_plugins_dir):
+        result = scan_streamdeck_plugins(fake_plugins_dir)
+        counter = next(p for p in result if p["uuid"] == "com.elgato.counter")
+        assert counter["name"] == "Counter"
+        assert counter["version"] == "1.4"
+        assert counter["url"] == "https://marketplace.elgato.com/product/counter"
+
+    def test_fallback_url_when_missing(self, fake_plugins_dir):
+        result = scan_streamdeck_plugins(fake_plugins_dir)
+        nourl = next(p for p in result if p["uuid"] == "com.vendor.nourl")
+        assert nourl["url"] == "https://marketplace.elgato.com/product/com.vendor.nourl"
+
+    def test_empty_list_for_missing_dir(self, tmp_path):
+        result = scan_streamdeck_plugins(tmp_path / "nonexistent")
+        assert result == []
+
+    def test_skips_invalid_json(self, fake_plugins_dir):
+        bad = fake_plugins_dir / "com.bad.json.sdPlugin"
+        bad.mkdir()
+        (bad / "manifest.json").write_text("{invalid json")
+        result = scan_streamdeck_plugins(fake_plugins_dir)
+        # Still only the 2 valid plugins
+        assert len(result) == 2
+
+
+class TestExportStreamdeckPluginList:
+    def test_writes_json_and_html(self, fake_plugins_dir, tmp_path):
+        json_out = tmp_path / "plugins.json"
+        html_out = tmp_path / "plugins.html"
+        msg = export_streamdeck_plugin_list(
+            plugins_dir=fake_plugins_dir,
+            json_path=json_out,
+            html_path=html_out,
+        )
+
+        assert json_out.exists()
+        assert html_out.exists()
+        assert "2 plugins" in msg
+
+    def test_json_is_valid(self, fake_plugins_dir, tmp_path):
+        json_out = tmp_path / "plugins.json"
+        html_out = tmp_path / "plugins.html"
+        export_streamdeck_plugin_list(
+            plugins_dir=fake_plugins_dir,
+            json_path=json_out,
+            html_path=html_out,
+        )
+        data = json.loads(json_out.read_text())
+        assert isinstance(data, list)
+        assert len(data) == 2
+        assert all("uuid" in p for p in data)
+
+    def test_html_contains_plugin_names(self, fake_plugins_dir, tmp_path):
+        json_out = tmp_path / "plugins.json"
+        html_out = tmp_path / "plugins.html"
+        export_streamdeck_plugin_list(
+            plugins_dir=fake_plugins_dir,
+            json_path=json_out,
+            html_path=html_out,
+        )
+        html = html_out.read_text()
+        assert "Counter" in html
+        assert "No URL Plugin" in html
+        assert "Stream Deck Plugins" in html
+
+    def test_empty_plugins_dir(self, tmp_path):
+        empty_dir = tmp_path / "empty_plugins"
+        empty_dir.mkdir()
+        json_out = tmp_path / "plugins.json"
+        html_out = tmp_path / "plugins.html"
+        msg = export_streamdeck_plugin_list(
+            plugins_dir=empty_dir,
+            json_path=json_out,
+            html_path=html_out,
+        )
+        assert "0 plugins" in msg
+        assert json.loads(json_out.read_text()) == []

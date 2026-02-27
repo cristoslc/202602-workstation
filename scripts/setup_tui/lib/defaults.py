@@ -8,12 +8,17 @@ both platform formats on save.
 
 from __future__ import annotations
 
+import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+from jinja2 import Environment, FileSystemLoader
 
 from .runner import REPO_ROOT, ToolRunner
+
+TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 
 REGISTRY_PATH = (
     REPO_ROOT / "shared" / "roles" / "keyboard" / "defaults" / "main.yml"
@@ -32,6 +37,16 @@ STREAMDECK_BACKUP_AGE_PATH = (
 STREAMDECK_BACKUP_DIR = (
     Path.home() / "Library" / "Application Support"
     / "com.elgato.StreamDeck" / "BackupV3"
+)
+STREAMDECK_PLUGINS_DIR = (
+    Path.home() / "Library" / "Application Support"
+    / "com.elgato.StreamDeck" / "Plugins"
+)
+STREAMDECK_PLUGINS_JSON = (
+    REPO_ROOT / "macos" / "files" / "stream-deck" / "plugins.json"
+)
+STREAMDECK_PLUGINS_HTML = (
+    REPO_ROOT / "macos" / "files" / "stream-deck" / "streamdeck-plugins.html"
 )
 STREAMDECK_IMPORT_TMP = (
     Path.home() / ".cache" / "workstation"
@@ -285,6 +300,67 @@ def cleanup_raycast_import() -> None:
     RAYCAST_IMPORT_TMP.unlink(missing_ok=True)
 
 
+def scan_streamdeck_plugins(
+    plugins_dir: Path | None = None,
+) -> list[dict]:
+    """Scan installed Stream Deck plugins and return metadata dicts.
+
+    Each dict has keys: ``name``, ``uuid``, ``url``, ``version``.
+    """
+    target = plugins_dir or STREAMDECK_PLUGINS_DIR
+    if not target.is_dir():
+        return []
+
+    plugins: list[dict] = []
+    for sd_dir in sorted(target.glob("*.sdPlugin")):
+        manifest = sd_dir / "manifest.json"
+        if not manifest.is_file():
+            continue
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8", errors="replace"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        uuid = data.get("UUID", sd_dir.stem)
+        url = data.get("URL", "").strip()
+        if not url:
+            url = f"https://marketplace.elgato.com/product/{uuid}"
+        plugins.append({
+            "name": data.get("Name", sd_dir.stem),
+            "uuid": uuid,
+            "url": url,
+            "version": data.get("Version", "unknown"),
+        })
+    return plugins
+
+
+def export_streamdeck_plugin_list(
+    plugins_dir: Path | None = None,
+    json_path: Path | None = None,
+    html_path: Path | None = None,
+    templates_dir: Path | None = None,
+) -> str:
+    """Scan plugins and write ``plugins.json`` + ``streamdeck-plugins.html``."""
+    plugins = scan_streamdeck_plugins(plugins_dir)
+
+    out_json = json_path or STREAMDECK_PLUGINS_JSON
+    out_html = html_path or STREAMDECK_PLUGINS_HTML
+    tpl_dir = templates_dir or TEMPLATES_DIR
+
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_json.write_text(json.dumps(plugins, indent=2) + "\n")
+
+    env = Environment(
+        loader=FileSystemLoader(str(tpl_dir)),
+        autoescape=True,
+    )
+    template = env.get_template("streamdeck_plugins.html.j2")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    html = template.render(plugins=plugins, timestamp=now)
+    out_html.write_text(html)
+
+    return f"Plugin list exported ({len(plugins)} plugins)"
+
+
 def export_streamdeck_profiles(runner: ToolRunner) -> str:
     """Export the newest Stream Deck backup, age-encrypted, into the repo.
 
@@ -329,7 +405,16 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
         ],
         check=True,
     )
-    return f"Stream Deck profiles exported from {newest.name}"
+    msg = f"Stream Deck profiles exported from {newest.name}"
+
+    # Also export plugin list (best-effort — don't fail the whole export)
+    try:
+        plugin_msg = export_streamdeck_plugin_list()
+        msg = f"{msg}\n{plugin_msg}"
+    except Exception:
+        pass
+
+    return msg
 
 
 def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
@@ -356,6 +441,9 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
         check=True,
     )
     runner.run(["open", str(STREAMDECK_IMPORT_TMP)], check=True)
+    # Open plugin list so user can reinstall while waiting for restore
+    if STREAMDECK_PLUGINS_HTML.exists():
+        runner.run(["open", str(STREAMDECK_PLUGINS_HTML)], check=False)
     return (
         "Stream Deck restore dialog opened — confirm the restore in the app.",
         True,
