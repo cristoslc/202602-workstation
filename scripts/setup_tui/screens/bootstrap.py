@@ -28,6 +28,7 @@ from textual.widgets import (
     TabPane,
 )
 
+from ..lib.defaults import cleanup_raycast_import, run_all_imports
 from ..lib.discovery import PlaybookManifest, discover_playbook, validate_config
 from ..lib.proc_cleanup import terminate_procs
 from ..lib.runner import REPO_ROOT
@@ -413,6 +414,7 @@ class BootstrapRunScreen(Screen):
         with Horizontal(id="run-footer-buttons"):
             yield Button("Done", id="done", variant="primary", disabled=True)
             yield Button("Migrate Data", id="migrate-data", disabled=True)
+            yield Button("Import Settings", id="import-settings", disabled=True)
             yield Button("Back to Menu", id="back", disabled=True)
             yield Button("Send Log", id="send-log", disabled=True)
         yield Static(
@@ -422,6 +424,8 @@ class BootstrapRunScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
+        if self.app.platform != "macos":
+            self.query_one("#import-settings", Button).display = False
         self._start_time = time.monotonic()
         self._timer = self.set_interval(1, self._tick_elapsed)
         self._run_bootstrap()
@@ -835,6 +839,7 @@ class BootstrapRunScreen(Screen):
     def _enable_done_buttons(self) -> None:
         self.query_one("#done", Button).disabled = False
         self.query_one("#migrate-data", Button).disabled = False
+        self.query_one("#import-settings", Button).disabled = False
         self.query_one("#back", Button).disabled = False
         self.query_one("#send-log", Button).disabled = False
 
@@ -861,6 +866,8 @@ class BootstrapRunScreen(Screen):
         elif event.button.id == "migrate-data":
             from .migration import DataMigrationScreen
             self.app.push_screen(DataMigrationScreen())
+        elif event.button.id == "import-settings":
+            self._do_import_settings()
         elif event.button.id == "back":
             # Pop all bootstrap screens back to welcome.
             from .welcome import WelcomeScreen
@@ -877,6 +884,54 @@ class BootstrapRunScreen(Screen):
                 self.app.push_screen(WelcomeScreen())
         elif event.button.id == "send-log":
             self._send_log()
+
+    def _do_import_settings(self) -> None:
+        """Import iTerm2 + Raycast settings (macOS only)."""
+        self.query_one("#import-settings", Button).disabled = True
+        self._log("[bold cyan]>>> Importing settings...[/bold cyan]\n")
+        self._import_settings_worker()
+
+    @work(thread=True)
+    def _import_settings_worker(self) -> None:
+        """Run all imports, suspending for Raycast dialog if needed."""
+        try:
+            messages, needs_raycast_confirm = run_all_imports(self.app.runner)
+            for msg in messages:
+                self.app.call_from_thread(self._log, f"  {msg}")
+
+            if needs_raycast_confirm:
+                done = threading.Event()
+
+                def _do_confirm() -> None:
+                    with self.app.suspend():
+                        input(
+                            "\n  Confirm the import in the Raycast dialog, "
+                            "then press Enter to continue..."
+                        )
+                    done.set()
+
+                self.app.call_from_thread(_do_confirm)
+                done.wait()
+                cleanup_raycast_import()
+                self.app.call_from_thread(
+                    self._log, "  Raycast import confirmed."
+                )
+
+            self.app.call_from_thread(
+                self._log,
+                "\n[bold green]Settings import complete.[/bold green]\n",
+            )
+        except Exception as exc:
+            logger.exception("Settings import failed")
+            self.app.call_from_thread(
+                self._log, f"\n[bold red]Import failed:[/bold red] {exc}\n"
+            )
+        finally:
+            self.app.call_from_thread(
+                setattr,
+                self.query_one("#import-settings", Button),
+                "disabled", False,
+            )
 
     @work(thread=True)
     def _send_log(self) -> None:

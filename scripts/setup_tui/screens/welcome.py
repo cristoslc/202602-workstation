@@ -97,15 +97,22 @@ class WelcomeScreen(Screen):
                 f"[green]Repo is personalized.[/green]{origin_info}"
                 f"{notes}"
             )
-            menu.add_options([
+            options = [
                 Option("Bootstrap This Machine", id="bootstrap"),
                 Option("Migrate Data", id="migrate-data"),
                 Option("Edit Defaults", id="edit-defaults"),
                 Option("Edit Secrets", id="edit-secrets"),
+            ]
+            if self.app.platform == "macos":
+                options.append(
+                    Option("Import Settings", id="import-settings")
+                )
+            options.extend([
                 Option("Re-Run First-Time Setup", id="first-run"),
                 Option("Update and Relaunch", id="update"),
                 Option("Quit", id="quit"),
             ])
+            menu.add_options(options)
 
         menu.highlighted = 0
         menu.display = True
@@ -142,6 +149,9 @@ class WelcomeScreen(Screen):
         elif option_id == "edit-defaults":
             from .defaults import EditDefaultsScreen
             self.app.push_screen(EditDefaultsScreen())
+        elif option_id == "import-settings":
+            from .import_settings import ImportSettingsScreen
+            self.app.push_screen(ImportSettingsScreen())
         elif option_id == "edit-secrets":
             from .secrets import SecretsScreen
             self.app.push_screen(SecretsScreen())

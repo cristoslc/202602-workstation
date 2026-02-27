@@ -45,7 +45,16 @@ from setup_tui.lib.secrets import (
 )
 from setup_tui.lib.prereqs import detect_platform, install_precommit
 from setup_tui.lib.setup_logging import LOG_DIR, LOG_FILE, setup_logging
-from setup_tui.lib.defaults import export_iterm2_plist
+from setup_tui.lib.defaults import (
+    AGE_KEYS_PATH,
+    RAYCAST_CONFIG_AGE_PATH,
+    RAYCAST_IMPORT_TMP,
+    cleanup_raycast_import,
+    export_iterm2_plist,
+    import_iterm2_settings,
+    import_raycast_settings,
+    run_all_imports,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +244,121 @@ class TestExportIterm2Plist:
 
         with pytest.raises(RuntimeError, match="boom"):
             export_iterm2_plist(mock_runner)
+
+
+class TestImportIterm2Settings:
+    def test_runs_two_defaults_write_calls(self, mock_runner):
+        msg = import_iterm2_settings(mock_runner)
+        assert mock_runner.run.call_count == 2
+        mock_runner.run.assert_any_call(
+            [
+                "defaults", "write", "com.googlecode.iterm2",
+                "PrefsCustomFolder", "-string", "~/.config/iterm2",
+            ],
+            check=True,
+        )
+        mock_runner.run.assert_any_call(
+            [
+                "defaults", "write", "com.googlecode.iterm2",
+                "LoadPrefsFromCustomFolder", "-bool", "true",
+            ],
+            check=True,
+        )
+        assert "iterm2" in msg.lower()
+
+
+class TestImportRaycastSettings:
+    def test_skip_when_no_export(self, mock_runner):
+        with patch.object(
+            type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=False
+        ):
+            msg, needs_confirm = import_raycast_settings(mock_runner)
+        assert "skipping" in msg.lower()
+        assert needs_confirm is False
+        mock_runner.run.assert_not_called()
+
+    def test_decrypt_and_open_when_export_exists(self, mock_runner):
+        with patch.object(
+            type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=True
+        ):
+            msg, needs_confirm = import_raycast_settings(mock_runner)
+        assert needs_confirm is True
+        assert mock_runner.run.call_count == 2
+        # First call: age decrypt
+        decrypt_call = mock_runner.run.call_args_list[0]
+        assert decrypt_call == call(
+            [
+                "age", "-d",
+                "-i", str(AGE_KEYS_PATH),
+                "-o", str(RAYCAST_IMPORT_TMP),
+                str(RAYCAST_CONFIG_AGE_PATH),
+            ],
+            check=True,
+        )
+        # Second call: open
+        open_call = mock_runner.run.call_args_list[1]
+        assert open_call == call(
+            ["open", str(RAYCAST_IMPORT_TMP)], check=True
+        )
+
+
+class TestCleanupRaycastImport:
+    def test_removes_temp_file(self, tmp_path):
+        tmp_file = tmp_path / "raycast-import.rayconfig"
+        tmp_file.write_text("data")
+        with patch(
+            "setup_tui.lib.defaults.RAYCAST_IMPORT_TMP", tmp_file
+        ):
+            cleanup_raycast_import()
+        assert not tmp_file.exists()
+
+    def test_no_error_when_missing(self, tmp_path):
+        tmp_file = tmp_path / "nonexistent"
+        with patch(
+            "setup_tui.lib.defaults.RAYCAST_IMPORT_TMP", tmp_file
+        ):
+            cleanup_raycast_import()  # should not raise
+
+
+class TestRunAllImports:
+    def test_orchestrates_both_imports(self, mock_runner):
+        with patch.object(
+            type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=True
+        ):
+            messages, needs_confirm = run_all_imports(mock_runner)
+        assert len(messages) == 2
+        assert needs_confirm is True
+        # iTerm2 (2 calls) + Raycast (2 calls) = 4
+        assert mock_runner.run.call_count == 4
+
+    def test_no_raycast_confirm_when_no_export(self, mock_runner):
+        with patch.object(
+            type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=False
+        ):
+            messages, needs_confirm = run_all_imports(mock_runner)
+        assert len(messages) == 2
+        assert needs_confirm is False
+        # Only iTerm2 calls (2)
+        assert mock_runner.run.call_count == 2
+
+    def test_continues_after_iterm2_failure(self, mock_runner):
+        # First two calls (iTerm2) raise, next calls (Raycast) should still run
+        call_count = [0]
+        original_run = mock_runner.run
+
+        def failing_then_ok(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 1:
+                raise RuntimeError("iTerm2 boom")
+            return original_run(*args, **kwargs)
+
+        mock_runner.run = MagicMock(side_effect=failing_then_ok)
+        with patch.object(
+            type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=False
+        ):
+            messages, needs_confirm = run_all_imports(mock_runner)
+        assert any("iterm2 import failed" in m.lower() for m in messages)
+        assert len(messages) == 2
 
 
 class TestResumeState:

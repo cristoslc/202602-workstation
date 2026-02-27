@@ -25,6 +25,7 @@ from textual.widgets import (
     Static,
 )
 
+from ..lib.defaults import cleanup_raycast_import, run_all_imports
 from ..lib.proc_cleanup import terminate_procs
 from ..lib.runner import REPO_ROOT
 
@@ -202,6 +203,9 @@ class DataMigrationScreen(Screen):
                     "Done", id="done", variant="primary", disabled=True
                 )
                 yield Button(
+                    "Import Settings", id="import-settings", disabled=True
+                )
+                yield Button(
                     "Send Log", id="send-log", disabled=True
                 )
         yield Footer()
@@ -212,6 +216,8 @@ class DataMigrationScreen(Screen):
         self.query_one("#migration-progress", ProgressBar).display = False
         self.query_one("#progress-summary", Static).display = False
         self.query_one("#migration-done-buttons", Horizontal).display = False
+        if self.app.platform != "macos":
+            self.query_one("#import-settings", Button).display = False
         self._progress = MigrationProgress()
         # Restore previously-entered host.
         if _SAVED_HOST_FILE.exists():
@@ -242,6 +248,8 @@ class DataMigrationScreen(Screen):
             self._start_migration(dry_run=False)
         elif event.button.id == "done":
             self.app.pop_screen()
+        elif event.button.id == "import-settings":
+            self._do_import_settings()
         elif event.button.id == "send-log":
             self._send_log()
 
@@ -760,11 +768,61 @@ class DataMigrationScreen(Screen):
         self.query_one("#source-host", Input).disabled = False
 
     def _show_done_buttons(self) -> None:
-        """Show Done and Send Log buttons after migration completes."""
+        """Show Done, Import Settings, and Send Log buttons after migration completes."""
         row = self.query_one("#migration-done-buttons", Horizontal)
         row.display = True
         self.query_one("#done", Button).disabled = False
+        self.query_one("#import-settings", Button).disabled = False
         self.query_one("#send-log", Button).disabled = False
+
+    def _do_import_settings(self) -> None:
+        """Import iTerm2 + Raycast settings (macOS only)."""
+        self.query_one("#import-settings", Button).disabled = True
+        self._log("[bold cyan]>>> Importing settings...[/bold cyan]\n")
+        self._import_settings_worker()
+
+    @work(thread=True)
+    def _import_settings_worker(self) -> None:
+        """Run all imports, suspending for Raycast dialog if needed."""
+        try:
+            messages, needs_raycast_confirm = run_all_imports(self.app.runner)
+            for msg in messages:
+                self.app.call_from_thread(self._log, f"  {msg}")
+
+            if needs_raycast_confirm:
+                done = threading.Event()
+
+                def _do_confirm() -> None:
+                    with self.app.suspend():
+                        input(
+                            "\n  Confirm the import in the Raycast dialog, "
+                            "then press Enter to continue..."
+                        )
+                    done.set()
+
+                self.app.call_from_thread(_do_confirm)
+                done.wait()
+                cleanup_raycast_import()
+                self.app.call_from_thread(
+                    self._log, "  Raycast import confirmed."
+                )
+
+            self.app.call_from_thread(
+                self._log,
+                "\n[bold green]Settings import complete.[/bold green]\n",
+            )
+        except Exception as exc:
+            logger.exception("Settings import failed")
+            self.app.call_from_thread(
+                self._log,
+                f"\n[bold red]Import failed:[/bold red] {exc}\n",
+            )
+        finally:
+            self.app.call_from_thread(
+                setattr,
+                self.query_one("#import-settings", Button),
+                "disabled", False,
+            )
 
     @work(thread=True)
     def _send_log(self) -> None:

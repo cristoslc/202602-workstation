@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import logging
+import subprocess
+import sys
+import threading
 
 from textual import work
 from textual.app import ComposeResult
@@ -17,6 +20,7 @@ from ..lib.defaults import (
     load_action_registry,
     save_action_registry,
 )
+from ..lib.runner import REPO_ROOT
 
 logger = logging.getLogger("setup")
 
@@ -87,7 +91,7 @@ class EditDefaultsScreen(Screen):
             Button("Save", id="save", variant="primary"),
         ]
         if self.app.platform == "macos":
-            buttons.append(Button("Export iTerm2", id="export-iterm2"))
+            buttons.append(Button("Export Settings", id="export-settings"))
         buttons.append(Button("Back", id="back"))
 
         form.mount(Horizontal(*buttons, id="defaults-buttons"))
@@ -95,8 +99,8 @@ class EditDefaultsScreen(Screen):
         macos_hint = ""
         if self.app.platform == "macos":
             macos_hint = (
-                "[dim]macOS: use Export iTerm2 to capture current iTerm2 "
-                "prefs into the repo.[/dim]\n"
+                "[dim]macOS: use Export Settings to capture iTerm2 prefs "
+                "and Raycast config into the repo.[/dim]\n"
             )
         self.query_one("#defaults-status", Static).update(
             "[bold]Edit Defaults[/bold]\n\n"
@@ -126,8 +130,8 @@ class EditDefaultsScreen(Screen):
             self.app.pop_screen()
         elif event.button.id == "save":
             self._do_save()
-        elif event.button.id == "export-iterm2":
-            self._do_export_iterm2()
+        elif event.button.id == "export-settings":
+            self._do_export_settings()
 
     def _do_save(self) -> None:
         """Collect edited bindings and save the action registry."""
@@ -185,37 +189,70 @@ class EditDefaultsScreen(Screen):
             f"[bold red]Save failed:[/bold red] {error}"
         )
 
-    def _do_export_iterm2(self) -> None:
-        """Export iTerm2 preferences (macOS only)."""
+    def _do_export_settings(self) -> None:
+        """Export all app settings (macOS only)."""
         if self.app.platform != "macos":
             self.query_one("#defaults-result", Static).update(
-                "[bold yellow]iTerm2 export is macOS-only.[/bold yellow]"
+                "[bold yellow]Settings export is macOS-only.[/bold yellow]"
             )
             return
-        self.query_one("#export-iterm2", Button).disabled = True
+        self.query_one("#export-settings", Button).disabled = True
         self.query_one("#defaults-result", Static).update(
-            "[dim]Exporting iTerm2 preferences...[/dim]"
+            "[dim]Exporting settings...[/dim]"
         )
-        self._export_iterm2_worker()
+        self._export_settings_worker()
 
     @work(thread=True)
-    def _export_iterm2_worker(self) -> None:
-        """Run iTerm2 export in a background thread."""
+    def _export_settings_worker(self) -> None:
+        """Export iTerm2 (background) then Raycast (interactive suspend)."""
+        # 1. iTerm2 — non-interactive
         try:
-            message = export_iterm2_plist(self.app.runner)
-            self.app.call_from_thread(self._show_export_success, message)
+            iterm2_msg = export_iterm2_plist(self.app.runner)
+            self.app.call_from_thread(
+                self._show_export_result,
+                f"[bold green]{iterm2_msg}[/bold green]",
+            )
         except Exception as exc:
             logger.exception("Failed to export iTerm2 preferences")
-            self.app.call_from_thread(self._show_export_error, str(exc))
+            self.app.call_from_thread(
+                self._show_export_result,
+                f"[bold red]iTerm2 export failed:[/bold red] {exc}",
+            )
 
-    def _show_export_success(self, message: str) -> None:
-        self.query_one("#export-iterm2", Button).disabled = False
-        self.query_one("#defaults-result", Static).update(
-            f"[bold green]{message}[/bold green]"
-        )
+        # 2. Raycast — requires interactive terminal (save dialog + Enter)
+        done = threading.Event()
+        raycast_ok = [False]
 
-    def _show_export_error(self, error: str) -> None:
-        self.query_one("#export-iterm2", Button).disabled = False
-        self.query_one("#defaults-result", Static).update(
-            f"[bold red]iTerm2 export failed:[/bold red] {error}"
-        )
+        def _do_raycast_export() -> None:
+            with self.app.suspend():
+                result = subprocess.run(
+                    ["make", "raycast-export"],
+                    cwd=REPO_ROOT,
+                    stdin=sys.stdin,
+                    stdout=sys.stdout,
+                    stderr=sys.stderr,
+                )
+                raycast_ok[0] = result.returncode == 0
+            done.set()
+
+        self.app.call_from_thread(_do_raycast_export)
+        done.wait()
+
+        if raycast_ok[0]:
+            self.app.call_from_thread(
+                self._show_export_result,
+                "[bold green]Raycast settings exported and encrypted.[/bold green]",
+            )
+        else:
+            self.app.call_from_thread(
+                self._show_export_result,
+                "[bold red]Raycast export failed.[/bold red]",
+            )
+
+        self.app.call_from_thread(self._enable_export_button)
+
+    def _show_export_result(self, message: str) -> None:
+        self.query_one("#defaults-result", Static).update(message)
+
+    def _enable_export_button(self) -> None:
+        self.query_one("#export-settings", Button).disabled = False

@@ -22,6 +22,11 @@ ITERM2_PLIST_PATH = (
     REPO_ROOT / "macos" / "dotfiles" / "iterm2" / ".config" / "iterm2"
     / "com.googlecode.iterm2.plist"
 )
+RAYCAST_CONFIG_AGE_PATH = (
+    REPO_ROOT / "macos" / "files" / "raycast" / "raycast.rayconfig.age"
+)
+RAYCAST_IMPORT_TMP = Path("/tmp/raycast-import.rayconfig")
+AGE_KEYS_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
 
 _HEADER = """\
 ---
@@ -171,3 +176,92 @@ def export_iterm2_plist(runner: ToolRunner) -> str:
         msg = details or "make iterm2-export failed"
         raise RuntimeError(msg)
     return f"iTerm2 settings exported to {ITERM2_PLIST_PATH}"
+
+
+# ---------------------------------------------------------------------------
+# Import functions — mirror Ansible tasks for standalone re-import
+# ---------------------------------------------------------------------------
+
+
+def import_iterm2_settings(runner: ToolRunner) -> str:
+    """Point iTerm2 at the stow-managed plist (mirrors iterm2.yml Ansible task).
+
+    Runs two ``defaults write`` commands — non-interactive and idempotent.
+    """
+    runner.run(
+        [
+            "defaults", "write", "com.googlecode.iterm2",
+            "PrefsCustomFolder", "-string", "~/.config/iterm2",
+        ],
+        check=True,
+    )
+    runner.run(
+        [
+            "defaults", "write", "com.googlecode.iterm2",
+            "LoadPrefsFromCustomFolder", "-bool", "true",
+        ],
+        check=True,
+    )
+    return "iTerm2 configured to load settings from ~/.config/iterm2"
+
+
+def import_raycast_settings(runner: ToolRunner) -> tuple[str, bool]:
+    """Decrypt and open Raycast settings for import.
+
+    Returns ``(message, needs_confirm)`` — when *needs_confirm* is True the
+    caller should pause for the user to confirm the Raycast import dialog,
+    then call :func:`cleanup_raycast_import`.
+    """
+    if not RAYCAST_CONFIG_AGE_PATH.exists():
+        return (
+            "No Raycast export found — skipping import. "
+            "Configure manually, then run: make raycast-export",
+            False,
+        )
+    runner.run(
+        [
+            "age", "-d",
+            "-i", str(AGE_KEYS_PATH),
+            "-o", str(RAYCAST_IMPORT_TMP),
+            str(RAYCAST_CONFIG_AGE_PATH),
+        ],
+        check=True,
+    )
+    runner.run(["open", str(RAYCAST_IMPORT_TMP)], check=True)
+    return (
+        "Raycast import dialog opened — confirm the import in Raycast.",
+        True,
+    )
+
+
+def cleanup_raycast_import() -> None:
+    """Remove the temporary decrypted Raycast config."""
+    RAYCAST_IMPORT_TMP.unlink(missing_ok=True)
+
+
+def run_all_imports(
+    runner: ToolRunner,
+) -> tuple[list[str], bool]:
+    """Orchestrate all settings imports.
+
+    Returns ``(messages, needs_raycast_confirm)`` so screens can handle
+    the suspend/confirm step for Raycast.
+    """
+    messages: list[str] = []
+    needs_raycast_confirm = False
+
+    # iTerm2
+    try:
+        msg = import_iterm2_settings(runner)
+        messages.append(msg)
+    except Exception as exc:
+        messages.append(f"iTerm2 import failed: {exc}")
+
+    # Raycast
+    try:
+        msg, needs_raycast_confirm = import_raycast_settings(runner)
+        messages.append(msg)
+    except Exception as exc:
+        messages.append(f"Raycast import failed: {exc}")
+
+    return messages, needs_raycast_confirm
