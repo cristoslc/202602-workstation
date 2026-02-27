@@ -91,10 +91,11 @@ workstation_actions:
 - action: window_left_half
   description: Tile window left half
   keybinding:
-    linux: <Super>Left
+    linux: <Super><Shift>Left
     macos:
       mods:
       - cmd
+      - shift
       key: left
   implementation:
     linux:
@@ -108,10 +109,11 @@ workstation_actions:
 - action: window_right_half
   description: Tile window right half
   keybinding:
-    linux: <Super>Right
+    linux: <Super><Shift>Right
     macos:
       mods:
       - cmd
+      - shift
       key: right
   implementation:
     linux:
@@ -125,10 +127,11 @@ workstation_actions:
 - action: window_maximize
   description: Maximize window
   keybinding:
-    linux: <Super>Up
+    linux: <Super><Shift>Up
     macos:
       mods:
       - cmd
+      - shift
       key: up
   implementation:
     linux:
@@ -142,10 +145,11 @@ workstation_actions:
 - action: window_restore
   description: Restore window
   keybinding:
-    linux: <Super>Down
+    linux: <Super><Shift>Down
     macos:
       mods:
       - cmd
+      - shift
       key: down
   implementation:
     linux:
@@ -159,11 +163,12 @@ workstation_actions:
 - action: window_next_monitor
   description: Move window to next monitor
   keybinding:
-    linux: <Super><Shift>Right
+    linux: <Super><Shift><Alt>Right
     macos:
       mods:
       - cmd
       - shift
+      - alt
       key: right
   implementation:
     linux:
@@ -177,11 +182,12 @@ workstation_actions:
 - action: window_prev_monitor
   description: Move window to previous monitor
   keybinding:
-    linux: <Super><Shift>Left
+    linux: <Super><Shift><Alt>Left
     macos:
       mods:
       - cmd
       - shift
+      - alt
       key: left
   implementation:
     linux:
@@ -224,9 +230,8 @@ workstation_actions:
   implementation:
     linux:
       type: dconf
-      command: >-
-        bash -c 'read W H < <(xdotool getdisplaygeometry);
-        xdotool getactivewindow windowsize $((2*W/3)) $H windowmove $((W/6)) 0'
+      command: bash -c 'read W H < <(xdotool getdisplaygeometry); xdotool getactivewindow windowsize $((2*W/3)) $H windowmove
+        $((W/6)) 0'
     macos:
       type: hammerspoon
       lua: |
@@ -235,7 +240,7 @@ workstation_actions:
 - action: window_left_third
   description: Tile window left third
   keybinding:
-    linux: <Ctrl><Super>d
+    linux: <Ctrl><Alt>d
     macos:
       mods:
       - ctrl
@@ -244,9 +249,8 @@ workstation_actions:
   implementation:
     linux:
       type: dconf
-      command: >-
-        bash -c 'read W H < <(xdotool getdisplaygeometry);
-        xdotool getactivewindow windowsize $((W/3)) $H windowmove 0 0'
+      command: bash -c 'read W H < <(xdotool getdisplaygeometry); xdotool getactivewindow windowsize $((W/3)) $H windowmove
+        0 0'
     macos:
       type: hammerspoon
       lua: |
@@ -255,7 +259,7 @@ workstation_actions:
 - action: window_center_third
   description: Tile window center third
   keybinding:
-    linux: <Ctrl><Super>f
+    linux: <Ctrl><Alt>f
     macos:
       mods:
       - ctrl
@@ -264,9 +268,8 @@ workstation_actions:
   implementation:
     linux:
       type: dconf
-      command: >-
-        bash -c 'read W H < <(xdotool getdisplaygeometry);
-        xdotool getactivewindow windowsize $((W/3)) $H windowmove $((W/3)) 0'
+      command: bash -c 'read W H < <(xdotool getdisplaygeometry); xdotool getactivewindow windowsize $((W/3)) $H windowmove
+        $((W/3)) 0'
     macos:
       type: hammerspoon
       lua: |
@@ -275,7 +278,7 @@ workstation_actions:
 - action: window_right_third
   description: Tile window right third
   keybinding:
-    linux: <Ctrl><Super>g
+    linux: <Ctrl><Alt>g
     macos:
       mods:
       - ctrl
@@ -284,9 +287,8 @@ workstation_actions:
   implementation:
     linux:
       type: dconf
-      command: >-
-        bash -c 'read W H < <(xdotool getdisplaygeometry);
-        xdotool getactivewindow windowsize $((2*W/3)) $H windowmove $((2*W/3)) 0'
+      command: bash -c 'read W H < <(xdotool getdisplaygeometry); xdotool getactivewindow windowsize $((2*W/3)) $H windowmove
+        $((2*W/3)) 0'
     macos:
       type: hammerspoon
       lua: |
@@ -295,7 +297,7 @@ workstation_actions:
 - action: window_left_two_thirds
   description: Tile window left two-thirds
   keybinding:
-    linux: <Ctrl><Super>e
+    linux: <Ctrl><Alt>e
     macos:
       mods:
       - ctrl
@@ -304,9 +306,8 @@ workstation_actions:
   implementation:
     linux:
       type: dconf
-      command: >-
-        bash -c 'read W H < <(xdotool getdisplaygeometry);
-        xdotool getactivewindow windowsize $((2*W/3)) $H windowmove 0 0'
+      command: bash -c 'read W H < <(xdotool getdisplaygeometry); xdotool getactivewindow windowsize $((2*W/3)) $H windowmove
+        0 0'
     macos:
       type: hammerspoon
       lua: |
@@ -315,7 +316,7 @@ workstation_actions:
 - action: window_right_two_thirds
   description: Tile window right two-thirds
   keybinding:
-    linux: <Ctrl><Super>r
+    linux: <Ctrl><Alt>r
     macos:
       mods:
       - ctrl
@@ -324,9 +325,8 @@ workstation_actions:
   implementation:
     linux:
       type: dconf
-      command: >-
-        bash -c 'read W H < <(xdotool getdisplaygeometry);
-        xdotool getactivewindow windowsize $((2*W/3)) $H windowmove $((W/3)) 0'
+      command: bash -c 'read W H < <(xdotool getdisplaygeometry); xdotool getactivewindow windowsize $((2*W/3)) $H windowmove
+        $((W/3)) 0'
     macos:
       type: hammerspoon
       lua: |
