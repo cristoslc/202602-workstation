@@ -159,14 +159,16 @@ iterm2-export: ## Re-export iTerm2 plist to stow package (macOS only)
 raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	@echo "Opening Raycast export UI..."
-	@echo "Save the .rayconfig file WITHOUT a password to: ~/Downloads/raycast-export.rayconfig"
+	@echo "Save the .rayconfig file WITHOUT a password to ~/Downloads (the default)."
 	@open "raycast://extensions/raycast/raycast/export-settings-data"
 	@read -p "Press Enter after saving the export..."
-	@test -f "$$HOME/Downloads/raycast-export.rayconfig" || { echo "Export not found at ~/Downloads/raycast-export.rayconfig"; exit 1; }
-	@AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
-	age -r "$$AGE_PUBKEY" -o macos/files/raycast/raycast.rayconfig.age "$$HOME/Downloads/raycast-export.rayconfig"
-	@rm -f "$$HOME/Downloads/raycast-export.rayconfig"
-	@echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
+	@RCFILE=$$(ls -t "$$HOME"/Downloads/*.rayconfig 2>/dev/null | head -1); \
+	if [ -z "$$RCFILE" ]; then echo "No .rayconfig found in ~/Downloads"; exit 1; fi; \
+	echo "Found: $$RCFILE"; \
+	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	age -r "$$AGE_PUBKEY" -o macos/files/raycast/raycast.rayconfig.age "$$RCFILE"; \
+	rm -f "$$RCFILE"; \
+	echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
 
 data-pull: ## Bulk-copy user data from another machine: make data-pull SOURCE=<hostname>
 ifndef SOURCE
