@@ -13,20 +13,27 @@
         path: "{{ workstation_dir }}/macos/files/raycast/raycast.rayconfig.age"
       register: raycast_export
 
+    - name: Ensure cache directory exists for Raycast import
+      when: raycast_export.stat.exists
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.cache/workstation"
+        state: directory
+        mode: "0755"
+
     - name: Decrypt Raycast export for import
       when: raycast_export.stat.exists
       ansible.builtin.command:
         cmd: >
           age -d
           -i {{ ansible_env.HOME }}/.config/sops/age/keys.txt
-          -o /tmp/raycast-import.rayconfig
+          -o {{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig
           {{ workstation_dir }}/macos/files/raycast/raycast.rayconfig.age
-        creates: /tmp/raycast-import.rayconfig
+        creates: "{{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig"
 
     - name: Open Raycast settings import
       when: raycast_export.stat.exists
       ansible.builtin.command:
-        cmd: open /tmp/raycast-import.rayconfig
+        cmd: "open {{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig"
       register: raycast_import_open
       changed_when: false
 
@@ -40,7 +47,7 @@
     - name: Clean up decrypted Raycast export
       when: raycast_export.stat.exists
       ansible.builtin.file:
-        path: /tmp/raycast-import.rayconfig
+        path: "{{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig"
         state: absent
 
     - name: Note about Raycast configuration

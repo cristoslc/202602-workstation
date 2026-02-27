@@ -25,7 +25,7 @@ ITERM2_PLIST_PATH = (
 RAYCAST_CONFIG_AGE_PATH = (
     REPO_ROOT / "macos" / "files" / "raycast" / "raycast.rayconfig.age"
 )
-RAYCAST_IMPORT_TMP = Path("/tmp/raycast-import.rayconfig")
+RAYCAST_IMPORT_TMP = Path.home() / ".cache" / "workstation" / "raycast-import.rayconfig"
 AGE_KEYS_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
 
 _HEADER = """\
@@ -218,6 +218,7 @@ def import_raycast_settings(runner: ToolRunner) -> tuple[str, bool]:
             "Configure manually, then run: make raycast-export",
             False,
         )
+    RAYCAST_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
     runner.run(
         [
             "age", "-d",
