@@ -8,8 +8,8 @@ unison_enabled: true
 # Pinned Unison version (must match across all machines and hub)
 unison_version: "2.53.5"
 
-# Hub server SSH destination for Unison sync
-unison_hub_host: ""
+# @tui secret label="Unison hub host" placeholder="hub.tailnet.ts.net"
+unison_hub_host: ""                # SSH destination for code sync
 
 # Hub server base directory for code sync working trees
 unison_hub_base_path: "/srv/code-sync"

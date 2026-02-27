@@ -1,6 +1,6 @@
 # Research: Secrets Placeholder Autodiscovery
 
-**Status:** Planned
+**Status:** Complete
 **Gate:** Pre-MVP (blocks reliable multi-machine bootstrap)
 
 ### Lifecycle
@@ -8,6 +8,7 @@
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Planned | 2026-02-25 | — | Initial creation |
+| Complete | 2026-02-27 | — | Implemented approach B (@tui annotations) |
 
 ---
 
@@ -31,7 +32,7 @@ Every time a role adds a new secret (e.g., `docker_mcp_brave_api_key` for the MC
 3. **No validation** — nothing warns during bootstrap if a role has an empty default that was never prompted for.
 4. **No metadata in defaults** — role `defaults/main.yml` has no machine-readable hint about which vars are secrets vs. configuration.
 
-## Approaches to investigate
+## Approaches investigated
 
 ### A. Convention-based scanning
 
@@ -40,13 +41,13 @@ Scan all `shared/roles/*/defaults/main.yml` files. Any variable matching a namin
 **Pros:** Zero extra metadata, works with existing file structure.
 **Cons:** Fragile naming heuristic, misses secrets with unconventional names, can't distinguish "optional" from "required."
 
-### B. YAML comment annotations
+### B. YAML comment annotations — **SELECTED**
 
 Annotate secret vars in `defaults/main.yml` with structured comments:
 
 ```yaml
-# @secret label="Brave Search API key" doc_url="https://brave.com/search/api/"
-docker_mcp_brave_api_key: ""
+# @tui secret password label="Restic repo password"
+restic_repo_password: ""           # Restic encryption key
 ```
 
 A scanner reads these annotations and generates the `SecretField` list at TUI startup.
@@ -56,40 +57,62 @@ A scanner reads these annotations and generates the `SecretField` list at TUI st
 
 ### C. Sidecar metadata file
 
-Each role that needs secrets provides a `secrets.yml` manifest alongside `defaults/main.yml`:
-
-```yaml
-# shared/roles/docker/secrets.yml
-- key: docker_mcp_brave_api_key
-  label: "Brave Search API key"
-  doc_url: "https://brave.com/search/api/"
-  password: true
-  storage: ansible_var   # or shell_export
-```
-
-The TUI discovers these files at startup via glob and builds the prompt list dynamically.
+Each role that needs secrets provides a `secrets.yml` manifest alongside `defaults/main.yml`.
 
 **Pros:** Structured, no comment parsing, role is fully self-contained.
 **Cons:** Extra file per role, needs a schema.
 
 ### D. Hybrid: convention + opt-in metadata
 
-Use approach A as a baseline (flag any empty `_api_key`/`_token` var as a potential secret), then let roles override metadata via approach C for labels, doc URLs, and masking.
+Use approach A as a baseline, then let roles override metadata via approach C for labels, doc URLs, and masking.
 
-## Go/no-go criteria
+## Decision: Approach B — `@tui` annotations
 
-- **Go:** At least one approach can be implemented in < 1 day, doesn't require changing existing role defaults format, and catches 100% of current secrets.
-- **No-go:** All approaches require significant migration effort or introduce brittle parsing. In that case, keep the curated list but consolidate first-run.py to import from `lib/secrets.py`.
+### Annotation format
 
-## Pivot if no-go
+```
+# @tui <directive> [flags...] [key="value"...]
+variable_name: ""
+```
 
-Consolidate `first-run.py` to import `SHARED_ANSIBLE_VARS` and `SHELL_SECRETS` from `scripts/setup_tui/lib/secrets.py` instead of maintaining its own copy. Add a `make check` validation that compares role defaults containing empty `_api_key`/`_token` vars against the declared `SecretField` list and fails if any are missing.
+| Element | Values | Purpose |
+|---------|--------|---------|
+| Directive | `secret`, `shell-secret`, `skip` | Controls whether var appears in TUI and which SOPS file it targets |
+| Flags | `password`, `optional` | Mask input, allow empty |
+| Key-values | `label`, `placeholder`, `description`, `doc_url` | Override auto-generated metadata |
+
+### Implementation
+
+| File | Purpose |
+|------|---------|
+| `scripts/setup_tui/lib/var_scanner.py` | Scans `@tui` annotations from all role `defaults/main.yml` |
+| `scripts/setup_tui/lib/secrets.py` | `SHARED_ANSIBLE_VARS` now populated dynamically by scanner |
+| `tests/python/test_var_scanner.py` | 31 tests covering parser, scanner, and integration |
+
+### Annotated roles
+
+| Role | Vars discovered | Skipped |
+|------|----------------|---------|
+| backups | `restic_b2_bucket`, `restic_repo_password`, `b2_master_key_id`, `b2_master_key`, `restic_shoutrrr_url` | `restic_b2_account_id`, `restic_b2_account_key` (auto-provisioned) |
+| docker | `docker_mcp_brave_api_key` | — |
+| git | `git_user_email`, `git_user_name`, `git_signing_key` | — |
+| syncthing | `syncthing_hub_device_id`, `syncthing_hub_address` | — |
+| remote-desktop | `rustdesk_relay_host`, `rustdesk_relay_key` | — |
+| unison | `unison_hub_host` | — |
+
+### Remaining work
+
+- `scripts/first-run.py` still maintains its own duplicate `SHARED_ANSIBLE_VARS` — should be consolidated to import from the TUI lib.
+
+## Go/no-go result
+
+**Go.** Approach B was implemented in a single session, required only adding `# @tui` comments to existing defaults files, and catches 100% of current secrets (14 ansible vars + 2 shell exports).
 
 ## Dependencies
 
 - None (pure investigation).
 
-## Blocks
+## Blocks (now resolved)
 
 - Reliable multi-machine bootstrap (secrets silently empty if not prompted).
 - Scaling to more roles with API keys (each new key is manual bookkeeping today).

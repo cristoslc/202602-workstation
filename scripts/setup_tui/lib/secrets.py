@@ -1,4 +1,12 @@
-"""Secret field definitions and collection logic."""
+"""Secret field definitions and collection logic.
+
+Ansible vars are auto-discovered by scanning role ``defaults/main.yml``
+files for ``# @tui`` annotations.  See :mod:`var_scanner` for the
+annotation format.
+
+Shell secrets (exports sourced by .zshrc) remain a static list because
+they don't correspond to Ansible role defaults.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +16,7 @@ from pathlib import Path
 
 from .encryption import write_and_encrypt
 from .runner import REPO_ROOT, ToolRunner
+from .var_scanner import ScannedVar, scan_role_defaults, scanned_to_ansible_vars
 
 logger = logging.getLogger("setup")
 
@@ -25,41 +34,50 @@ class SecretField:
     password: bool = False  # Mask input
 
 
-# Ansible vars -- written to vars.sops.yml as YAML key/value pairs.
-SHARED_ANSIBLE_VARS: list[SecretField] = [
-    SecretField(
-        key="git_user_email",
-        label="Git email",
-        placeholder="you@example.com",
-        description="Sets git config user.email globally",
-        used_by="git role",
-    ),
-    SecretField(
-        key="git_user_name",
-        label="Git display name",
-        placeholder="Your Name",
-        description="Sets git config user.name globally",
-        used_by="git role",
-    ),
-    SecretField(
-        key="git_signing_key",
-        label="SSH signing key (public)",
-        placeholder="ssh-ed25519 AAAA...",
-        description="1Password SSH public key for commit signing",
-        used_by="git role",
-    ),
-    SecretField(
-        key="docker_mcp_brave_api_key",
-        label="Brave Search API key",
-        placeholder="BSA...",
-        description="Web search for Docker MCP Gateway (Brave Search server)",
-        used_by="docker role (mcp-gateway)",
-        doc_url="https://brave.com/search/api/",
-        password=True,
-    ),
-]
+def _scanned_to_field(v: ScannedVar) -> SecretField:
+    """Convert a ScannedVar from the role scanner into a SecretField."""
+    return SecretField(
+        key=v.key,
+        label=v.label,
+        placeholder=v.placeholder,
+        description=v.description,
+        used_by=f"{v.role} role",
+        doc_url=v.doc_url,
+        password=v.password,
+    )
+
+
+def discover_ansible_vars(repo_root: Path | None = None) -> list[SecretField]:
+    """Scan role defaults for @tui annotations and return SecretFields.
+
+    This replaces the former static ``SHARED_ANSIBLE_VARS`` list.
+    """
+    root = repo_root or REPO_ROOT
+    scanned = scan_role_defaults(root)
+    ansible_vars = scanned_to_ansible_vars(scanned)
+    return [_scanned_to_field(v) for v in ansible_vars]
+
+
+# Cached result — populated on first access via get_shared_ansible_vars().
+_ansible_vars_cache: list[SecretField] | None = None
+
+
+def get_shared_ansible_vars(repo_root: Path | None = None) -> list[SecretField]:
+    """Return the discovered Ansible vars, scanning once and caching."""
+    global _ansible_vars_cache
+    if _ansible_vars_cache is None:
+        _ansible_vars_cache = discover_ansible_vars(repo_root)
+    return _ansible_vars_cache
+
+
+# Backward-compatible alias — existing code importing SHARED_ANSIBLE_VARS
+# will get the dynamically-discovered list.  Eager evaluation at import
+# time is fine because the annotation scanner is fast (pure file reads).
+SHARED_ANSIBLE_VARS: list[SecretField] = discover_ansible_vars()
+
 
 # Shell secrets -- written to secrets.zsh.sops as export statements.
+# These remain static because they are shell exports, not Ansible role vars.
 SHELL_SECRETS: list[SecretField] = [
     SecretField(
         key="ANTHROPIC_API_KEY",

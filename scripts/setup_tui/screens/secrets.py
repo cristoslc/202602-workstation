@@ -41,7 +41,11 @@ class SecretsScreen(Screen):
                     classes="section-header",
                 )
                 for field in SHARED_ANSIBLE_VARS:
-                    yield Static(f"[bold]{field.label}[/bold]  [dim]{field.description}[/dim]")
+                    doc = f"  [dim]{field.doc_url}[/dim]" if field.doc_url else ""
+                    yield Static(
+                        f"[bold]{field.label}[/bold]  [dim]{field.description}[/dim]"
+                        f"  [italic dim]({field.used_by})[/italic dim]{doc}"
+                    )
                     yield Input(
                         placeholder=field.placeholder,
                         password=field.password,

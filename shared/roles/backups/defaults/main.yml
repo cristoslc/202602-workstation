@@ -17,15 +17,19 @@ backrest_url: "https://github.com/garethgeorge/backrest/releases/download/v{{ ba
 backrest_repo: "garethgeorge/backrest"
 
 # ── Repository — B2-direct (v1) ────────────────────────────────────
+# @tui secret label="B2 bucket name" placeholder="my-workstation-backups"
 restic_b2_bucket: ""               # e.g. "my-workstation-backups"
-restic_repo_password: ""           # from SOPS — restic encryption key
+# @tui secret password label="Restic repo password"
+restic_repo_password: ""           # Restic encryption key
 
-# B2 master key (from SOPS — used by Terraform to create per-workstation keys)
-b2_master_key_id: ""
+# @tui secret password label="B2 master key ID" placeholder="00abc..."
+b2_master_key_id: ""               # from SOPS — used by Terraform
+# @tui secret password label="B2 master key"
 b2_master_key: ""
 
-# Per-workstation B2 credentials (auto-provisioned by Terraform — do not set manually)
+# @tui skip — auto-provisioned by Terraform
 restic_b2_account_id: ""
+# @tui skip — auto-provisioned by Terraform
 restic_b2_account_key: ""
 
 # Create B2 bucket via Terraform (true for first workstation, false for subsequent)
@@ -49,6 +53,7 @@ restic_upload_limit: 0
 restic_download_limit: 0
 
 # ── Notifications ───────────────────────────────────────────────────
+# @tui secret optional label="Shoutrrr notification URL" placeholder="discord://token@id"
 restic_shoutrrr_url: ""
 restic_heartbeat_file: "{{ ansible_facts.env.HOME }}/.local/log/restic-heartbeat.log"
 restic_stale_threshold_hours: 8

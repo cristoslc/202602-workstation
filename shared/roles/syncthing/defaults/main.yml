@@ -8,11 +8,11 @@ syncthing_enabled: true
 # Syncthing version to install (Linux apt repo tracks latest stable)
 syncthing_release_channel: stable
 
-# Hub server device ID — must be set in group_vars or secrets for pairing
-syncthing_hub_device_id: ""
+# @tui secret label="Syncthing hub device ID" placeholder="XXXXXXX-XXXXXXX-..."
+syncthing_hub_device_id: ""        # must be set for pairing
 
-# Hub server address (Tailscale IP or hostname) for static discovery
-syncthing_hub_address: ""
+# @tui secret label="Syncthing hub address" placeholder="100.x.y.z"
+syncthing_hub_address: ""          # Tailscale IP or hostname
 
 # User data folders to sync via Syncthing (relative to $HOME)
 syncthing_user_folders:
