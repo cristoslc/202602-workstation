@@ -436,6 +436,10 @@ class BootstrapRunScreen(Screen):
 
         # Create fresh bootstrap.log for this run.
         self._log_file = open(BOOTSTRAP_LOG, "w")
+
+        # Truncate ansible.log so it only contains output from this run.
+        ANSIBLE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        ANSIBLE_LOG.write_text("")
         skip_info = f"\nSkipping: {', '.join(self.skip_tags)}" if self.skip_tags else ""
         self._log_file.write(
             f"Bootstrap started: {datetime.now(timezone.utc).isoformat()}\n"
