@@ -28,7 +28,7 @@ run_wizard() {
     --border-foreground 4 \
     --padding "1 2" \
     --margin "0 0 1 0" \
-    "Workstation Bootstrap"
+    "Plumbline Bootstrap"
 
   # Mode selection
   BOOTSTRAP_MODE=$(gum choose \

@@ -1,4 +1,4 @@
-"""SetupApp — the main Textual application."""
+"""PlumblineApp — the main Textual application."""
 
 from __future__ import annotations
 
@@ -229,11 +229,11 @@ Screen {
 """
 
 
-class SetupApp(App):
-    """Workstation setup wizard — unified first-run + bootstrap."""
+class PlumblineApp(App):
+    """Plumbline setup wizard — unified first-run + bootstrap."""
 
     CSS = APP_CSS
-    TITLE = "Workstation Setup"
+    TITLE = "Plumbline"
 
     BINDINGS = [
         ("q", "quit", "Quit"),

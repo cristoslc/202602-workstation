@@ -9,7 +9,7 @@ errors that pure unit tests (with mocked imports) miss:
 - Widget query failures
 - Navigation bugs (push/pop screen)
 
-Every test actually instantiates ``SetupApp``, renders it headlessly, and
+Every test actually instantiates ``PlumblineApp``, renders it headlessly, and
 interacts via ``pilot.click`` / ``pilot.press``.
 """
 
@@ -26,7 +26,7 @@ from textual.widgets import Button, Input
 # Add scripts/ to path so setup_tui package is importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 
-from setup_tui.app import SetupApp
+from setup_tui.app import PlumblineApp
 from setup_tui.lib.discovery import (
     DiscoveredPhase,
     DiscoveredRole,
@@ -239,7 +239,7 @@ class _AppTestContext:
         self.runner_git_return = runner_git_return or _fail_result()
 
     async def __aenter__(self):
-        self.app = SetupApp(debug=self.debug)
+        self.app = PlumblineApp(debug=self.debug)
         self.app.runner.git = MagicMock(return_value=self.runner_git_return)
 
         self._patch_state = patch(

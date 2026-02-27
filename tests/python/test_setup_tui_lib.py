@@ -134,34 +134,34 @@ def tmp_repo(tmp_path):
 
 
 # ===========================================================================
-# SetupApp (app.py)
+# PlumblineApp (app.py)
 # ===========================================================================
 
-class TestSetupApp:
+class TestPlumblineApp:
     """Tests for the main Textual app — instantiation only (no UI rendering)."""
 
     def test_instantiation(self):
-        """SetupApp must not collide with Textual's debug property."""
-        from setup_tui.app import SetupApp
-        app = SetupApp(debug=False)
+        """PlumblineApp must not collide with Textual's debug property."""
+        from setup_tui.app import PlumblineApp
+        app = PlumblineApp(debug=False)
         assert app._debug_mode is False
         assert isinstance(app.runner, ToolRunner)
 
     def test_debug_mode_flag(self):
-        from setup_tui.app import SetupApp
-        app = SetupApp(debug=True)
+        from setup_tui.app import PlumblineApp
+        app = PlumblineApp(debug=True)
         assert app._debug_mode is True
         assert app.runner.debug is True
 
     def test_platform_detection(self):
-        from setup_tui.app import SetupApp
-        app = SetupApp()
+        from setup_tui.app import PlumblineApp
+        app = PlumblineApp()
         assert app.platform in ("macos", "linux")
 
     def test_sops_env_var_set(self):
         import os
-        from setup_tui.app import SetupApp
-        SetupApp()
+        from setup_tui.app import PlumblineApp
+        PlumblineApp()
         assert os.environ.get("SOPS_AGE_KEY_FILE") == str(AGE_KEY_PATH)
 
 

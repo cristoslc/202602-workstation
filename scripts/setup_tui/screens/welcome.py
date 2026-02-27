@@ -29,7 +29,7 @@ class WelcomeScreen(Screen):
         yield Header()
         with Vertical(id="main-content"):
             yield Static(
-                "[bold]Workstation Setup[/bold]\n\n"
+                "[bold]Plumbline[/bold]\n\n"
                 "Detecting current state...",
                 id="status",
             )
@@ -58,7 +58,7 @@ class WelcomeScreen(Screen):
         if not state.is_personalized:
             # Fresh template — needs first-run.
             status.update(
-                "[bold]Workstation Setup[/bold]\n\n"
+                "[bold]Plumbline[/bold]\n\n"
                 "[yellow]This repo has not been personalized yet.[/yellow]\n"
                 "The first-run wizard will generate an age key, "
                 "collect your GitHub info,\n"
@@ -92,7 +92,7 @@ class WelcomeScreen(Screen):
                 )
 
             status.update(
-                "[bold]Workstation Setup[/bold]\n\n"
+                "[bold]Plumbline[/bold]\n\n"
                 f"[green]Repo is personalized.[/green]{origin_info}"
                 f"{notes}"
             )
@@ -160,7 +160,7 @@ class WelcomeScreen(Screen):
         self.app.call_from_thread(menu.__setattr__, "display", False)
         self.app.call_from_thread(
             status.update,
-            "[bold]Workstation Setup[/bold]\n\n"
+            "[bold]Plumbline[/bold]\n\n"
             "[dim]Pulling latest changes...[/dim]"
         )
 
@@ -176,13 +176,13 @@ class WelcomeScreen(Screen):
                 if "Already up to date" in output:
                     self.app.call_from_thread(
                         status.update,
-                        "[bold]Workstation Setup[/bold]\n\n"
+                        "[bold]Plumbline[/bold]\n\n"
                         "[green]Already up to date.[/green] Relaunching..."
                     )
                 else:
                     self.app.call_from_thread(
                         status.update,
-                        "[bold]Workstation Setup[/bold]\n\n"
+                        "[bold]Plumbline[/bold]\n\n"
                         f"[green]Updated.[/green]\n[dim]{output}[/dim]\n\n"
                         "Relaunching..."
                     )
@@ -192,7 +192,7 @@ class WelcomeScreen(Screen):
                 logger.warning("git pull failed: %s", result.stderr.strip())
                 self.app.call_from_thread(
                     status.update,
-                    "[bold]Workstation Setup[/bold]\n\n"
+                    "[bold]Plumbline[/bold]\n\n"
                     f"[red]Update failed:[/red]\n{result.stderr.strip()}"
                 )
                 self.app.call_from_thread(menu.__setattr__, "display", True)
@@ -200,7 +200,7 @@ class WelcomeScreen(Screen):
             logger.warning("git pull timed out")
             self.app.call_from_thread(
                 status.update,
-                "[bold]Workstation Setup[/bold]\n\n"
+                "[bold]Plumbline[/bold]\n\n"
                 "[red]Update timed out.[/red] Check your network connection."
             )
             self.app.call_from_thread(menu.__setattr__, "display", True)

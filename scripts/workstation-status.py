@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workstation status dashboard.
+"""Plumbline status dashboard.
 
 Run via: uv run --with rich scripts/workstation-status.py
 
@@ -85,7 +85,7 @@ try:
             f"[bold]Platform:[/bold] {platform.system()} {platform.release()}\n"
             f"[bold]Machine:[/bold] {platform.machine()}\n"
             f"[bold]Shell:[/bold] {os.environ.get('SHELL', 'unknown')}\n"
-            f"[bold]Workstation:[/bold] {WORKSTATION_DIR}",
+            f"[bold]Plumbline:[/bold] {WORKSTATION_DIR}",
             title="System Info",
         )
     )

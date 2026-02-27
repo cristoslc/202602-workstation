@@ -92,7 +92,7 @@ edit-secrets-linux: ## Edit Linux encrypted vars
 edit-secrets-macos: ## Edit macOS encrypted vars
 	sops macos/secrets/vars.sops.yml
 
-status: ## Show workstation status (stub — Rich dashboard planned)
+status: ## Plumbline status dashboard
 	@uv run --with rich scripts/workstation-status.py 2>/dev/null || echo "Status dashboard requires uv + Python. Run bootstrap first."
 
 check-collisions: ## Check for stow filename collisions between layers

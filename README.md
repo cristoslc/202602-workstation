@@ -64,7 +64,7 @@ make apply ROLE=firewall        # Apply firewall rules (ufw / socketfilterfw)
 make lint                       # Run ansible-lint + yamllint
 make decrypt                    # Decrypt SOPS files to .decrypted/ (debugging)
 make clean-secrets              # Wipe decrypted secrets + dangling symlinks
-make status                     # Workstation status dashboard
+make status                     # Plumbline status dashboard
 make check-collisions           # Verify no stow filename conflicts
 ```
 

@@ -1,1 +1,1 @@
-"""Workstation setup TUI — unified first-run + bootstrap wizard."""
+"""Plumbline setup TUI — unified first-run + bootstrap wizard."""

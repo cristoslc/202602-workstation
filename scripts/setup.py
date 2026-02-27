@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workstation setup wizard — unified first-run + bootstrap.
+"""Plumbline setup wizard — unified first-run + bootstrap.
 
 Run via: ./setup.sh
 Direct: uv run --with textual,pyyaml scripts/setup.py [--debug]
@@ -17,7 +17,7 @@ os.umask(0o077)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Workstation setup wizard (Textual TUI)"
+        description="Plumbline setup wizard (Textual TUI)"
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument(
@@ -26,9 +26,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from setup_tui.app import SetupApp
+    from setup_tui.app import PlumblineApp
 
-    app = SetupApp(debug=args.debug, start_screen="bootstrap" if args.bootstrap else None)
+    app = PlumblineApp(debug=args.debug, start_screen="bootstrap" if args.bootstrap else None)
     result = app.run()
 
     if result == "relaunch":
