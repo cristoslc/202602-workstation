@@ -284,9 +284,9 @@ class TestExportIterm2Plist:
     def test_runs_make_and_age_encrypt(self, mock_runner):
         export_iterm2_plist(mock_runner)
         assert mock_runner.run.call_count == 2
-        # First call: make iterm2-export
+        # First call: make export-iterm2
         mock_runner.run.assert_any_call(
-            ["make", "iterm2-export"],
+            ["make", "export-iterm2"],
             cwd=REPO_ROOT,
             check=False,
         )
@@ -358,9 +358,9 @@ class TestExportOpenInSettings:
     def test_runs_make_and_age_encrypt(self, mock_runner):
         export_openin_settings(mock_runner)
         assert mock_runner.run.call_count == 2
-        # First call: make openin-export
+        # First call: make export-openin
         mock_runner.run.assert_any_call(
-            ["make", "openin-export"],
+            ["make", "export-openin"],
             cwd=REPO_ROOT,
             check=False,
         )

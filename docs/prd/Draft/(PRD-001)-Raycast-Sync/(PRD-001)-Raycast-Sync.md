@@ -38,7 +38,7 @@ After `make apply`, Raycast launches with the user's full extension set, hotkeys
 - Capture current Raycast settings from the source machine via `.rayconfig` export (no password)
 - Age-encrypt `.rayconfig` at rest in the repo (`macos/files/raycast/raycast.rayconfig.age`)
 - Decrypt and import during bootstrap on new machines (interactive import dialog)
-- `make raycast-export` convenience target (deeplink → export → age-encrypt)
+- `make export-raycast` convenience target (deeplink → export → age-encrypt)
 - Handle the Raycast ↔ cross-platform-action-bindings interaction (hotkeys defined in the action registry must not conflict with Raycast's own hotkey assignments)
 
 ### Out of scope
@@ -67,6 +67,6 @@ After `make apply`, Raycast launches with the user's full extension set, hotkeys
 
 1. `make apply` on a clean macOS machine + confirming the import dialog produces a Raycast instance matching the source machine's configuration (extensions, hotkeys, snippets, preferences).
 2. `.rayconfig` is age-encrypted at rest in the repo — no plaintext secrets committed.
-3. `make raycast-export` opens the Raycast export UI, age-encrypts the result, and places it in the repo.
+3. `make export-raycast` opens the Raycast export UI, age-encrypts the result, and places it in the repo.
 4. Bootstrap decrypts, opens the `.rayconfig`, pauses for user confirmation, then cleans up the plaintext.
 5. Hotkeys are consistent with the cross-platform action registry (no conflicts, no duplication).

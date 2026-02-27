@@ -287,7 +287,7 @@ class TestEditDefaults:
         first_run.edit_defaults(mock_runner, mock_ui, "macos")
 
         mock_runner.run.assert_called_once_with(
-            ["make", "iterm2-export"],
+            ["make", "export-iterm2"],
             cwd=tmp_repo,
             check=False,
         )

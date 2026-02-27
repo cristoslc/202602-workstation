@@ -29,7 +29,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive iterm2-export raycast-export streamdeck-export openin-export \
+        log-send log-receive export-iterm2 export-raycast export-streamdeck export-openin \
         snippets-convert export-all \
         backup-status backup-browse \
         data-pull data-pull-dry
@@ -152,9 +152,9 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
 
-export-all: iterm2-export streamdeck-export raycast-export openin-export ## Export all settings (macOS only)
+export-all: export-iterm2 export-streamdeck export-raycast export-openin ## Export all settings (macOS only)
 
-iterm2-export: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only)
+export-iterm2: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	defaults export com.googlecode.iterm2 - | plutil -convert xml1 -o macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist -
 	@AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
@@ -162,7 +162,7 @@ iterm2-export: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only
 	age -r "$$AGE_PUBKEY" -o macos/files/iterm2/iterm2.plist.age macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist; \
 	echo "iTerm2 plist exported and encrypted. Review with: git diff --stat macos/files/iterm2/"
 
-raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS only)
+export-raycast: ## Export Raycast settings and age-encrypt for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	@echo "Opening Raycast export UI..."
 	@echo "Save the .rayconfig file WITHOUT a password to ~/Downloads (the default)."
@@ -176,7 +176,7 @@ raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS o
 	rm -f "$$RCFILE"; \
 	echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
 
-streamdeck-export: ## Export Stream Deck profiles (age-encrypted, macOS only)
+export-streamdeck: ## Export Stream Deck profiles (age-encrypted, macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	@SD_BACKUP="$$HOME/Library/Application Support/com.elgato.StreamDeck/BackupV3"; \
 	SDFILE=$$(ls -t "$$SD_BACKUP"/*.streamDeckProfilesBackup 2>/dev/null | head -1); \
@@ -186,7 +186,7 @@ streamdeck-export: ## Export Stream Deck profiles (age-encrypted, macOS only)
 	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/streamdeck.backup.age "$$SDFILE"; \
 	echo "Stream Deck profiles encrypted. Review with: git diff --stat macos/files/stream-deck/"
 
-openin-export: ## Export OpenIn preferences, age-encrypted for the repo (macOS only)
+export-openin: ## Export OpenIn preferences, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	@BUNDLE_ID=$$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" /Applications/Setapp/OpenIn.app/Contents/Info.plist); \
 	mkdir -p macos/files/openin; \

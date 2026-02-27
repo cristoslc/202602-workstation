@@ -133,7 +133,7 @@ EXPORT_ITEMS: list[dict] = [
         "id": "raycast",
         "label": "Raycast settings",
         "interactive": True,
-        "make_target": "raycast-export",
+        "make_target": "export-raycast",
     },
     {
         "id": "openin",
@@ -370,13 +370,13 @@ def export_iterm2_plist(runner: ToolRunner) -> str:
     an age-encrypted copy to ``macos/files/iterm2/`` (for the repo).
     """
     result = runner.run(
-        ["make", "iterm2-export"],
+        ["make", "export-iterm2"],
         cwd=REPO_ROOT,
         check=False,
     )
     if result.returncode != 0:
         details = (result.stderr or result.stdout or "").strip()
-        msg = details or "make iterm2-export failed"
+        msg = details or "make export-iterm2 failed"
         raise RuntimeError(msg)
 
     # Age-encrypt for the repo (plaintext stays locally, gitignored)
@@ -400,13 +400,13 @@ def export_openin_settings(runner: ToolRunner) -> str:
     an age-encrypted copy alongside it (for the repo).
     """
     result = runner.run(
-        ["make", "openin-export"],
+        ["make", "export-openin"],
         cwd=REPO_ROOT,
         check=False,
     )
     if result.returncode != 0:
         details = (result.stderr or result.stdout or "").strip()
-        msg = details or "make openin-export failed"
+        msg = details or "make export-openin failed"
         raise RuntimeError(msg)
 
     # Age-encrypt for the repo (plaintext stays locally, gitignored)
@@ -473,12 +473,12 @@ def import_openin_settings(runner: ToolRunner) -> str:
     if not OPENIN_PLIST_AGE_PATH.exists():
         return (
             "No OpenIn export found — skipping import. "
-            "Configure manually, then run: make openin-export"
+            "Configure manually, then run: make export-openin"
         )
     if not OPENIN_APP_PATH.exists():
         return (
             "OpenIn is not installed — skipping import. "
-            "Install via Setapp first, then run: make openin-export"
+            "Install via Setapp first, then run: make export-openin"
         )
     # Resolve the real bundle identifier from the installed app.
     bundle_id_result = runner.run(
@@ -517,7 +517,7 @@ def import_raycast_settings(runner: ToolRunner) -> tuple[str, bool]:
     if not RAYCAST_CONFIG_AGE_PATH.exists():
         return (
             "No Raycast export found — skipping import. "
-            "Configure manually, then run: make raycast-export",
+            "Configure manually, then run: make export-raycast",
             False,
         )
     RAYCAST_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
@@ -667,7 +667,7 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
     if not STREAMDECK_BACKUP_AGE_PATH.exists():
         return (
             "No Stream Deck export found — skipping import. "
-            "Configure manually, then run: make streamdeck-export",
+            "Configure manually, then run: make export-streamdeck",
             False,
         )
     STREAMDECK_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)

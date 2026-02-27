@@ -1045,12 +1045,12 @@ def edit_defaults(
     if not ui.confirm(
         "Export current iTerm2 preferences into repo defaults now?"
     ):
-        ui.info("Skipped iTerm2 export. Run later with: make iterm2-export")
+        ui.info("Skipped iTerm2 export. Run later with: make export-iterm2")
         return
 
     ui.info("Exporting iTerm2 preferences...")
     result = runner.run(
-        ["make", "iterm2-export"],
+        ["make", "export-iterm2"],
         cwd=REPO_ROOT,
         check=False,
     )
@@ -1062,7 +1062,7 @@ def edit_defaults(
         return
 
     details = (result.stderr or result.stdout or "").strip()
-    ui.warn("iTerm2 export failed. You can retry later with: make iterm2-export")
+    ui.warn("iTerm2 export failed. You can retry later with: make export-iterm2")
     if details:
         ui.warn(f"  {details}")
 
