@@ -54,13 +54,16 @@ from setup_tui.lib.defaults import (
     RAYCAST_CONFIG_AGE_PATH,
     RAYCAST_IMPORT_TMP,
     STREAMDECK_PLUGINS_AGE_PATH,
+    _normalize_keybinding,
     cleanup_raycast_import,
     export_iterm2_plist,
     export_streamdeck_plugin_list,
     get_export_fn,
     import_iterm2_settings,
     import_raycast_settings,
+    load_action_registry,
     run_all_imports,
+    save_action_registry,
     scan_streamdeck_plugins,
 )
 
@@ -1883,3 +1886,96 @@ class TestExportStreamdeckPluginList:
         )
         assert "0 plugins" in msg
         assert json.loads(json_out.read_text()) == []
+
+
+# ---------------------------------------------------------------------------
+# _normalize_keybinding / save_action_registry normalization
+# ---------------------------------------------------------------------------
+
+
+class TestNormalizeKeybinding:
+    """Verify that _normalize_keybinding fixes macOS-isms and punctuation."""
+
+    def test_opt_normalized_to_alt(self):
+        kb = {
+            "linux": "<Ctrl><Opt>Left",
+            "macos": {"mods": ["ctrl", "opt"], "key": "left"},
+        }
+        _normalize_keybinding(kb)
+        assert kb["linux"] == "<Ctrl><Alt>Left"
+        assert kb["macos"]["mods"] == ["ctrl", "alt"]
+
+    def test_option_normalized(self):
+        kb = {
+            "linux": "<Option>v",
+            "macos": {"mods": ["option"], "key": "v"},
+        }
+        _normalize_keybinding(kb)
+        assert kb["linux"] == "<Alt>v"
+        assert kb["macos"]["mods"] == ["alt"]
+
+    def test_command_normalized(self):
+        kb = {
+            "linux": "<Command>space",
+            "macos": {"mods": ["command"], "key": "space"},
+        }
+        _normalize_keybinding(kb)
+        assert kb["linux"] == "<Super>space"
+        assert kb["macos"]["mods"] == ["cmd"]
+
+    def test_control_normalized(self):
+        kb = {
+            "linux": "<Control>x",
+            "macos": {"mods": ["control"], "key": "x"},
+        }
+        _normalize_keybinding(kb)
+        assert kb["linux"] == "<Ctrl>x"
+        assert kb["macos"]["mods"] == ["ctrl"]
+
+    def test_period_key_normalized_linux(self):
+        """Linux dconf needs keysym 'period'; macOS keeps bare '.'."""
+        kb = {
+            "linux": "<Alt>.",
+            "macos": {"mods": ["alt"], "key": "."},
+        }
+        _normalize_keybinding(kb)
+        assert kb["linux"] == "<Alt>period"
+        assert kb["macos"]["key"] == "."
+
+    def test_valid_modifiers_unchanged(self):
+        kb = {
+            "linux": "<Ctrl><Alt>Left",
+            "macos": {"mods": ["ctrl", "alt"], "key": "left"},
+        }
+        _normalize_keybinding(kb)
+        assert kb["linux"] == "<Ctrl><Alt>Left"
+        assert kb["macos"]["mods"] == ["ctrl", "alt"]
+
+    def test_unknown_linux_modifier_raises(self):
+        kb = {"linux": "<Foo>v", "macos": {"mods": ["alt"], "key": "v"}}
+        with pytest.raises(ValueError, match="Unknown Linux modifier.*Foo"):
+            _normalize_keybinding(kb)
+
+    def test_unknown_macos_modifier_raises(self):
+        kb = {"linux": "<Alt>v", "macos": {"mods": ["foo"], "key": "v"}}
+        with pytest.raises(ValueError, match="Unknown macOS modifier.*foo"):
+            _normalize_keybinding(kb)
+
+    def test_save_round_trip_normalizes(self, tmp_path):
+        """save_action_registry normalizes, then load reads back correct values."""
+        yml = tmp_path / "main.yml"
+        actions = [
+            {
+                "action": "test_action",
+                "description": "Test",
+                "keybinding": {
+                    "linux": "<Command><Opt>v",
+                    "macos": {"mods": ["command", "option"], "key": "v"},
+                },
+            }
+        ]
+        save_action_registry(actions, path=yml)
+        reloaded = load_action_registry(path=yml)
+        kb = reloaded[0]["keybinding"]
+        assert kb["linux"] == "<Super><Alt>v"
+        assert kb["macos"]["mods"] == ["cmd", "alt"]

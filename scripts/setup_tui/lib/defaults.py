@@ -159,6 +159,66 @@ _DISPLAY_TO_MACOS_MOD = {"Meta": "cmd", "Shift": "shift", "Ctrl": "ctrl", "Alt":
 # Arrow keys stay title-case in Linux dconf format.
 _LINUX_TITLECASE_KEYS = {"Left", "Right", "Up", "Down"}
 
+# ---------------------------------------------------------------------------
+# Modifier / key normalization — fix hand-edited or TUI-entered macOS-isms
+# ---------------------------------------------------------------------------
+
+# Canonical Linux dconf modifier names (title-case, inside angle brackets)
+_NORMALIZE_LINUX_MOD = {
+    "super": "Super", "meta": "Super", "cmd": "Super", "command": "Super", "win": "Super",
+    "shift": "Shift",
+    "ctrl": "Ctrl", "control": "Ctrl",
+    "alt": "Alt", "opt": "Alt", "option": "Alt",
+}
+
+# Canonical macOS Hammerspoon modifier names (lowercase)
+_NORMALIZE_MACOS_MOD = {
+    "cmd": "cmd", "command": "cmd", "meta": "cmd", "super": "cmd", "win": "cmd",
+    "shift": "shift",
+    "ctrl": "ctrl", "control": "ctrl",
+    "alt": "alt", "opt": "alt", "option": "alt",
+}
+
+# Punctuation key names for Linux dconf (bare char → X11 keysym)
+_NORMALIZE_LINUX_KEY = {
+    ".": "period", ",": "comma", ";": "semicolon", "'": "apostrophe",
+    "/": "slash", "\\": "backslash", "[": "bracketleft", "]": "bracketright",
+    "-": "minus", "=": "equal", "`": "grave",
+}
+
+
+def _normalize_keybinding(kb: dict) -> None:
+    """Normalize modifier and key names in a keybinding dict, in place.
+
+    Fixes common macOS-isms (Opt → Alt, Command → Super/cmd, etc.) and
+    converts bare punctuation chars to X11 keysym names for Linux dconf.
+
+    Raises ``ValueError`` for unrecognised modifier names.
+    """
+    # --- Linux string: "<Ctrl><Opt>Left" → "<Ctrl><Alt>Left" ---
+    linux = kb.get("linux")
+    if isinstance(linux, str):
+        mods, key = _parse_linux_binding(linux)
+        normed_mods = []
+        for m in mods:
+            canon = _NORMALIZE_LINUX_MOD.get(m.lower())
+            if canon is None:
+                raise ValueError(f"Unknown Linux modifier: {m!r}")
+            normed_mods.append(canon)
+        key = _NORMALIZE_LINUX_KEY.get(key, key)
+        kb["linux"] = "".join(f"<{m}>" for m in normed_mods) + key
+
+    # --- macOS dict: {mods: ["opt"], key: "v"} → {mods: ["alt"], key: "v"} ---
+    macos = kb.get("macos")
+    if isinstance(macos, dict):
+        normed_mods = []
+        for m in macos.get("mods", []):
+            canon = _NORMALIZE_MACOS_MOD.get(m.lower())
+            if canon is None:
+                raise ValueError(f"Unknown macOS modifier: {m!r}")
+            normed_mods.append(canon)
+        macos["mods"] = normed_mods
+
 
 def _parse_linux_binding(binding: str) -> tuple[list[str], str]:
     """Parse '<Super><Shift>v' → (['Super', 'Shift'], 'v')."""
@@ -245,6 +305,13 @@ def save_action_registry(
 ) -> None:
     """Write workstation_actions back to the keyboard role defaults."""
     target = path or REGISTRY_PATH
+
+    # Normalize modifier / key names so hand-edited macOS-isms don't
+    # silently break dconf or Hammerspoon at runtime.
+    for action in actions:
+        kb = action.get("keybinding")
+        if kb:
+            _normalize_keybinding(kb)
 
     # Tag multi-line lua strings for literal block style.
     for action in actions:
