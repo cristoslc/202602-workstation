@@ -7,6 +7,7 @@ import sys
 
 from textual.app import App
 
+from .lib.proc_cleanup import terminate_procs
 from .lib.runner import ToolRunner
 from .lib.setup_logging import setup_logging
 from .lib.state import AGE_KEY_PATH
@@ -262,6 +263,13 @@ class SetupApp(App):
         )
         # SOPS age key file.
         os.environ["SOPS_AGE_KEY_FILE"] = str(AGE_KEY_PATH)
+
+    def action_quit(self) -> None:
+        for screen in self.screen_stack:
+            procs = getattr(screen, "_procs", None)
+            if procs:
+                terminate_procs(procs)
+        super().action_quit()
 
     def on_mount(self) -> None:
         setup_logging(debug=self._debug_mode)

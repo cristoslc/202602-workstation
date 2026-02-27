@@ -6,6 +6,9 @@
 hs.autoLaunch(true)
 hs.menuIcon(true)
 
+-- Enable IPC (CLI `hs` command and hammerspoon:// URL scheme).
+require("hs.ipc")
+
 -- Auto-reload when any .lua file changes.
 local configWatcher = configWatcher  -- luacheck: ignore (suppress unused warning)
 configWatcher = hs.pathwatcher.new(hs.configdir, function(files)

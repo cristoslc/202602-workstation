@@ -2,11 +2,10 @@
 # Action registry: semantic actions with per-platform keybindings and implementations.
 # The keyboard role reads this to configure Hammerspoon (macOS) and dconf (Linux).
 #
-# Modifier strategy — same physical keys on both platforms:
-#   macOS Cmd  =  Linux Super  (same physical key)
-#   +Shift where the bare combo conflicts (e.g. Cmd+V = paste → Cmd+Shift+V)
-#
-# This means muscle memory transfers 1:1 between machines.
+# Modifier strategy: Choose modifiers that avoid conflicts with system and
+# application shortcuts on each platform.  +Shift provides a second tier
+# for extended actions.  Edit bindings here; the keyboard role generates
+# platform configs (Hammerspoon on macOS, dconf on Linux) from this registry.
 
 workstation_actions:
 - action: open_launcher
