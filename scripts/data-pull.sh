@@ -24,7 +24,6 @@ RSYNC_OPTS=(
   --progress            # per-file progress
   --partial             # resume interrupted transfers
   --human-readable      # human-readable sizes
-  --delete              # mirror deletions from source
   --exclude-from="$EXCLUDE_FILE"
 )
 
