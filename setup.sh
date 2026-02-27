@@ -56,7 +56,7 @@ if [ ! -f "$SCRIPT_DIR/scripts/setup.py" ]; then
   else
     install_xcode_clt
   fi
-  git clone "https://github.com/cristoslc/plumbline.git" "$WORKSTATION_DIR"
+  git clone "${GITHUB_REPO_URL}" "$WORKSTATION_DIR"
   exec "$WORKSTATION_DIR/setup.sh" "$@"
 fi
 

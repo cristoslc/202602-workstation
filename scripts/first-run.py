@@ -32,6 +32,7 @@ from rich.text import Text
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGE_KEY_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
 SOPS_YAML = REPO_ROOT / ".sops.yaml"
+SETUP_SH = REPO_ROOT / "setup.sh"
 BOOTSTRAP_SH = REPO_ROOT / "bootstrap.sh"
 README_MD = REPO_ROOT / "README.md"
 FIRST_RUN_LOG = REPO_ROOT / "first-run.log"
@@ -483,6 +484,7 @@ def replace_tokens(config: RepoConfig, ui: WizardUI) -> None:
 
     replacements: dict[Path, dict[str, str]] = {
         SOPS_YAML: {"${AGE_PUBLIC_KEY}": config.age_public_key},
+        SETUP_SH: {"${GITHUB_REPO_URL}": config.github_repo_url},
         BOOTSTRAP_SH: {"${GITHUB_REPO_URL}": config.github_repo_url},
         README_MD: {
             "${GITHUB_REPO_URL}": config.github_repo_url,
@@ -496,10 +498,10 @@ def replace_tokens(config: RepoConfig, ui: WizardUI) -> None:
         for token, value in tokens.items():
             content = content.replace(token, value)
         filepath.write_text(content)
-        if filepath == BOOTSTRAP_SH:
+        if filepath in (SETUP_SH, BOOTSTRAP_SH):
             filepath.chmod(0o755)
 
-    ui.info("Tokens replaced in .sops.yaml, bootstrap.sh, and README.md")
+    ui.info("Tokens replaced in .sops.yaml, setup.sh, bootstrap.sh, and README.md")
 
 
 # ---------------------------------------------------------------------------

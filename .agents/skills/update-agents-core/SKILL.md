@@ -26,7 +26,7 @@ This skill assumes the project was originally set up via the `import-agents-stan
    ```
    If it does not exist, tell the user the remote is missing and show them how to add it:
    ```
-   git remote add agents-upstream https://github.com/cristoslc/LLM-personal-agent-patterns.git
+   git remote add agents-upstream https://github.com/<upstream-user>/LLM-personal-agent-patterns.git
    ```
    Then ask them to re-invoke the skill after adding it.
 

@@ -1,8 +1,6 @@
-# plumbline
+# ${REPO_NAME}
 
 IaC-driven setup that makes Linux and macOS dev workstations fungible. Run `./setup.sh` on a fresh install or an existing system and get a fully configured development environment.
-
-Forked from [iac-workstation-template](https://github.com/cristoslc/iac-workstation-template).
 
 - **Linux**: Mint 22 / Cinnamon / X11
 - **macOS**: Homebrew + Raycast + opinionated defaults
@@ -12,7 +10,7 @@ Forked from [iac-workstation-template](https://github.com/cristoslc/iac-workstat
 One-time setup to personalize the template and push to your own repo.
 
 ```bash
-git clone https://github.com/cristoslc/iac-workstation-template.git ~/.workstation
+git clone ${GITHUB_REPO_URL} ~/.workstation
 cd ~/.workstation
 ./setup.sh
 ```
@@ -40,7 +38,7 @@ mkdir -p ~/.config/sops/age
 chmod 600 ~/.config/sops/age/keys.txt
 
 # Clone and bootstrap
-git clone https://github.com/cristoslc/plumbline.git ~/.workstation
+git clone ${GITHUB_REPO_URL} ~/.workstation
 cd ~/.workstation
 ./bootstrap.sh
 ```

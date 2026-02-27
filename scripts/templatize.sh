@@ -6,17 +6,18 @@ set -euo pipefail
 # and creates a fresh single-commit git history.
 #
 # Usage: ./scripts/templatize.sh [target-dir]
-#   Default target: ../iac-workstation-template
+#   Default target: ../workstation-template
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TARGET_DIR="${1:-$(dirname "$REPO_DIR")/iac-workstation-template}"
+TARGET_DIR="${1:-$(dirname "$REPO_DIR")/workstation-template}"
 
 # --- Personalized values to strip ---
-AGE_PUBLIC_KEY="age156zdlx3ysm24xcc0sac4hvfr4dxkx9kp8pr7enu9k2el6jrfqazqkpgear"
-GITHUB_REPO_URL="https://github.com/cristoslc/plumbline.git"
-GITHUB_USERNAME="cristoslc"
-REPO_NAME="plumbline"
+# After first-run personalizes the repo, fill these in to re-export a clean template.
+AGE_PUBLIC_KEY="${AGE_PUBLIC_KEY:?Set AGE_PUBLIC_KEY to your age public key}"
+GITHUB_REPO_URL="${GITHUB_REPO_URL:?Set GITHUB_REPO_URL to your repo clone URL}"
+GITHUB_USERNAME="${GITHUB_USERNAME:?Set GITHUB_USERNAME to your GitHub username}"
+REPO_NAME="${REPO_NAME:?Set REPO_NAME to your repo name}"
 
 # --- Phase 1: Validate ---
 
@@ -117,7 +118,7 @@ git init -q
 git add -A
 git -c commit.gpgsign=false commit -q -m "Initial template
 
-Clean export of iac-workstation-template with all personalized content
+Clean template export with all personalized content
 replaced by template tokens. Fork this repo and run ./setup.sh to personalize."
 
 # --- Phase 7: Verify ---
@@ -177,4 +178,4 @@ echo "  - $(cd "$TARGET_DIR" && git ls-files | wc -l) files"
 echo ""
 echo "Next steps:"
 echo "  cd $TARGET_DIR"
-echo "  gh repo create <username>/iac-workstation-template --public --source . --push"
+echo "  gh repo create <username>/<repo-name> --public --source . --push"
