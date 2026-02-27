@@ -3,7 +3,7 @@
 **Status:** Adopted
 **Date:** 2026-02-27
 **Author:** cristos
-**Affects:** All export/import flows (iTerm2, Raycast, Stream Deck profiles, Stream Deck plugins)
+**Affects:** All export/import flows (iTerm2, Raycast, Espanso snippets, Stream Deck profiles, Stream Deck plugins)
 
 ### Lifecycle
 
@@ -64,6 +64,7 @@ The age public key is read from `.sops.yaml`. The private key lives at `~/.confi
 |-----|---------------------------|----------------------|
 | iTerm2 | `macos/files/iterm2/iterm2.plist.age` | `macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist` |
 | Raycast | `macos/files/raycast/raycast.rayconfig.age` | temp file, deleted after import |
+| Espanso snippets (from Raycast) | `shared/secrets/dotfiles/espanso/.config/espanso/match/raycast.yml.sops` | decrypted by secrets-manager, stowed to `~/.config/espanso/match/raycast.yml` |
 | Stream Deck profiles | `macos/files/stream-deck/streamdeck.backup.age` | temp file, deleted after import |
 | Stream Deck plugins | `macos/files/stream-deck/plugins.json.age` | `macos/files/stream-deck/plugins.json` |
 

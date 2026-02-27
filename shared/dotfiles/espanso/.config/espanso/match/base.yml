@@ -1,4 +1,5 @@
 # Base espanso text expansions.
+# Personal snippets go in match/raycast.yml (SOPS-encrypted, managed via shared secrets).
 # Private snippets go in match/private.yml (encrypted, managed via secrets).
 # Local snippets go in match/local.yml (gitignored).
 matches: []

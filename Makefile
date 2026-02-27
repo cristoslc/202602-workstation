@@ -29,7 +29,8 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive iterm2-export raycast-export streamdeck-export export-all \
+        log-send log-receive iterm2-export raycast-export streamdeck-export \
+        snippets-convert export-all \
         backup-status backup-browse \
         data-pull data-pull-dry
 
@@ -184,6 +185,23 @@ streamdeck-export: ## Export Stream Deck profiles (age-encrypted, macOS only)
 	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
 	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/streamdeck.backup.age "$$SDFILE"; \
 	echo "Stream Deck profiles encrypted. Review with: git diff --stat macos/files/stream-deck/"
+
+snippets-convert: ## One-time: convert Raycast snippets JSON to SOPS-encrypted Espanso YAML
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	@echo "Export your Raycast snippets: Raycast > Snippets > ... > Export All"
+	@echo "Save the JSON file to ~/Downloads."
+	@read -p "Press Enter after saving the export..."
+	@SNIPFILE=$$(ls -t "$$HOME"/Downloads/Snippets*.json 2>/dev/null | head -1); \
+	if [ -z "$$SNIPFILE" ]; then echo "No Snippets*.json found in ~/Downloads"; exit 1; fi; \
+	echo "Found: $$SNIPFILE"; \
+	SOPS_DEST="$(CURDIR)/shared/secrets/dotfiles/espanso/.config/espanso/match/raycast.yml"; \
+	mkdir -p "$$(dirname "$$SOPS_DEST")"; \
+	uv run --with pyyaml scripts/raycast_to_espanso.py "$$SNIPFILE" "$$SOPS_DEST"; \
+	sops -e -i "$$SOPS_DEST"; \
+	mv "$$SOPS_DEST" "$${SOPS_DEST}.sops"; \
+	rm -f "$$SNIPFILE"; \
+	echo "Snippets converted and encrypted to $${SOPS_DEST}.sops"; \
+	echo "Edit later with: sops shared/secrets/dotfiles/espanso/.config/espanso/match/raycast.yml.sops"
 
 data-pull: ## Bulk-copy user data from another machine: make data-pull SOURCE=<hostname>
 ifndef SOURCE

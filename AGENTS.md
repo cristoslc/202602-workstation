@@ -22,6 +22,7 @@ All personalized or user-specific files MUST be age-encrypted before committing 
 |-----|---------------|----------------------|
 | iTerm2 | `macos/files/iterm2/iterm2.plist.age` | `macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist` |
 | Raycast | `macos/files/raycast/raycast.rayconfig.age` | (temp file, deleted after import) |
+| Espanso snippets (from Raycast) | `shared/secrets/dotfiles/espanso/.config/espanso/match/raycast.yml.sops` | (decrypted by secrets-manager, stowed to `~/.config/espanso/match/raycast.yml`) |
 | Stream Deck profiles | `macos/files/stream-deck/streamdeck.backup.age` | (temp file, deleted after import) |
 | Stream Deck plugins | `macos/files/stream-deck/plugins.json.age` | `macos/files/stream-deck/plugins.json` |
 
