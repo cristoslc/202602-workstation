@@ -56,11 +56,14 @@
       until: _docker_ready.rc == 0
       changed_when: false
 
-- name: Check if docker mcp CLI is available
-  ansible.builtin.command: docker mcp --help
+- name: Wait for docker mcp service to be ready
+  ansible.builtin.command: docker mcp profile ls
   register: _docker_mcp_check
   changed_when: false
   failed_when: false
+  retries: 12
+  delay: 5
+  until: _docker_mcp_check.rc == 0
   environment:
     DOCKER_MCP_IN_CONTAINER: "1"
 
@@ -68,8 +71,8 @@
   when: _docker_mcp_check.rc != 0
   ansible.builtin.debug:
     msg: >-
-      docker mcp CLI not available. Install Docker Desktop 4.59+
-      or the docker-mcp CLI plugin, then re-run.
+      docker mcp CLI not available after {{ 12 * 5 }}s.
+      Install Docker Desktop 4.59+ or the docker-mcp CLI plugin, then re-run.
 
 - name: Configure Docker MCP Gateway
   when: _docker_mcp_check.rc == 0
