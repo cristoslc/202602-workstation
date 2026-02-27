@@ -67,6 +67,42 @@ AGE_KEYS_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
 #   - Non-interactive items have ``export_fn`` (called directly by the TUI worker).
 #   - Interactive items have ``make_target`` (TUI suspends and runs ``make <target>``).
 
+IMPORT_ITEMS: list[dict] = [
+    {
+        "id": "iterm2",
+        "label": "iTerm2 preferences",
+        "import_fn": "import_iterm2_settings",
+        "interactive": False,
+    },
+    {
+        "id": "raycast",
+        "label": "Raycast settings",
+        "import_fn": "import_raycast_settings",
+        "interactive": True,
+        "cleanup_fn": "cleanup_raycast_import",
+        "confirm_prompt": "Confirm the import in the Raycast dialog",
+    },
+    {
+        "id": "streamdeck",
+        "label": "Stream Deck profiles",
+        "import_fn": "import_streamdeck_profiles",
+        "interactive": True,
+        "cleanup_fn": "cleanup_streamdeck_import",
+        "confirm_prompt": "Confirm the restore in the Stream Deck app",
+    },
+]
+
+
+def get_import_fn(item: dict) -> callable:
+    """Resolve an import item's ``import_fn`` string to the actual callable."""
+    return globals()[item["import_fn"]]
+
+
+def get_cleanup_fn(item: dict) -> callable:
+    """Resolve an import item's ``cleanup_fn`` string to the actual callable."""
+    return globals()[item["cleanup_fn"]]
+
+
 EXPORT_ITEMS: list[dict] = [
     {
         "id": "iterm2",

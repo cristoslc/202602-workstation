@@ -1,4 +1,4 @@
-"""ImportSettingsScreen — re-import iTerm2 + Raycast settings on demand."""
+"""ImportSettingsScreen — re-import iTerm2 + Raycast + Stream Deck settings."""
 
 from __future__ import annotations
 
@@ -9,15 +9,15 @@ from textual import work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, RichLog, Static
+from textual.widgets import Button, Footer, Header, RichLog, SelectionList, Static
 
-from ..lib.defaults import run_all_imports
+from ..lib.defaults import IMPORT_ITEMS, get_cleanup_fn, get_import_fn
 
 logger = logging.getLogger("setup")
 
 
 class ImportSettingsScreen(Screen):
-    """Import iTerm2 and Raycast settings outside of bootstrap/migration."""
+    """Import app settings with a selectable checklist."""
 
     BINDINGS = [("escape", "go_back", "Back")]
 
@@ -26,20 +26,22 @@ class ImportSettingsScreen(Screen):
         with Vertical(id="main-content"):
             yield Static(
                 "[bold]Import Settings[/bold]\n\n"
-                "Re-import app settings from the repo into this machine.\n\n"
-                "[dim]iTerm2: points preferences at the stow-managed plist[/dim]\n"
-                "[dim]Raycast: decrypts the age-encrypted .rayconfig and "
-                "opens the import dialog[/dim]\n"
-                "[dim]Stream Deck: decrypts the age-encrypted backup and "
-                "opens the restore dialog[/dim]",
+                "Select which app settings to re-import from the repo.\n",
                 id="import-status",
+            )
+            yield SelectionList[str](
+                *[
+                    (item["label"], item["id"], True)
+                    for item in IMPORT_ITEMS
+                ],
+                id="import-checklist",
             )
             yield RichLog(
                 id="import-output", highlight=True, markup=True, wrap=True
             )
             with Horizontal(id="import-buttons"):
                 yield Button(
-                    "Import Settings", id="run-import", variant="primary"
+                    "Import Selected", id="run-import", variant="primary"
                 )
                 yield Button("Back", id="back")
         yield Footer()
@@ -57,35 +59,70 @@ class ImportSettingsScreen(Screen):
             self._do_import()
 
     def _do_import(self) -> None:
+        checklist = self.query_one("#import-checklist", SelectionList)
+        selected_ids = list(checklist.selected)
+        if not selected_ids:
+            output = self.query_one("#import-output", RichLog)
+            output.clear()
+            output.display = True
+            self._log("[bold yellow]No items selected.[/bold yellow]")
+            return
         self.query_one("#run-import", Button).disabled = True
         output = self.query_one("#import-output", RichLog)
         output.clear()
         output.display = True
         self._log("[bold cyan]>>> Importing settings...[/bold cyan]\n")
-        self._import_worker()
+        self._import_worker(selected_ids)
 
     @work(thread=True)
-    def _import_worker(self) -> None:
-        """Run all imports, suspending for interactive confirm dialogs."""
+    def _import_worker(self, selected_ids: list[str]) -> None:
+        """Run selected imports, suspending for interactive confirm dialogs."""
+        selected = [i for i in IMPORT_ITEMS if i["id"] in selected_ids]
         try:
-            messages, confirmations = run_all_imports(self.app.runner)
-            for msg in messages:
-                self.app.call_from_thread(self._log, f"  {msg}")
+            # --- Non-interactive imports first ---
+            for item in selected:
+                if item["interactive"]:
+                    continue
+                try:
+                    fn = get_import_fn(item)
+                    msg = fn(self.app.runner)
+                    self.app.call_from_thread(self._log, f"  {msg}")
+                except Exception as exc:
+                    self.app.call_from_thread(
+                        self._log,
+                        f"  [red]{item['label']} import failed:[/red] {exc}",
+                    )
 
-            for prompt, cleanup_fn in confirmations:
-                done = threading.Event()
+            # --- Interactive imports (need user confirmation) ---
+            for item in selected:
+                if not item["interactive"]:
+                    continue
+                try:
+                    fn = get_import_fn(item)
+                    msg, needs_confirm = fn(self.app.runner)
+                    self.app.call_from_thread(self._log, f"  {msg}")
 
-                def _do_confirm(p: str = prompt) -> None:
-                    with self.app.suspend():
-                        input(f"\n  {p}, then press Enter to continue...")
-                    done.set()
+                    if needs_confirm:
+                        done = threading.Event()
+                        prompt = item["confirm_prompt"]
 
-                self.app.call_from_thread(_do_confirm)
-                done.wait()
-                cleanup_fn()
-                self.app.call_from_thread(
-                    self._log, f"  {prompt.split(' in ')[0]} confirmed."
-                )
+                        def _do_confirm(p: str = prompt) -> None:
+                            with self.app.suspend():
+                                input(f"\n  {p}, then press Enter to continue...")
+                            done.set()
+
+                        self.app.call_from_thread(_do_confirm)
+                        done.wait()
+                        get_cleanup_fn(item)()
+                        self.app.call_from_thread(
+                            self._log,
+                            f"  {item['label']} import confirmed.",
+                        )
+                except Exception as exc:
+                    self.app.call_from_thread(
+                        self._log,
+                        f"  [red]{item['label']} import failed:[/red] {exc}",
+                    )
 
             self.app.call_from_thread(
                 self._log,

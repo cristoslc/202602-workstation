@@ -204,6 +204,26 @@ Screen {
     margin: 1 0;
 }
 
+#import-checklist {
+    height: auto;
+    max-height: 10;
+    margin: 0 0 1 0;
+}
+
+#import-buttons {
+    height: auto;
+    margin: 1 0;
+}
+
+#import-buttons Button {
+    margin: 0 1;
+}
+
+#import-output {
+    width: 1fr;
+    height: 1fr;
+}
+
 #source-host {
     width: 50;
     margin: 1 0;
