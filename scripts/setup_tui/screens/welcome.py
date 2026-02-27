@@ -9,6 +9,7 @@ from textual import work
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.screen import Screen
+from textual.binding import Binding
 from textual.widgets import Footer, Header, OptionList, Static
 from textual.widgets.option_list import Option
 
@@ -22,7 +23,7 @@ class WelcomeScreen(Screen):
     """Detects repo state and presents appropriate menu options."""
 
     BINDINGS = [
-        ("q", "app.quit", "Quit"),
+        Binding("q", "app.quit", "Quit", priority=True),
     ]
 
     def compose(self) -> ComposeResult:

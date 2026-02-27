@@ -33,6 +33,7 @@ logger = logging.getLogger("setup")
 DATA_PULL_SCRIPT = REPO_ROOT / "scripts" / "data-pull.sh"
 SSH_KEY_PATH = Path.home() / ".ssh" / "id_ed25519"
 MIGRATION_LOG = Path.home() / ".local" / "log" / "migration.log"
+_SAVED_HOST_FILE = Path("/tmp/.workstation-migration-host")
 
 # Regex for rsync --info=progress2 output lines, e.g.:
 #   1,234,567,890  45%  12.34MB/s    0:01:23 (xfr#1, ir-chk=100/200)
@@ -51,6 +52,9 @@ _SCAN_RE = re.compile(r"^@@SCAN:(\w+):(\d+)@@$")
 _TOTAL_RE = re.compile(r"^@@TOTAL:(\d+)@@$")
 _FOLDER_START_RE = re.compile(r"^@@FOLDER_START:(\w+)@@$")
 _FOLDER_DONE_RE = re.compile(r"^@@FOLDER_DONE:(\w+)@@$")
+_VERIFY_RE = re.compile(r"^@@VERIFY:(\w+):(\d+):(\d+)@@$")
+_VERIFY_START_RE = re.compile(r"^@@VERIFY_START@@$")
+_VERIFY_DONE_RE = re.compile(r"^@@VERIFY_DONE@@$")
 
 
 def _format_bytes(n: int | float) -> str:
@@ -144,7 +148,10 @@ def _format_duration(seconds: float) -> str:
 class DataMigrationScreen(Screen):
     """Set up SSH to source host, then pull user data folders via rsync."""
 
-    BINDINGS = [("escape", "go_back", "Back")]
+    BINDINGS = [
+        ("escape", "go_back", "Back"),
+        ("q", "app.quit", "Quit"),
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -206,6 +213,11 @@ class DataMigrationScreen(Screen):
         self.query_one("#progress-summary", Static).display = False
         self.query_one("#migration-done-buttons", Horizontal).display = False
         self._progress = MigrationProgress()
+        # Restore previously-entered host.
+        if _SAVED_HOST_FILE.exists():
+            saved = _SAVED_HOST_FILE.read_text().strip()
+            if saved:
+                self.query_one("#source-host", Input).value = saved
 
     def on_unmount(self) -> None:
         terminate_procs(self._procs)
@@ -309,7 +321,27 @@ class DataMigrationScreen(Screen):
             self.app.call_from_thread(self._enable_copy_key)
             return
 
-        # Step 3: Check rsync on remote
+        # Step 3: Check local rsync version (need 3.1+ for --info=progress2)
+        self.app.call_from_thread(
+            self._log,
+            "Checking local rsync version...",
+        )
+        if not _local_rsync_ok():
+            self.app.call_from_thread(
+                self._log,
+                "[bold red]rsync 3.1+ required[/bold red] "
+                "(macOS ships an old 2.6.x build).\n"
+                "Install a modern rsync:\n"
+                "  [dim]brew install rsync[/dim]",
+            )
+            self.app.call_from_thread(self._enable_check)
+            return
+        self.app.call_from_thread(
+            self._log,
+            "[green]\u2713[/green] Local rsync is 3.1+.",
+        )
+
+        # Step 4: Check rsync on remote
         self.app.call_from_thread(
             self._log,
             f"Checking rsync on [bold]{host}[/bold]...",
@@ -329,6 +361,34 @@ class DataMigrationScreen(Screen):
             )
             self.app.call_from_thread(self._enable_check)
             return
+
+        # Step 5: Scan remote folder sizes
+        self.app.call_from_thread(
+            self._log,
+            f"\nScanning remote folder sizes on [bold]{host}[/bold]...",
+        )
+        scan = _scan_remote_sizes(host)
+        if scan:
+            total = 0
+            for folder, size in scan.items():
+                total += size
+                self.app.call_from_thread(
+                    self._log,
+                    f"  {folder}: {_format_bytes(size)}",
+                )
+            self.app.call_from_thread(
+                self._log,
+                f"\n[bold]Total remote data: {_format_bytes(total)}[/bold]",
+            )
+            # Pre-fill progress state for migration.
+            self._progress.folder_sizes = scan
+            self._progress.total_bytes = total
+        else:
+            self.app.call_from_thread(
+                self._log,
+                "[yellow]Could not scan remote sizes "
+                "(progress estimation will be limited).[/yellow]",
+            )
 
         # All green
         self.app.call_from_thread(
@@ -456,7 +516,7 @@ class DataMigrationScreen(Screen):
             cmd.append("--dry-run")
 
         env = os.environ.copy()
-        env["PATH"] = f"{Path.home()}/.local/bin:{env.get('PATH', '')}"
+        env["PATH"] = _brew_path()
 
         progress = self._progress
 
@@ -583,6 +643,44 @@ class DataMigrationScreen(Screen):
                 )
                 return
 
+        # Verification markers
+        if _VERIFY_START_RE.match(line):
+            self.app.call_from_thread(
+                self._log,
+                "\n[bold cyan]Verifying migrated data...[/bold cyan]",
+            )
+            return
+
+        m = _VERIFY_RE.match(line)
+        if m:
+            folder = m.group(1)
+            local_bytes = int(m.group(2))
+            remote_bytes = int(m.group(3))
+            local_h = _format_bytes(local_bytes)
+            remote_h = _format_bytes(remote_bytes)
+            # Allow 5% tolerance (du rounding, excludes, etc.)
+            if remote_bytes == 0:
+                icon = "[dim]—[/dim]"
+                note = "empty on remote"
+            elif local_bytes >= remote_bytes * 0.95:
+                icon = "[green]\u2713[/green]"
+                note = ""
+            elif local_bytes >= remote_bytes * 0.80:
+                icon = "[yellow]~[/yellow]"
+                note = " [yellow](partial)[/yellow]"
+            else:
+                icon = "[red]\u2717[/red]"
+                note = " [red](incomplete)[/red]"
+            self.app.call_from_thread(
+                self._log,
+                f"  {icon} {folder}: {local_h} local / "
+                f"{remote_h} remote{note}",
+            )
+            return
+
+        if _VERIFY_DONE_RE.match(line):
+            return
+
         # Regular output — show in log
         self.app.call_from_thread(self._log_output, line)
 
@@ -599,6 +697,7 @@ class DataMigrationScreen(Screen):
             )
             return None
         self.query_one("#migration-error", Static).update("")
+        _SAVED_HOST_FILE.write_text(host)
         return host
 
     def _open_log_file(self) -> None:
@@ -728,6 +827,13 @@ class DataMigrationScreen(Screen):
 # ------------------------------------------------------------------
 
 
+def _brew_path() -> str:
+    """Return PATH with Homebrew and ~/.local/bin prepended."""
+    base = os.environ.get("PATH", "")
+    extra = [str(Path.home() / ".local" / "bin"), "/opt/homebrew/bin"]
+    return ":".join(extra + [base])
+
+
 def _local_hostname() -> str:
     import socket
     return socket.gethostname()
@@ -744,6 +850,23 @@ def _ssh_key_auth_works(host: str) -> bool:
     return result.returncode == 0
 
 
+def _local_rsync_ok() -> bool:
+    """Check that the local rsync supports --info=progress2 (requires 3.1+)."""
+    result = subprocess.run(
+        ["rsync", "--version"],
+        capture_output=True, text=True,
+        env={**os.environ, "PATH": _brew_path()},
+    )
+    if result.returncode != 0:
+        return False
+    # First line looks like: "rsync  version 3.2.7  protocol version 31"
+    m = re.search(r"version\s+(\d+)\.(\d+)", result.stdout)
+    if not m:
+        return False
+    major, minor = int(m.group(1)), int(m.group(2))
+    return (major, minor) >= (3, 1)
+
+
 def _remote_has_rsync(host: str) -> bool:
     result = subprocess.run(
         [
@@ -754,3 +877,20 @@ def _remote_has_rsync(host: str) -> bool:
         capture_output=True, text=True,
     )
     return result.returncode == 0
+
+
+def _scan_remote_sizes(host: str) -> dict[str, int] | None:
+    """Run data-pull.sh --scan-only and parse the @@SCAN markers."""
+    result = subprocess.run(
+        ["bash", str(DATA_PULL_SCRIPT), host, "--scan-only"],
+        capture_output=True, text=True,
+        env={**os.environ, "PATH": _brew_path()},
+    )
+    if result.returncode != 0:
+        return None
+    sizes: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        m = _SCAN_RE.match(line)
+        if m:
+            sizes[m.group(1)] = int(m.group(2))
+    return sizes if sizes else None

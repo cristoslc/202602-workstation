@@ -105,9 +105,10 @@ teardown() {
 # --- data_pull_sync_folder ---
 
 @test "sync_folder: emits FOLDER_START and FOLDER_DONE markers" {
-  # Stub rsync to succeed without doing anything
+  # Stub rsync and folder_exists to succeed without network access
   rsync() { return 0; }
   export -f rsync
+  data_pull_folder_exists() { return 0; }
 
   export HOME="$TEST_TEMP/home"
   mkdir -p "$HOME"
@@ -122,11 +123,51 @@ teardown() {
 @test "sync_folder: creates target directory" {
   rsync() { return 0; }
   export -f rsync
+  data_pull_folder_exists() { return 0; }
 
   export HOME="$TEST_TEMP/home"
   run data_pull_sync_folder "fakehost" "Documents" "false"
   [ "$status" -eq 0 ]
   [ -d "$TEST_TEMP/home/Documents" ]
+}
+
+# --- data_pull_local_folder_size ---
+
+@test "local_folder_size: returns bytes for existing folder" {
+  export HOME="$TEST_TEMP/home"
+  mkdir -p "$HOME/Desktop"
+  dd if=/dev/zero of="$HOME/Desktop/testfile" bs=1024 count=10 2>/dev/null
+
+  local result
+  result="$(data_pull_local_folder_size "Desktop")"
+  # Should be at least 10KB (10240 bytes)
+  [ "$result" -ge 10240 ]
+}
+
+@test "local_folder_size: returns 0 for missing folder" {
+  export HOME="$TEST_TEMP/home"
+  mkdir -p "$HOME"
+
+  local result
+  result="$(data_pull_local_folder_size "NonExistent")"
+  [ "$result" -eq 0 ]
+}
+
+# --- data_pull_verify ---
+
+@test "verify: emits @@VERIFY markers for each folder" {
+  export HOME="$TEST_TEMP/home"
+  mkdir -p "$HOME/Desktop" "$HOME/Documents"
+
+  # Stub remote scan to return fixed sizes
+  data_pull_scan_folder() { echo "5000"; }
+
+  run data_pull_verify "fakehost"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"@@VERIFY_START@@"* ]]
+  [[ "$output" == *"@@VERIFY:Desktop:"* ]]
+  [[ "$output" == *"@@VERIFY:Documents:"* ]]
+  [[ "$output" == *"@@VERIFY_DONE@@"* ]]
 }
 
 # --- data_pull_main argument parsing ---

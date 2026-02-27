@@ -111,7 +111,7 @@ if [ "$PLATFORM" = "linux" ]; then
 else
   # macOS: Homebrew (idempotent — skips already-installed).
   if command -v brew &>/dev/null; then
-    brew install sops age 2>/dev/null || true
+    brew install sops age rsync 2>/dev/null || true
   fi
 fi
 

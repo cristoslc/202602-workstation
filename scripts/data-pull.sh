@@ -68,13 +68,14 @@ data_pull_folder_exists() {
 }
 
 data_pull_scan_folder() {
-  # Get the total file size of a remote folder (bytes) via SSH du.
+  # Get the total file size of a remote folder (approx bytes) via SSH du.
+  # Uses du -sk (kilobytes) for cross-platform compat (BSD + GNU).
   local host="$1" folder="$2"
-  local bytes
-  bytes="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
-    "du -sb ~/$folder/ 2>/dev/null | cut -f1" 2>/dev/null)" || bytes=0
-  [[ -z "$bytes" ]] && bytes=0
-  echo "$bytes"
+  local kb
+  kb="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+    "du -sk ~/$folder/ 2>/dev/null | cut -f1" 2>/dev/null)" || kb=0
+  [[ -z "$kb" ]] && kb=0
+  echo $(( kb * 1024 ))
 }
 
 data_pull_scan_sizes() {
@@ -117,6 +118,39 @@ data_pull_sync_folder() {
   mkdir -p "$dst"
   rsync "${opts[@]}" "$src" "$dst"
   echo "@@FOLDER_DONE:${folder}@@"
+}
+
+data_pull_local_folder_size() {
+  # Get the local size of a folder (approx bytes via du -sk).
+  local folder="$1"
+  local dir="$HOME/$folder"
+  if [[ ! -d "$dir" ]]; then
+    echo "0"
+    return
+  fi
+  local kb
+  kb="$(du -sk "$dir" 2>/dev/null | cut -f1)" || kb=0
+  [[ -z "$kb" ]] && kb=0
+  echo $(( kb * 1024 ))
+}
+
+data_pull_verify() {
+  # Compare local folder sizes against remote sizes after migration.
+  # Emits @@VERIFY:<folder>:<local_bytes>:<remote_bytes>@@ markers.
+  local host="$1"
+
+  echo ""
+  echo "@@VERIFY_START@@"
+  echo "Verifying migrated data..."
+
+  for folder in "${USER_FOLDERS[@]}"; do
+    local remote_bytes local_bytes
+    remote_bytes="$(data_pull_scan_folder "$host" "$folder")"
+    local_bytes="$(data_pull_local_folder_size "$folder")"
+    echo "@@VERIFY:${folder}:${local_bytes}:${remote_bytes}@@"
+  done
+
+  echo "@@VERIFY_DONE@@"
 }
 
 data_pull_main() {
@@ -167,6 +201,9 @@ data_pull_main() {
   if [[ "$dry_run" == "true" ]]; then
     echo "=== DRY RUN complete. No files were copied. ==="
   else
+    # Verify local vs remote sizes
+    data_pull_verify "$source_host"
+    echo ""
     echo "=== Data pull from $source_host complete. ==="
   fi
 }
