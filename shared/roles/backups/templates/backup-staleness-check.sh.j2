@@ -26,7 +26,9 @@ alert() {
 }
 
 if [[ ! -f "$HEARTBEAT" ]]; then
-  alert "Backup heartbeat file missing — has a backup ever completed?"
+  # No heartbeat yet — first backup hasn't completed.
+  # The tray indicator already shows a red icon for this case;
+  # skip the intrusive desktop notification to avoid nagging on fresh installs.
   exit 0
 fi
 

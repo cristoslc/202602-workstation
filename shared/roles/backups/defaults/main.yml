@@ -5,14 +5,14 @@
 # shared/secrets/vars.sops.yml — edit with: make edit-secrets-shared
 
 # ── Restic (Linux binary install; macOS uses Homebrew) ──────────────
-restic_version: "0.17.3"
-restic_sha256: "5097faeda6aa13167aae6e36efdba636637f8741fed89bbf015678334632d4d3"
+restic_version: "0.18.1"
+restic_sha256: "680838f19d67151adba227e1570cdd8af12c19cf1735783ed1ba928bc41f363d"
 restic_url: "https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_amd64.bz2"
 restic_repo: "restic/restic"
 
 # ── Backrest (Linux binary install; macOS uses Homebrew tap) ────────
-backrest_version: "1.7.1"
-backrest_sha256: "0c5481b5d3d6638f805cd27a0ff1a1d4aa6568547bd464faed1ec059f0eedee9"
+backrest_version: "1.12.0"
+backrest_sha256: "df6ab22e0b4d8f10f5f8f050ffc4fa396908c66e8b5cb0e539c891239809d5dd"
 backrest_url: "https://github.com/garethgeorge/backrest/releases/download/v{{ backrest_version }}/backrest_Linux_x86_64.tar.gz"
 backrest_repo: "garethgeorge/backrest"
 
