@@ -153,10 +153,13 @@ log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 
 export-all: iterm2-export streamdeck-export raycast-export ## Export all settings (macOS only)
 
-iterm2-export: ## Re-export iTerm2 plist to stow package (macOS only)
+iterm2-export: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	defaults export com.googlecode.iterm2 - | plutil -convert xml1 -o macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist -
-	@echo "iTerm2 plist exported. Review with: git diff macos/dotfiles/iterm2/"
+	@AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	mkdir -p macos/files/iterm2; \
+	age -r "$$AGE_PUBKEY" -o macos/files/iterm2/iterm2.plist.age macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist; \
+	echo "iTerm2 plist exported and encrypted. Review with: git diff --stat macos/files/iterm2/"
 
 raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }

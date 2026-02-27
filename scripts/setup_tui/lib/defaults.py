@@ -27,6 +27,9 @@ ITERM2_PLIST_PATH = (
     REPO_ROOT / "macos" / "dotfiles" / "iterm2" / ".config" / "iterm2"
     / "com.googlecode.iterm2.plist"
 )
+ITERM2_PLIST_AGE_PATH = (
+    REPO_ROOT / "macos" / "files" / "iterm2" / "iterm2.plist.age"
+)
 RAYCAST_CONFIG_AGE_PATH = (
     REPO_ROOT / "macos" / "files" / "raycast" / "raycast.rayconfig.age"
 )
@@ -47,6 +50,9 @@ STREAMDECK_PLUGINS_JSON = (
 )
 STREAMDECK_PLUGINS_HTML = (
     REPO_ROOT / "macos" / "files" / "stream-deck" / "streamdeck-plugins.html"
+)
+STREAMDECK_PLUGINS_AGE_PATH = (
+    REPO_ROOT / "macos" / "files" / "stream-deck" / "plugins.json.age"
 )
 STREAMDECK_IMPORT_TMP = (
     Path.home() / ".cache" / "workstation"
@@ -224,8 +230,23 @@ def save_action_registry(
     target.write_text(_HEADER + body)
 
 
+def _age_pubkey() -> str:
+    """Extract the age public key from ``.sops.yaml``."""
+    sops_yaml = REPO_ROOT / ".sops.yaml"
+    with open(sops_yaml) as f:
+        for line in f:
+            m = re.search(r"(age1[a-z0-9]+)", line)
+            if m:
+                return m.group(1)
+    raise RuntimeError("Could not find age public key in .sops.yaml")
+
+
 def export_iterm2_plist(runner: ToolRunner) -> str:
-    """Export iTerm2 preferences plist via the existing Make target."""
+    """Export iTerm2 preferences plist and age-encrypt for the repo.
+
+    Writes the plaintext plist to the stow package (for local use) and
+    an age-encrypted copy to ``macos/files/iterm2/`` (for the repo).
+    """
     result = runner.run(
         ["make", "iterm2-export"],
         cwd=REPO_ROOT,
@@ -235,7 +256,19 @@ def export_iterm2_plist(runner: ToolRunner) -> str:
         details = (result.stderr or result.stdout or "").strip()
         msg = details or "make iterm2-export failed"
         raise RuntimeError(msg)
-    return f"iTerm2 settings exported to {ITERM2_PLIST_PATH}"
+
+    # Age-encrypt for the repo (plaintext stays locally, gitignored)
+    pubkey = _age_pubkey()
+    ITERM2_PLIST_AGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    runner.run(
+        [
+            "age", "-r", pubkey,
+            "-o", str(ITERM2_PLIST_AGE_PATH),
+            str(ITERM2_PLIST_PATH),
+        ],
+        check=True,
+    )
+    return f"iTerm2 settings exported and encrypted to {ITERM2_PLIST_AGE_PATH}"
 
 
 # ---------------------------------------------------------------------------
@@ -244,10 +277,23 @@ def export_iterm2_plist(runner: ToolRunner) -> str:
 
 
 def import_iterm2_settings(runner: ToolRunner) -> str:
-    """Point iTerm2 at the stow-managed plist (mirrors iterm2.yml Ansible task).
+    """Decrypt plist and point iTerm2 at the stow-managed copy.
 
-    Runs two ``defaults write`` commands — non-interactive and idempotent.
+    If an age-encrypted plist exists in the repo, decrypt it to the stow
+    source directory so stow can symlink it.  Then run two ``defaults write``
+    commands to tell iTerm2 to use the custom folder.
     """
+    if ITERM2_PLIST_AGE_PATH.exists():
+        ITERM2_PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+        runner.run(
+            [
+                "age", "-d",
+                "-i", str(AGE_KEYS_PATH),
+                "-o", str(ITERM2_PLIST_PATH),
+                str(ITERM2_PLIST_AGE_PATH),
+            ],
+            check=True,
+        )
     runner.run(
         [
             "defaults", "write", "com.googlecode.iterm2",
@@ -366,6 +412,7 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
 
     Looks in ``BackupV3/`` for the most recent ``.streamDeckProfilesBackup``
     file and encrypts it with the age public key from ``.sops.yaml``.
+    Also exports and encrypts the installed plugin list.
     """
     if not STREAMDECK_BACKUP_DIR.is_dir():
         raise RuntimeError(
@@ -383,18 +430,7 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
         )
 
     newest = backups[0]
-
-    # Extract age public key from .sops.yaml
-    sops_yaml = REPO_ROOT / ".sops.yaml"
-    pubkey = None
-    with open(sops_yaml) as f:
-        for line in f:
-            m = re.search(r"(age1[a-z0-9]+)", line)
-            if m:
-                pubkey = m.group(1)
-                break
-    if not pubkey:
-        raise RuntimeError("Could not find age public key in .sops.yaml")
+    pubkey = _age_pubkey()
 
     STREAMDECK_BACKUP_AGE_PATH.parent.mkdir(parents=True, exist_ok=True)
     runner.run(
@@ -407,9 +443,17 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
     )
     msg = f"Stream Deck profiles exported from {newest.name}"
 
-    # Also export plugin list (best-effort — don't fail the whole export)
+    # Also export + encrypt plugin list (best-effort)
     try:
         plugin_msg = export_streamdeck_plugin_list()
+        runner.run(
+            [
+                "age", "-r", pubkey,
+                "-o", str(STREAMDECK_PLUGINS_AGE_PATH),
+                str(STREAMDECK_PLUGINS_JSON),
+            ],
+            check=True,
+        )
         msg = f"{msg}\n{plugin_msg}"
     except Exception:
         pass
@@ -441,9 +485,33 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
         check=True,
     )
     runner.run(["open", str(STREAMDECK_IMPORT_TMP)], check=True)
-    # Open plugin list so user can reinstall while waiting for restore
-    if STREAMDECK_PLUGINS_HTML.exists():
-        runner.run(["open", str(STREAMDECK_PLUGINS_HTML)], check=False)
+    # Decrypt plugin list and render HTML so user can reinstall plugins
+    if STREAMDECK_PLUGINS_AGE_PATH.exists():
+        try:
+            runner.run(
+                [
+                    "age", "-d",
+                    "-i", str(AGE_KEYS_PATH),
+                    "-o", str(STREAMDECK_PLUGINS_JSON),
+                    str(STREAMDECK_PLUGINS_AGE_PATH),
+                ],
+                check=True,
+            )
+            plugins = json.loads(STREAMDECK_PLUGINS_JSON.read_text())
+            env = Environment(
+                loader=FileSystemLoader(str(TEMPLATES_DIR)),
+                autoescape=True,
+            )
+            template = env.get_template("streamdeck_plugins.html.j2")
+            now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+            STREAMDECK_PLUGINS_HTML.write_text(
+                template.render(plugins=plugins, timestamp=now)
+            )
+            runner.run(
+                ["open", str(STREAMDECK_PLUGINS_HTML)], check=False
+            )
+        except Exception:
+            pass  # Plugin list is nice-to-have, don't fail restore
     return (
         "Stream Deck restore dialog opened — confirm the restore in the app.",
         True,

@@ -6,6 +6,27 @@ When the user wants to create, plan, write, update, transition, or review any do
 
 ## Documentation lifecycle workflow
 
+### Encryption-at-rest policy
+
+All personalized or user-specific files MUST be age-encrypted before committing to the repo. No plaintext personal data at rest in git.
+
+**What counts as personalized:** application preferences, plugin/extension lists, profile backups, dotfiles exported from a running system — anything that reveals the user's identity, username, installed software, or workflow configuration.
+
+**What does NOT need encryption:** generic configs shipped with the repo (e.g., SSH agent socket path, Hammerspoon keybindings, Espanso `backend: auto`), templates with placeholder tokens, and documentation.
+
+**How to encrypt:** Use `age -r <pubkey>` with the public key from `.sops.yaml`. Store the `.age` file in `macos/files/<app>/` and gitignore the plaintext source. Decrypt during import with `age -d -i <keyfile>`.
+
+**Current encrypted exports:**
+
+| App | Encrypted file | Plaintext (gitignored) |
+|-----|---------------|----------------------|
+| iTerm2 | `macos/files/iterm2/iterm2.plist.age` | `macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist` |
+| Raycast | `macos/files/raycast/raycast.rayconfig.age` | (temp file, deleted after import) |
+| Stream Deck profiles | `macos/files/stream-deck/streamdeck.backup.age` | (temp file, deleted after import) |
+| Stream Deck plugins | `macos/files/stream-deck/plugins.json.age` | `macos/files/stream-deck/plugins.json` |
+
+When adding a new app export, follow this pattern: export plaintext locally, age-encrypt for the repo, gitignore the plaintext, decrypt on import. See [ADR-002](docs/adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) for the decision record.
+
 ### General rules
 
 - Each top-level directory within `docs/` must include a `README.md` with an explanation and index.

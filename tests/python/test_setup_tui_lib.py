@@ -49,8 +49,11 @@ from setup_tui.lib.setup_logging import LOG_DIR, LOG_FILE, setup_logging
 from setup_tui.lib.defaults import (
     AGE_KEYS_PATH,
     EXPORT_ITEMS,
+    ITERM2_PLIST_AGE_PATH,
+    ITERM2_PLIST_PATH,
     RAYCAST_CONFIG_AGE_PATH,
     RAYCAST_IMPORT_TMP,
+    STREAMDECK_PLUGINS_AGE_PATH,
     cleanup_raycast_import,
     export_iterm2_plist,
     export_streamdeck_plugin_list,
@@ -269,15 +272,22 @@ class TestExportItemsRegistry:
 
 
 class TestExportIterm2Plist:
-    def test_runs_make_target(self, mock_runner):
+    def test_runs_make_and_age_encrypt(self, mock_runner):
         export_iterm2_plist(mock_runner)
-        mock_runner.run.assert_called_once_with(
+        assert mock_runner.run.call_count == 2
+        # First call: make iterm2-export
+        mock_runner.run.assert_any_call(
             ["make", "iterm2-export"],
             cwd=REPO_ROOT,
             check=False,
         )
+        # Second call: age encrypt
+        age_call = mock_runner.run.call_args_list[1]
+        assert age_call[0][0][0] == "age"
+        assert "-r" in age_call[0][0]
+        assert str(ITERM2_PLIST_AGE_PATH) in age_call[0][0]
 
-    def test_raises_on_failure(self, mock_runner):
+    def test_raises_on_make_failure(self, mock_runner):
         mock_runner.run = MagicMock(
             return_value=subprocess.CompletedProcess(
                 args=[],
@@ -292,8 +302,31 @@ class TestExportIterm2Plist:
 
 
 class TestImportIterm2Settings:
-    def test_runs_two_defaults_write_calls(self, mock_runner):
-        msg = import_iterm2_settings(mock_runner)
+    def test_decrypts_then_configures_when_age_exists(self, mock_runner):
+        with patch.object(
+            type(ITERM2_PLIST_AGE_PATH), "exists", return_value=True
+        ):
+            msg = import_iterm2_settings(mock_runner)
+        # age decrypt + 2 defaults write = 3 calls
+        assert mock_runner.run.call_count == 3
+        decrypt_call = mock_runner.run.call_args_list[0]
+        assert decrypt_call == call(
+            [
+                "age", "-d",
+                "-i", str(AGE_KEYS_PATH),
+                "-o", str(ITERM2_PLIST_PATH),
+                str(ITERM2_PLIST_AGE_PATH),
+            ],
+            check=True,
+        )
+        assert "iterm2" in msg.lower()
+
+    def test_skips_decrypt_when_no_age_file(self, mock_runner):
+        with patch.object(
+            type(ITERM2_PLIST_AGE_PATH), "exists", return_value=False
+        ):
+            msg = import_iterm2_settings(mock_runner)
+        # Only 2 defaults write calls (no decrypt)
         assert mock_runner.run.call_count == 2
         mock_runner.run.assert_any_call(
             [
@@ -372,15 +405,14 @@ class TestRunAllImports:
         ), patch(
             "setup_tui.lib.defaults.STREAMDECK_BACKUP_AGE_PATH",
             RAYCAST_CONFIG_AGE_PATH,  # reuse existing mock path
-        ), patch(
-            "setup_tui.lib.defaults.STREAMDECK_PLUGINS_HTML",
-            RAYCAST_CONFIG_AGE_PATH,  # .exists() returns True → opens HTML
         ):
             messages, confirmations = run_all_imports(mock_runner)
         assert len(messages) == 3  # iTerm2 + Raycast + Stream Deck
         assert len(confirmations) == 2  # Raycast + Stream Deck need confirm
-        # iTerm2 (2) + Raycast (2) + Stream Deck (2 decrypt+open + 1 open HTML) = 7
-        assert mock_runner.run.call_count == 7
+        # iTerm2 (decrypt + 2 defaults write = 3) +
+        # Raycast (decrypt + open = 2) +
+        # Stream Deck (decrypt + open + decrypt plugins attempt = 3)
+        assert mock_runner.run.call_count == 8
 
     def test_no_confirm_when_no_exports(self, mock_runner):
         with patch.object(
@@ -392,7 +424,7 @@ class TestRunAllImports:
             messages, confirmations = run_all_imports(mock_runner)
         assert len(messages) == 3  # iTerm2 + Raycast skip + Stream Deck skip
         assert len(confirmations) == 0
-        # Only iTerm2 calls (2)
+        # Only iTerm2 calls (2 defaults write, no decrypt since exists=False)
         assert mock_runner.run.call_count == 2
 
     def test_continues_after_iterm2_failure(self, mock_runner):

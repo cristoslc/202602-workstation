@@ -20,6 +20,11 @@ local.zsh
 local.gitconfig
 local.yml
 
+# Plaintext personal files (age-encrypted copies live in macos/files/)
+macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist
+macos/files/stream-deck/plugins.json
+macos/files/stream-deck/streamdeck-plugins.html
+
 # OS
 .DS_Store
 Thumbs.db
