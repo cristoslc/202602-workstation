@@ -39,9 +39,9 @@ teardown() {
   [[ "$opts" == *"--partial"* ]]
 }
 
-@test "RSYNC_OPTS contains --delete" {
+@test "RSYNC_OPTS does not contain --delete" {
   local opts="${RSYNC_OPTS[*]}"
-  [[ "$opts" == *"--delete"* ]]
+  [[ "$opts" != *"--delete"* ]]
 }
 
 # --- data_pull_usage ---

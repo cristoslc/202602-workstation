@@ -31,6 +31,7 @@ logger = logging.getLogger("setup")
 
 DATA_PULL_SCRIPT = REPO_ROOT / "scripts" / "data-pull.sh"
 SSH_KEY_PATH = Path.home() / ".ssh" / "id_ed25519"
+MIGRATION_LOG = Path.home() / ".local" / "log" / "migration.log"
 
 # Regex for rsync --info=progress2 output lines, e.g.:
 #   1,234,567,890  45%  12.34MB/s    0:01:23 (xfr#1, ir-chk=100/200)
@@ -144,6 +145,10 @@ class DataMigrationScreen(Screen):
 
     BINDINGS = [("escape", "go_back", "Back")]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._log_file = None
+
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="main-content"):
@@ -184,12 +189,20 @@ class DataMigrationScreen(Screen):
             yield RichLog(
                 id="migration-output", highlight=True, markup=True, wrap=True
             )
+            with Horizontal(id="migration-done-buttons"):
+                yield Button(
+                    "Done", id="done", variant="primary", disabled=True
+                )
+                yield Button(
+                    "Send Log", id="send-log", disabled=True
+                )
         yield Footer()
 
     def on_mount(self) -> None:
         self.query_one("#migration-output", RichLog).display = False
         self.query_one("#migration-progress", ProgressBar).display = False
         self.query_one("#progress-summary", Static).display = False
+        self.query_one("#migration-done-buttons", Horizontal).display = False
         self._progress = MigrationProgress()
 
     def action_go_back(self) -> None:
@@ -208,6 +221,10 @@ class DataMigrationScreen(Screen):
             self._start_migration(dry_run=True)
         elif event.button.id == "start":
             self._start_migration(dry_run=False)
+        elif event.button.id == "done":
+            self.app.pop_screen()
+        elif event.button.id == "send-log":
+            self._send_log()
 
     # ------------------------------------------------------------------
     # Check connection
@@ -406,8 +423,11 @@ class DataMigrationScreen(Screen):
         output.clear()
         output.display = True
 
+        # Open (or reopen) the migration log file.
+        self._open_log_file()
+
         mode_label = "DRY RUN" if dry_run else "MIGRATION"
-        output.write(
+        self._log(
             f"[bold cyan]>>> {mode_label}: "
             f"Copying user folders from {host}[/bold cyan]\n"
         )
@@ -438,11 +458,10 @@ class DataMigrationScreen(Screen):
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
                 env=env,
             )
-            for line in proc.stdout:
-                stripped = line.rstrip("\n")
+            for raw_line in proc.stdout:
+                stripped = raw_line.decode("utf-8", errors="replace").rstrip("\n")
                 self._handle_output_line(stripped, progress, dry_run)
             proc.wait()
 
@@ -483,6 +502,7 @@ class DataMigrationScreen(Screen):
             )
 
         self.app.call_from_thread(self._enable_pull)
+        self.app.call_from_thread(self._show_done_buttons)
 
     def _handle_output_line(
         self, line: str, progress: MigrationProgress, dry_run: bool,
@@ -569,12 +589,33 @@ class DataMigrationScreen(Screen):
         self.query_one("#migration-error", Static).update("")
         return host
 
+    def _open_log_file(self) -> None:
+        """Open the migration log file, creating the directory if needed."""
+        if self._log_file and not self._log_file.closed:
+            self._log_file.close()
+        MIGRATION_LOG.parent.mkdir(parents=True, exist_ok=True)
+        self._log_file = open(MIGRATION_LOG, "w")
+
     def _log(self, text: str) -> None:
+        """Write a Rich-markup line to the RichLog widget and log file."""
+        import re
+
         self.query_one("#migration-output", RichLog).write(text)
 
+        if self._log_file and not self._log_file.closed:
+            plain = re.sub(r"\[/?[^\]]*\]", "", text)
+            self._log_file.write(plain + "\n")
+            self._log_file.flush()
+
     def _log_output(self, text: str) -> None:
+        """Write subprocess output verbatim (no Rich markup parsing)."""
         from rich.text import Text
+
         self.query_one("#migration-output", RichLog).write(Text(text))
+
+        if self._log_file and not self._log_file.closed:
+            self._log_file.write(text + "\n")
+            self._log_file.flush()
 
     def _set_progress(self, pct: float) -> None:
         bar = self.query_one("#migration-progress", ProgressBar)
@@ -606,6 +647,63 @@ class DataMigrationScreen(Screen):
         self.query_one("#dry-run", Button).disabled = False
         self.query_one("#start", Button).disabled = False
         self.query_one("#source-host", Input).disabled = False
+
+    def _show_done_buttons(self) -> None:
+        """Show Done and Send Log buttons after migration completes."""
+        row = self.query_one("#migration-done-buttons", Horizontal)
+        row.display = True
+        self.query_one("#done", Button).disabled = False
+        self.query_one("#send-log", Button).disabled = False
+
+    @work(thread=True)
+    def _send_log(self) -> None:
+        """Send migration.log via Magic Wormhole."""
+        if not MIGRATION_LOG.exists():
+            self.app.call_from_thread(
+                self._log,
+                "[bold red]No migration.log found.[/bold red]",
+            )
+            return
+
+        send_btn = self.query_one("#send-log", Button)
+        self.app.call_from_thread(setattr, send_btn, "disabled", True)
+        self.app.call_from_thread(
+            self._log,
+            "\n[bold cyan]>>> Sending migration.log via Magic Wormhole...[/bold cyan]\n",
+        )
+
+        try:
+            proc = subprocess.Popen(
+                [
+                    "uv", "run", "--with", "magic-wormhole",
+                    "wormhole", "send", str(MIGRATION_LOG),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                env={**os.environ, "PATH": f"{Path.home() / '.local/bin'}:{os.environ.get('PATH', '')}"},
+            )
+            for raw_line in proc.stdout:
+                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                self.app.call_from_thread(self._log_output, line)
+            proc.wait()
+            if proc.returncode == 0:
+                self.app.call_from_thread(
+                    self._log,
+                    "\n[bold green]Log sent successfully.[/bold green]\n",
+                )
+            else:
+                self.app.call_from_thread(
+                    self._log,
+                    "\n[bold red]Failed to send log.[/bold red]\n",
+                )
+        except Exception as exc:
+            logger.exception("Failed to send migration log")
+            self.app.call_from_thread(
+                self._log,
+                f"\n[bold red]Failed to send log:[/bold red] {exc}\n",
+            )
+        finally:
+            self.app.call_from_thread(setattr, send_btn, "disabled", False)
 
 
 # ------------------------------------------------------------------
