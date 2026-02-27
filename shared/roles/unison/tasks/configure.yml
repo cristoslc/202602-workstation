@@ -21,6 +21,6 @@
 
 - name: Install wsync wrapper script
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../scripts/wsync"
+    src: "{{ playbook_dir }}/../../scripts/wsync"
     dest: "{{ ansible_facts.env.HOME }}/.local/bin/wsync"
     mode: "0755"
