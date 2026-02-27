@@ -29,7 +29,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive iterm2-export raycast-export \
+        log-send log-receive iterm2-export raycast-export streamdeck-export export-all \
         backup-status backup-browse \
         data-pull data-pull-dry
 
@@ -151,6 +151,8 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
 
+export-all: iterm2-export streamdeck-export raycast-export ## Export all settings (macOS only)
+
 iterm2-export: ## Re-export iTerm2 plist to stow package (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	defaults export com.googlecode.iterm2 - | plutil -convert xml1 -o macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist -
@@ -169,6 +171,16 @@ raycast-export: ## Export Raycast settings and age-encrypt for the repo (macOS o
 	age -r "$$AGE_PUBKEY" -o macos/files/raycast/raycast.rayconfig.age "$$RCFILE"; \
 	rm -f "$$RCFILE"; \
 	echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
+
+streamdeck-export: ## Export Stream Deck profiles (age-encrypted, macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	@SD_BACKUP="$$HOME/Library/Application Support/com.elgato.StreamDeck/BackupV3"; \
+	SDFILE=$$(ls -t "$$SD_BACKUP"/*.streamDeckProfilesBackup 2>/dev/null | head -1); \
+	if [ -z "$$SDFILE" ]; then echo "No Stream Deck backup found in BackupV3/"; exit 1; fi; \
+	echo "Found: $$SDFILE"; \
+	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/streamdeck.backup.age "$$SDFILE"; \
+	echo "Stream Deck profiles encrypted. Review with: git diff --stat macos/files/stream-deck/"
 
 data-pull: ## Bulk-copy user data from another machine: make data-pull SOURCE=<hostname>
 ifndef SOURCE

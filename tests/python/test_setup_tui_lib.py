@@ -47,10 +47,12 @@ from setup_tui.lib.prereqs import detect_platform, install_precommit
 from setup_tui.lib.setup_logging import LOG_DIR, LOG_FILE, setup_logging
 from setup_tui.lib.defaults import (
     AGE_KEYS_PATH,
+    EXPORT_ITEMS,
     RAYCAST_CONFIG_AGE_PATH,
     RAYCAST_IMPORT_TMP,
     cleanup_raycast_import,
     export_iterm2_plist,
+    get_export_fn,
     import_iterm2_settings,
     import_raycast_settings,
     run_all_imports,
@@ -223,6 +225,46 @@ class TestRepoConfig:
         assert config.github_repo_url == "https://github.com/user/my-repo-2025.git"
 
 
+class TestExportItemsRegistry:
+    """Validate the EXPORT_ITEMS data-driven registry structure."""
+
+    def test_all_items_have_required_keys(self):
+        for item in EXPORT_ITEMS:
+            assert "id" in item, f"Missing 'id' in {item}"
+            assert "label" in item, f"Missing 'label' in {item}"
+            assert "interactive" in item, f"Missing 'interactive' in {item}"
+            assert isinstance(item["interactive"], bool)
+
+    def test_non_interactive_items_have_export_fn(self):
+        for item in EXPORT_ITEMS:
+            if not item["interactive"]:
+                assert "export_fn" in item, (
+                    f"Non-interactive item {item['id']} missing 'export_fn'"
+                )
+                fn = get_export_fn(item)
+                assert callable(fn), (
+                    f"export_fn for {item['id']} is not callable"
+                )
+
+    def test_interactive_items_have_make_target(self):
+        for item in EXPORT_ITEMS:
+            if item["interactive"]:
+                assert "make_target" in item, (
+                    f"Interactive item {item['id']} missing 'make_target'"
+                )
+                assert isinstance(item["make_target"], str)
+
+    def test_ids_are_unique(self):
+        ids = [item["id"] for item in EXPORT_ITEMS]
+        assert len(ids) == len(set(ids)), "Duplicate IDs in EXPORT_ITEMS"
+
+    def test_known_items_present(self):
+        ids = {item["id"] for item in EXPORT_ITEMS}
+        assert "iterm2" in ids
+        assert "streamdeck" in ids
+        assert "raycast" in ids
+
+
 class TestExportIterm2Plist:
     def test_runs_make_target(self, mock_runner):
         export_iterm2_plist(mock_runner)
@@ -321,28 +363,34 @@ class TestCleanupRaycastImport:
 
 
 class TestRunAllImports:
-    def test_orchestrates_both_imports(self, mock_runner):
+    def test_orchestrates_all_imports(self, mock_runner):
         with patch.object(
             type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=True
+        ), patch(
+            "setup_tui.lib.defaults.STREAMDECK_BACKUP_AGE_PATH",
+            RAYCAST_CONFIG_AGE_PATH,  # reuse existing mock path
         ):
-            messages, needs_confirm = run_all_imports(mock_runner)
-        assert len(messages) == 2
-        assert needs_confirm is True
-        # iTerm2 (2 calls) + Raycast (2 calls) = 4
-        assert mock_runner.run.call_count == 4
+            messages, confirmations = run_all_imports(mock_runner)
+        assert len(messages) == 3  # iTerm2 + Raycast + Stream Deck
+        assert len(confirmations) == 2  # Raycast + Stream Deck need confirm
+        # iTerm2 (2 calls) + Raycast (2 calls) + Stream Deck (2 calls) = 6
+        assert mock_runner.run.call_count == 6
 
-    def test_no_raycast_confirm_when_no_export(self, mock_runner):
+    def test_no_confirm_when_no_exports(self, mock_runner):
         with patch.object(
             type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=False
+        ), patch(
+            "setup_tui.lib.defaults.STREAMDECK_BACKUP_AGE_PATH",
+            RAYCAST_CONFIG_AGE_PATH,  # also reports not found
         ):
-            messages, needs_confirm = run_all_imports(mock_runner)
-        assert len(messages) == 2
-        assert needs_confirm is False
+            messages, confirmations = run_all_imports(mock_runner)
+        assert len(messages) == 3  # iTerm2 + Raycast skip + Stream Deck skip
+        assert len(confirmations) == 0
         # Only iTerm2 calls (2)
         assert mock_runner.run.call_count == 2
 
     def test_continues_after_iterm2_failure(self, mock_runner):
-        # First two calls (iTerm2) raise, next calls (Raycast) should still run
+        # First call (iTerm2) raises, subsequent calls should still run
         call_count = [0]
         original_run = mock_runner.run
 
@@ -355,10 +403,13 @@ class TestRunAllImports:
         mock_runner.run = MagicMock(side_effect=failing_then_ok)
         with patch.object(
             type(RAYCAST_CONFIG_AGE_PATH), "exists", return_value=False
+        ), patch(
+            "setup_tui.lib.defaults.STREAMDECK_BACKUP_AGE_PATH",
+            RAYCAST_CONFIG_AGE_PATH,
         ):
-            messages, needs_confirm = run_all_imports(mock_runner)
+            messages, confirmations = run_all_imports(mock_runner)
         assert any("iterm2 import failed" in m.lower() for m in messages)
-        assert len(messages) == 2
+        assert len(messages) == 3
 
 
 class TestResumeState:

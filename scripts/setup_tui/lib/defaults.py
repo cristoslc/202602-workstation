@@ -26,7 +26,52 @@ RAYCAST_CONFIG_AGE_PATH = (
     REPO_ROOT / "macos" / "files" / "raycast" / "raycast.rayconfig.age"
 )
 RAYCAST_IMPORT_TMP = Path.home() / ".cache" / "workstation" / "raycast-import.rayconfig"
+STREAMDECK_BACKUP_AGE_PATH = (
+    REPO_ROOT / "macos" / "files" / "stream-deck" / "streamdeck.backup.age"
+)
+STREAMDECK_BACKUP_DIR = (
+    Path.home() / "Library" / "Application Support"
+    / "com.elgato.StreamDeck" / "BackupV3"
+)
+STREAMDECK_IMPORT_TMP = (
+    Path.home() / ".cache" / "workstation"
+    / "streamdeck-import.streamDeckProfilesBackup"
+)
 AGE_KEYS_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
+
+# ---------------------------------------------------------------------------
+# Export registry — shared by Makefile (export-all) and TUI checklist
+# ---------------------------------------------------------------------------
+# Each entry declares an export's identity and how to run it.
+#   - Non-interactive items have ``export_fn`` (called directly by the TUI worker).
+#   - Interactive items have ``make_target`` (TUI suspends and runs ``make <target>``).
+
+EXPORT_ITEMS: list[dict] = [
+    {
+        "id": "iterm2",
+        "label": "iTerm2 preferences",
+        "interactive": False,
+        "export_fn": "export_iterm2_plist",
+    },
+    {
+        "id": "streamdeck",
+        "label": "Stream Deck profiles",
+        "interactive": False,
+        "export_fn": "export_streamdeck_profiles",
+    },
+    {
+        "id": "raycast",
+        "label": "Raycast settings",
+        "interactive": True,
+        "make_target": "raycast-export",
+    },
+]
+
+
+def get_export_fn(item: dict) -> callable:
+    """Resolve an export item's ``export_fn`` string to the actual callable."""
+    return globals()[item["export_fn"]]
+
 
 _HEADER = """\
 ---
@@ -240,16 +285,99 @@ def cleanup_raycast_import() -> None:
     RAYCAST_IMPORT_TMP.unlink(missing_ok=True)
 
 
+def export_streamdeck_profiles(runner: ToolRunner) -> str:
+    """Export the newest Stream Deck backup, age-encrypted, into the repo.
+
+    Looks in ``BackupV3/`` for the most recent ``.streamDeckProfilesBackup``
+    file and encrypts it with the age public key from ``.sops.yaml``.
+    """
+    if not STREAMDECK_BACKUP_DIR.is_dir():
+        raise RuntimeError(
+            f"Stream Deck backup directory not found: {STREAMDECK_BACKUP_DIR}"
+        )
+
+    backups = sorted(
+        STREAMDECK_BACKUP_DIR.glob("*.streamDeckProfilesBackup"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not backups:
+        raise RuntimeError(
+            "No .streamDeckProfilesBackup files found in BackupV3/"
+        )
+
+    newest = backups[0]
+
+    # Extract age public key from .sops.yaml
+    sops_yaml = REPO_ROOT / ".sops.yaml"
+    pubkey = None
+    with open(sops_yaml) as f:
+        for line in f:
+            m = re.search(r"(age1[a-z0-9]+)", line)
+            if m:
+                pubkey = m.group(1)
+                break
+    if not pubkey:
+        raise RuntimeError("Could not find age public key in .sops.yaml")
+
+    STREAMDECK_BACKUP_AGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    runner.run(
+        [
+            "age", "-r", pubkey,
+            "-o", str(STREAMDECK_BACKUP_AGE_PATH),
+            str(newest),
+        ],
+        check=True,
+    )
+    return f"Stream Deck profiles exported from {newest.name}"
+
+
+def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
+    """Decrypt and open Stream Deck backup for import.
+
+    Returns ``(message, needs_confirm)`` — when *needs_confirm* is True the
+    caller should pause for the user to confirm the Stream Deck restore dialog,
+    then call :func:`cleanup_streamdeck_import`.
+    """
+    if not STREAMDECK_BACKUP_AGE_PATH.exists():
+        return (
+            "No Stream Deck export found — skipping import. "
+            "Configure manually, then run: make streamdeck-export",
+            False,
+        )
+    STREAMDECK_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
+    runner.run(
+        [
+            "age", "-d",
+            "-i", str(AGE_KEYS_PATH),
+            "-o", str(STREAMDECK_IMPORT_TMP),
+            str(STREAMDECK_BACKUP_AGE_PATH),
+        ],
+        check=True,
+    )
+    runner.run(["open", str(STREAMDECK_IMPORT_TMP)], check=True)
+    return (
+        "Stream Deck restore dialog opened — confirm the restore in the app.",
+        True,
+    )
+
+
+def cleanup_streamdeck_import() -> None:
+    """Remove the temporary decrypted Stream Deck backup."""
+    STREAMDECK_IMPORT_TMP.unlink(missing_ok=True)
+
+
 def run_all_imports(
     runner: ToolRunner,
-) -> tuple[list[str], bool]:
+) -> tuple[list[str], list[tuple[str, callable]]]:
     """Orchestrate all settings imports.
 
-    Returns ``(messages, needs_raycast_confirm)`` so screens can handle
-    the suspend/confirm step for Raycast.
+    Returns ``(messages, confirmations)`` where *confirmations* is a list of
+    ``(prompt, cleanup_fn)`` tuples for imports that need interactive user
+    confirmation (e.g. Raycast import dialog, Stream Deck restore dialog).
     """
     messages: list[str] = []
-    needs_raycast_confirm = False
+    confirmations: list[tuple[str, callable]] = []
 
     # iTerm2
     try:
@@ -260,9 +388,26 @@ def run_all_imports(
 
     # Raycast
     try:
-        msg, needs_raycast_confirm = import_raycast_settings(runner)
+        msg, needs_confirm = import_raycast_settings(runner)
         messages.append(msg)
+        if needs_confirm:
+            confirmations.append((
+                "Confirm the import in the Raycast dialog",
+                cleanup_raycast_import,
+            ))
     except Exception as exc:
         messages.append(f"Raycast import failed: {exc}")
 
-    return messages, needs_raycast_confirm
+    # Stream Deck
+    try:
+        msg, needs_confirm = import_streamdeck_profiles(runner)
+        messages.append(msg)
+        if needs_confirm:
+            confirmations.append((
+                "Confirm the restore in the Stream Deck app",
+                cleanup_streamdeck_import,
+            ))
+    except Exception as exc:
+        messages.append(f"Stream Deck import failed: {exc}")
+
+    return messages, confirmations

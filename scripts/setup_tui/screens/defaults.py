@@ -11,11 +11,19 @@ from textual import work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, Input, Static
+from textual.widgets import (
+    Button,
+    Footer,
+    Header,
+    Input,
+    SelectionList,
+    Static,
+)
 
 from ..lib.defaults import (
+    EXPORT_ITEMS,
     display_to_keybinding,
-    export_iterm2_plist,
+    get_export_fn,
     keybinding_to_display,
     load_action_registry,
     save_action_registry,
@@ -87,6 +95,32 @@ class EditDefaultsScreen(Screen):
                 )
             )
 
+        # --- Export checklist (macOS only, hidden until toggled) ---
+        if self.app.platform == "macos":
+            form.mount(
+                Static(
+                    "\n[bold underline]Export Settings[/bold underline]",
+                    id="export-header",
+                )
+            )
+            form.mount(
+                SelectionList[str](
+                    *[
+                        (item["label"], item["id"], True)
+                        for item in EXPORT_ITEMS
+                    ],
+                    id="export-checklist",
+                )
+            )
+            form.mount(
+                Button(
+                    "Export Selected", id="run-export", variant="warning"
+                )
+            )
+            self.query_one("#export-header").display = False
+            self.query_one("#export-checklist").display = False
+            self.query_one("#run-export").display = False
+
         buttons = [
             Button("Save", id="save", variant="primary"),
         ]
@@ -99,8 +133,8 @@ class EditDefaultsScreen(Screen):
         macos_hint = ""
         if self.app.platform == "macos":
             macos_hint = (
-                "[dim]macOS: use Export Settings to capture iTerm2 prefs "
-                "and Raycast config into the repo.[/dim]\n"
+                "[dim]macOS: use Export Settings to capture iTerm2 prefs, "
+                "Raycast config, and Stream Deck profiles into the repo.[/dim]\n"
             )
         self.query_one("#defaults-status", Static).update(
             "[bold]Edit Defaults[/bold]\n\n"
@@ -132,6 +166,8 @@ class EditDefaultsScreen(Screen):
             self._do_save()
         elif event.button.id == "export-settings":
             self._do_export_settings()
+        elif event.button.id == "run-export":
+            self._do_run_export()
 
     def _do_save(self) -> None:
         """Collect edited bindings and save the action registry."""
@@ -190,64 +226,92 @@ class EditDefaultsScreen(Screen):
         )
 
     def _do_export_settings(self) -> None:
-        """Export all app settings (macOS only)."""
+        """Toggle the export checklist visibility (macOS only)."""
         if self.app.platform != "macos":
             self.query_one("#defaults-result", Static).update(
                 "[bold yellow]Settings export is macOS-only.[/bold yellow]"
             )
             return
+        # Toggle checklist section visibility.
+        header = self.query_one("#export-header")
+        checklist = self.query_one("#export-checklist")
+        run_btn = self.query_one("#run-export")
+        visible = not header.display
+        header.display = visible
+        checklist.display = visible
+        run_btn.display = visible
+
+    def _do_run_export(self) -> None:
+        """Run exports for the items checked in the SelectionList."""
+        checklist = self.query_one("#export-checklist", SelectionList)
+        selected_ids = list(checklist.selected)
+        if not selected_ids:
+            self.query_one("#defaults-result", Static).update(
+                "[bold yellow]No items selected.[/bold yellow]"
+            )
+            return
+        self.query_one("#run-export", Button).disabled = True
         self.query_one("#export-settings", Button).disabled = True
         self.query_one("#defaults-result", Static).update(
             "[dim]Exporting settings...[/dim]"
         )
-        self._export_settings_worker()
+        self._export_settings_worker(selected_ids)
 
     @work(thread=True)
-    def _export_settings_worker(self) -> None:
-        """Export iTerm2 (background) then Raycast (interactive suspend)."""
-        # 1. iTerm2 — non-interactive
-        try:
-            iterm2_msg = export_iterm2_plist(self.app.runner)
-            self.app.call_from_thread(
-                self._show_export_result,
-                f"[bold green]{iterm2_msg}[/bold green]",
-            )
-        except Exception as exc:
-            logger.exception("Failed to export iTerm2 preferences")
-            self.app.call_from_thread(
-                self._show_export_result,
-                f"[bold red]iTerm2 export failed:[/bold red] {exc}",
-            )
+    def _export_settings_worker(self, selected_ids: list[str]) -> None:
+        """Run selected exports: non-interactive first, then interactive."""
+        selected = [i for i in EXPORT_ITEMS if i["id"] in selected_ids]
 
-        # 2. Raycast — requires interactive terminal (save dialog + Enter)
-        done = threading.Event()
-        raycast_ok = [False]
-
-        def _do_raycast_export() -> None:
-            with self.app.suspend():
-                result = subprocess.run(
-                    ["make", "raycast-export"],
-                    cwd=REPO_ROOT,
-                    stdin=sys.stdin,
-                    stdout=sys.stdout,
-                    stderr=sys.stderr,
+        # --- Non-interactive exports (call Python functions directly) ---
+        for item in selected:
+            if item["interactive"]:
+                continue
+            try:
+                fn = get_export_fn(item)
+                msg = fn(self.app.runner)
+                self.app.call_from_thread(
+                    self._show_export_result,
+                    f"[bold green]{msg}[/bold green]",
                 )
-                raycast_ok[0] = result.returncode == 0
-            done.set()
+            except Exception as exc:
+                logger.exception("Failed to export %s", item["label"])
+                self.app.call_from_thread(
+                    self._show_export_result,
+                    f"[bold red]{item['label']} export failed:[/bold red] {exc}",
+                )
 
-        self.app.call_from_thread(_do_raycast_export)
-        done.wait()
+        # --- Interactive exports (suspend TUI, run make target) ---
+        for item in selected:
+            if not item["interactive"]:
+                continue
+            done = threading.Event()
+            ok = [False]
 
-        if raycast_ok[0]:
-            self.app.call_from_thread(
-                self._show_export_result,
-                "[bold green]Raycast settings exported and encrypted.[/bold green]",
-            )
-        else:
-            self.app.call_from_thread(
-                self._show_export_result,
-                "[bold red]Raycast export failed.[/bold red]",
-            )
+            def _run_interactive(make_target: str = item["make_target"]) -> None:
+                with self.app.suspend():
+                    result = subprocess.run(
+                        ["make", make_target],
+                        cwd=REPO_ROOT,
+                        stdin=sys.stdin,
+                        stdout=sys.stdout,
+                        stderr=sys.stderr,
+                    )
+                    ok[0] = result.returncode == 0
+                done.set()
+
+            self.app.call_from_thread(_run_interactive)
+            done.wait()
+
+            if ok[0]:
+                self.app.call_from_thread(
+                    self._show_export_result,
+                    f"[bold green]{item['label']} exported.[/bold green]",
+                )
+            else:
+                self.app.call_from_thread(
+                    self._show_export_result,
+                    f"[bold red]{item['label']} export failed.[/bold red]",
+                )
 
         self.app.call_from_thread(self._enable_export_button)
 
@@ -256,3 +320,4 @@ class EditDefaultsScreen(Screen):
 
     def _enable_export_button(self) -> None:
         self.query_one("#export-settings", Button).disabled = False
+        self.query_one("#run-export", Button).disabled = False

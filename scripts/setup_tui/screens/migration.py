@@ -25,7 +25,7 @@ from textual.widgets import (
     Static,
 )
 
-from ..lib.defaults import cleanup_raycast_import, run_all_imports
+from ..lib.defaults import run_all_imports
 from ..lib.proc_cleanup import terminate_procs
 from ..lib.runner import REPO_ROOT
 
@@ -783,28 +783,25 @@ class DataMigrationScreen(Screen):
 
     @work(thread=True)
     def _import_settings_worker(self) -> None:
-        """Run all imports, suspending for Raycast dialog if needed."""
+        """Run all imports, suspending for interactive confirm dialogs."""
         try:
-            messages, needs_raycast_confirm = run_all_imports(self.app.runner)
+            messages, confirmations = run_all_imports(self.app.runner)
             for msg in messages:
                 self.app.call_from_thread(self._log, f"  {msg}")
 
-            if needs_raycast_confirm:
+            for prompt, cleanup_fn in confirmations:
                 done = threading.Event()
 
-                def _do_confirm() -> None:
+                def _do_confirm(p: str = prompt) -> None:
                     with self.app.suspend():
-                        input(
-                            "\n  Confirm the import in the Raycast dialog, "
-                            "then press Enter to continue..."
-                        )
+                        input(f"\n  {p}, then press Enter to continue...")
                     done.set()
 
                 self.app.call_from_thread(_do_confirm)
                 done.wait()
-                cleanup_raycast_import()
+                cleanup_fn()
                 self.app.call_from_thread(
-                    self._log, "  Raycast import confirmed."
+                    self._log, f"  {prompt.split(' in ')[0]} confirmed."
                 )
 
             self.app.call_from_thread(
