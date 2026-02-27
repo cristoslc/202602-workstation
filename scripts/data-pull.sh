@@ -60,6 +60,13 @@ data_pull_check_ssh() {
   fi
 }
 
+data_pull_folder_exists() {
+  # Check if a folder exists on the remote host.
+  local host="$1" folder="$2"
+  ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+    "test -d ~/$folder" 2>/dev/null
+}
+
 data_pull_scan_folder() {
   # Get the total file size of a remote folder (bytes) via SSH du.
   local host="$1" folder="$2"
@@ -94,12 +101,17 @@ data_pull_sync_folder() {
   local src="$host:~/$folder/"
   local dst="$HOME/$folder/"
 
+  echo ""
+  if ! data_pull_folder_exists "$host" "$folder"; then
+    echo "=== Skipping $folder (not found on $host) ==="
+    return 0
+  fi
+
   local opts=("${RSYNC_OPTS[@]}")
   if [[ "$dry_run" == "true" ]]; then
     opts+=(--dry-run)
   fi
 
-  echo ""
   echo "@@FOLDER_START:${folder}@@"
   echo "=== Syncing $folder from $host ==="
   mkdir -p "$dst"
