@@ -23,7 +23,7 @@ def setup_logging(*, debug: bool = False) -> None:
     root_logger.setLevel(logging.DEBUG)
 
     # File handler -- always captures everything.
-    fh = logging.FileHandler(str(LOG_FILE), mode="a")
+    fh = logging.FileHandler(str(LOG_FILE), mode="w")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(
         logging.Formatter("%(asctime)s %(levelname)-5s %(name)s: %(message)s")
