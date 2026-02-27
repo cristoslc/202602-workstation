@@ -51,15 +51,20 @@ from setup_tui.lib.defaults import (
     EXPORT_ITEMS,
     ITERM2_PLIST_AGE_PATH,
     ITERM2_PLIST_PATH,
+    OPENIN_APP_PATH,
+    OPENIN_PLIST_AGE_PATH,
+    OPENIN_PLIST_PATH,
     RAYCAST_CONFIG_AGE_PATH,
     RAYCAST_IMPORT_TMP,
     STREAMDECK_PLUGINS_AGE_PATH,
     _normalize_keybinding,
     cleanup_raycast_import,
     export_iterm2_plist,
+    export_openin_settings,
     export_streamdeck_plugin_list,
     get_export_fn,
     import_iterm2_settings,
+    import_openin_settings,
     import_raycast_settings,
     load_action_registry,
     run_all_imports,
@@ -272,6 +277,7 @@ class TestExportItemsRegistry:
         assert "iterm2" in ids
         assert "streamdeck" in ids
         assert "raycast" in ids
+        assert "openin" in ids
 
 
 class TestExportIterm2Plist:
@@ -348,6 +354,93 @@ class TestImportIterm2Settings:
         assert "iterm2" in msg.lower()
 
 
+class TestExportOpenInSettings:
+    def test_runs_make_and_age_encrypt(self, mock_runner):
+        export_openin_settings(mock_runner)
+        assert mock_runner.run.call_count == 2
+        # First call: make openin-export
+        mock_runner.run.assert_any_call(
+            ["make", "openin-export"],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        # Second call: age encrypt
+        age_call = mock_runner.run.call_args_list[1]
+        assert age_call[0][0][0] == "age"
+        assert "-r" in age_call[0][0]
+        assert str(OPENIN_PLIST_AGE_PATH) in age_call[0][0]
+
+    def test_raises_on_make_failure(self, mock_runner):
+        mock_runner.run = MagicMock(
+            return_value=subprocess.CompletedProcess(
+                args=[],
+                returncode=1,
+                stdout="",
+                stderr="boom",
+            )
+        )
+
+        with pytest.raises(RuntimeError, match="boom"):
+            export_openin_settings(mock_runner)
+
+
+class TestImportOpenInSettings:
+    def test_skip_when_no_export(self, mock_runner):
+        with patch(
+            "setup_tui.lib.defaults.OPENIN_PLIST_AGE_PATH",
+        ) as mock_age:
+            mock_age.exists.return_value = False
+            msg = import_openin_settings(mock_runner)
+        assert "skipping" in msg.lower()
+        mock_runner.run.assert_not_called()
+
+    def test_skip_when_app_not_installed(self, mock_runner):
+        with patch(
+            "setup_tui.lib.defaults.OPENIN_PLIST_AGE_PATH",
+        ) as mock_age, patch(
+            "setup_tui.lib.defaults.OPENIN_APP_PATH",
+        ) as mock_app:
+            mock_age.exists.return_value = True
+            mock_app.exists.return_value = False
+            msg = import_openin_settings(mock_runner)
+        assert "not installed" in msg.lower()
+        mock_runner.run.assert_not_called()
+
+    def test_decrypt_and_import_when_export_exists(self, mock_runner):
+        # PlistBuddy returns bundle ID on stdout
+        bundle_result = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="com.loshadki.OpenIn\n", stderr=""
+        )
+        default_result = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="", stderr=""
+        )
+        mock_runner.run = MagicMock(side_effect=[bundle_result, default_result, default_result])
+
+        with patch(
+            "setup_tui.lib.defaults.OPENIN_PLIST_AGE_PATH",
+        ) as mock_age, patch(
+            "setup_tui.lib.defaults.OPENIN_APP_PATH",
+        ) as mock_app, patch(
+            "setup_tui.lib.defaults.OPENIN_PLIST_PATH",
+        ) as mock_plist:
+            mock_age.exists.return_value = True
+            mock_app.exists.return_value = True
+            mock_app.__truediv__ = lambda self, other: Path("/Applications/Setapp/OpenIn.app") / other
+            msg = import_openin_settings(mock_runner)
+        assert mock_runner.run.call_count == 3
+        # First: PlistBuddy to get bundle ID
+        plist_call = mock_runner.run.call_args_list[0]
+        assert "/usr/libexec/PlistBuddy" in plist_call[0][0][0]
+        # Second: age decrypt
+        decrypt_call = mock_runner.run.call_args_list[1]
+        assert decrypt_call[0][0][0] == "age"
+        # Third: defaults import
+        import_call = mock_runner.run.call_args_list[2]
+        assert import_call[0][0][:2] == ["defaults", "import"]
+        assert "com.loshadki.OpenIn" in import_call[0][0]
+        assert "openin" in msg.lower()
+
+
 class TestImportRaycastSettings:
     def test_skip_when_no_export(self, mock_runner):
         with patch.object(
@@ -410,12 +503,13 @@ class TestRunAllImports:
             RAYCAST_CONFIG_AGE_PATH,  # reuse existing mock path
         ):
             messages, confirmations = run_all_imports(mock_runner)
-        assert len(messages) == 3  # iTerm2 + Raycast + Stream Deck
+        assert len(messages) == 4  # iTerm2 + OpenIn + Raycast + Stream Deck
         assert len(confirmations) == 2  # Raycast + Stream Deck need confirm
         # iTerm2 (decrypt + 2 defaults write = 3) +
+        # OpenIn (PlistBuddy + decrypt + defaults import = 3) +
         # Raycast (decrypt + open = 2) +
         # Stream Deck (decrypt + open + decrypt plugins attempt = 3)
-        assert mock_runner.run.call_count == 8
+        assert mock_runner.run.call_count == 11
 
     def test_no_confirm_when_no_exports(self, mock_runner):
         with patch.object(
@@ -425,7 +519,7 @@ class TestRunAllImports:
             RAYCAST_CONFIG_AGE_PATH,  # also reports not found
         ):
             messages, confirmations = run_all_imports(mock_runner)
-        assert len(messages) == 3  # iTerm2 + Raycast skip + Stream Deck skip
+        assert len(messages) == 4  # iTerm2 + OpenIn skip + Raycast skip + Stream Deck skip
         assert len(confirmations) == 0
         # Only iTerm2 calls (2 defaults write, no decrypt since exists=False)
         assert mock_runner.run.call_count == 2
@@ -450,7 +544,7 @@ class TestRunAllImports:
         ):
             messages, confirmations = run_all_imports(mock_runner)
         assert any("iterm2 import failed" in m.lower() for m in messages)
-        assert len(messages) == 3
+        assert len(messages) == 4
 
 
 class TestResumeState:

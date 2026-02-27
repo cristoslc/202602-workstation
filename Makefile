@@ -29,7 +29,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         decrypt clean-secrets status template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive iterm2-export raycast-export streamdeck-export \
+        log-send log-receive iterm2-export raycast-export streamdeck-export openin-export \
         snippets-convert export-all \
         backup-status backup-browse \
         data-pull data-pull-dry
@@ -152,7 +152,7 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
 
-export-all: iterm2-export streamdeck-export raycast-export ## Export all settings (macOS only)
+export-all: iterm2-export streamdeck-export raycast-export openin-export ## Export all settings (macOS only)
 
 iterm2-export: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
@@ -185,6 +185,15 @@ streamdeck-export: ## Export Stream Deck profiles (age-encrypted, macOS only)
 	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
 	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/streamdeck.backup.age "$$SDFILE"; \
 	echo "Stream Deck profiles encrypted. Review with: git diff --stat macos/files/stream-deck/"
+
+openin-export: ## Export OpenIn preferences, age-encrypted for the repo (macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	@BUNDLE_ID=$$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" /Applications/Setapp/OpenIn.app/Contents/Info.plist); \
+	mkdir -p macos/files/openin; \
+	defaults export "$$BUNDLE_ID" - | plutil -convert xml1 -o macos/files/openin/openin.plist -; \
+	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	age -r "$$AGE_PUBKEY" -o macos/files/openin/openin.plist.age macos/files/openin/openin.plist; \
+	echo "OpenIn settings exported and encrypted. Review with: git diff --stat macos/files/openin/"
 
 snippets-convert: ## One-time: convert Raycast snippets JSON to SOPS-encrypted Espanso YAML
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
