@@ -134,7 +134,8 @@ class EditDefaultsScreen(Screen):
         if self.app.platform == "macos":
             macos_hint = (
                 "[dim]macOS: use Export Settings to capture iTerm2 prefs, "
-                "Raycast config, and Stream Deck profiles into the repo.[/dim]\n"
+                "Raycast config, Stream Deck profiles, and OpenIn rules "
+                "into the repo.[/dim]\n"
             )
         self.query_one("#defaults-status", Static).update(
             "[bold]Edit Defaults[/bold]\n\n"

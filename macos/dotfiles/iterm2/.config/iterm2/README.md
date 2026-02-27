@@ -19,7 +19,7 @@ The plaintext plist is **gitignored** — only the age-encrypted copy at
 After changing settings in iTerm2 (profiles, colors, keybindings, etc.):
 
 ```
-make iterm2-export
+make export-iterm2
 ```
 
 This re-exports the live plist as XML into the stow package (local use) and

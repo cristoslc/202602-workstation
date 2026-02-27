@@ -24,6 +24,7 @@ local.yml
 macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist
 macos/files/stream-deck/plugins.json
 macos/files/stream-deck/streamdeck-plugins.html
+macos/files/openin/openin.plist
 
 # OS
 .DS_Store

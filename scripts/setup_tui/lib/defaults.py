@@ -58,6 +58,13 @@ STREAMDECK_IMPORT_TMP = (
     Path.home() / ".cache" / "workstation"
     / "streamdeck-import.streamDeckProfilesBackup"
 )
+OPENIN_APP_PATH = Path("/Applications/Setapp/OpenIn.app")
+OPENIN_PLIST_PATH = (
+    REPO_ROOT / "macos" / "files" / "openin" / "openin.plist"
+)
+OPENIN_PLIST_AGE_PATH = (
+    REPO_ROOT / "macos" / "files" / "openin" / "openin.plist.age"
+)
 AGE_KEYS_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
 
 # ---------------------------------------------------------------------------
@@ -90,6 +97,12 @@ IMPORT_ITEMS: list[dict] = [
         "cleanup_fn": "cleanup_streamdeck_import",
         "confirm_prompt": "Confirm the restore in the Stream Deck app",
     },
+    {
+        "id": "openin",
+        "label": "OpenIn browser rules",
+        "import_fn": "import_openin_settings",
+        "interactive": False,
+    },
 ]
 
 
@@ -120,7 +133,13 @@ EXPORT_ITEMS: list[dict] = [
         "id": "raycast",
         "label": "Raycast settings",
         "interactive": True,
-        "make_target": "raycast-export",
+        "make_target": "export-raycast",
+    },
+    {
+        "id": "openin",
+        "label": "OpenIn browser rules",
+        "interactive": False,
+        "export_fn": "export_openin_settings",
     },
 ]
 
@@ -351,13 +370,13 @@ def export_iterm2_plist(runner: ToolRunner) -> str:
     an age-encrypted copy to ``macos/files/iterm2/`` (for the repo).
     """
     result = runner.run(
-        ["make", "iterm2-export"],
+        ["make", "export-iterm2"],
         cwd=REPO_ROOT,
         check=False,
     )
     if result.returncode != 0:
         details = (result.stderr or result.stdout or "").strip()
-        msg = details or "make iterm2-export failed"
+        msg = details or "make export-iterm2 failed"
         raise RuntimeError(msg)
 
     # Age-encrypt for the repo (plaintext stays locally, gitignored)
@@ -372,6 +391,36 @@ def export_iterm2_plist(runner: ToolRunner) -> str:
         check=True,
     )
     return f"iTerm2 settings exported and encrypted to {ITERM2_PLIST_AGE_PATH}"
+
+
+def export_openin_settings(runner: ToolRunner) -> str:
+    """Export OpenIn preferences plist and age-encrypt for the repo.
+
+    Writes the plaintext plist to ``macos/files/openin/`` (gitignored) and
+    an age-encrypted copy alongside it (for the repo).
+    """
+    result = runner.run(
+        ["make", "export-openin"],
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout or "").strip()
+        msg = details or "make export-openin failed"
+        raise RuntimeError(msg)
+
+    # Age-encrypt for the repo (plaintext stays locally, gitignored)
+    pubkey = _age_pubkey()
+    OPENIN_PLIST_AGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    runner.run(
+        [
+            "age", "-r", pubkey,
+            "-o", str(OPENIN_PLIST_AGE_PATH),
+            str(OPENIN_PLIST_PATH),
+        ],
+        check=True,
+    )
+    return f"OpenIn settings exported and encrypted to {OPENIN_PLIST_AGE_PATH}"
 
 
 # ---------------------------------------------------------------------------
@@ -414,6 +463,50 @@ def import_iterm2_settings(runner: ToolRunner) -> str:
     return "iTerm2 configured to load settings from ~/.config/iterm2"
 
 
+def import_openin_settings(runner: ToolRunner) -> str:
+    """Decrypt OpenIn plist and load it via ``defaults import``.
+
+    Reads the bundle identifier from the installed app so the import
+    targets the correct domain even if the vendor changes it between
+    versions.
+    """
+    if not OPENIN_PLIST_AGE_PATH.exists():
+        return (
+            "No OpenIn export found — skipping import. "
+            "Configure manually, then run: make export-openin"
+        )
+    if not OPENIN_APP_PATH.exists():
+        return (
+            "OpenIn is not installed — skipping import. "
+            "Install via Setapp first, then run: make export-openin"
+        )
+    # Resolve the real bundle identifier from the installed app.
+    bundle_id_result = runner.run(
+        [
+            "/usr/libexec/PlistBuddy", "-c", "Print :CFBundleIdentifier",
+            str(OPENIN_APP_PATH / "Contents" / "Info.plist"),
+        ],
+        check=True,
+    )
+    bundle_id = bundle_id_result.stdout.strip()
+
+    OPENIN_PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    runner.run(
+        [
+            "age", "-d",
+            "-i", str(AGE_KEYS_PATH),
+            "-o", str(OPENIN_PLIST_PATH),
+            str(OPENIN_PLIST_AGE_PATH),
+        ],
+        check=True,
+    )
+    runner.run(
+        ["defaults", "import", bundle_id, str(OPENIN_PLIST_PATH)],
+        check=True,
+    )
+    return f"OpenIn settings imported (domain: {bundle_id})"
+
+
 def import_raycast_settings(runner: ToolRunner) -> tuple[str, bool]:
     """Decrypt and open Raycast settings for import.
 
@@ -424,7 +517,7 @@ def import_raycast_settings(runner: ToolRunner) -> tuple[str, bool]:
     if not RAYCAST_CONFIG_AGE_PATH.exists():
         return (
             "No Raycast export found — skipping import. "
-            "Configure manually, then run: make raycast-export",
+            "Configure manually, then run: make export-raycast",
             False,
         )
     RAYCAST_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
@@ -574,7 +667,7 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
     if not STREAMDECK_BACKUP_AGE_PATH.exists():
         return (
             "No Stream Deck export found — skipping import. "
-            "Configure manually, then run: make streamdeck-export",
+            "Configure manually, then run: make export-streamdeck",
             False,
         )
     STREAMDECK_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
@@ -644,6 +737,13 @@ def run_all_imports(
         messages.append(msg)
     except Exception as exc:
         messages.append(f"iTerm2 import failed: {exc}")
+
+    # OpenIn
+    try:
+        msg = import_openin_settings(runner)
+        messages.append(msg)
+    except Exception as exc:
+        messages.append(f"OpenIn import failed: {exc}")
 
     # Raycast
     try:

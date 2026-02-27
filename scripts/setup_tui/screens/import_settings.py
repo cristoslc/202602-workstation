@@ -1,4 +1,4 @@
-"""ImportSettingsScreen — re-import iTerm2 + Raycast + Stream Deck settings."""
+"""ImportSettingsScreen — re-import iTerm2 + OpenIn + Raycast + Stream Deck settings."""
 
 from __future__ import annotations
 

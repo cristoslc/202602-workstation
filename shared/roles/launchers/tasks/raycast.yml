@@ -55,4 +55,4 @@
       ansible.builtin.debug:
         msg: >
           Raycast is installed but no settings export found.
-          Configure manually, then run: make raycast-export
+          Configure manually, then run: make export-raycast

@@ -34,12 +34,12 @@ These steps cannot be automated and must be done manually after bootstrap comple
 ## macOS
 
 - [ ] Setapp: sign in and install Setapp-managed apps (Dato, BusyCal, CleanShot X, Downie, OpenIn, Paletro)
-- [ ] OpenIn: configure browser routing rules (work profile → Chrome, personal → Firefox, etc.)
+- [ ] OpenIn: if no export was imported during bootstrap, configure browser routing rules (work profile → Chrome, personal → Firefox, etc.), then run `make export-openin`
 - [ ] CleanShot X: configure screenshot shortcuts (replace default ⌘⇧4)
 - [ ] Dato: configure menu bar calendar display
 - [ ] BusyCal: sign in to calendar accounts
 - [ ] Paletro: verify it's accessible via shortcut
-- [ ] Raycast: if no export was imported during bootstrap, set as default launcher and configure clipboard history, snippets, window management, then run `make raycast-export`
+- [ ] Raycast: if no export was imported during bootstrap, set as default launcher and configure clipboard history, snippets, window management, then run `make export-raycast`
 - [ ] Sign into Mac App Store (required for `mas` installs)
 - [ ] iCloud sign-in (if applicable)
 - [ ] Backblaze: sign in and configure backup

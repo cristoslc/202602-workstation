@@ -100,7 +100,7 @@ The go/no-go criteria specified: "At least one approach produces a complete sett
 **Recommended approach — age-encrypted `.rayconfig` export:**
 
 1. **`.rayconfig` file without password** — exported on-demand via GUI or deeplink. Age-encrypted with the repo's public key and committed as `macos/files/raycast/raycast.rayconfig.age`.
-2. **`make raycast-export` Makefile target** — opens Raycast export UI via deeplink, waits for user to save, age-encrypts the result, cleans up plaintext.
+2. **`make export-raycast` Makefile target** — opens Raycast export UI via deeplink, waits for user to save, age-encrypts the result, cleans up plaintext.
 3. **Ansible import task** — during bootstrap, decrypts the `.age` file to `/tmp/`, opens it (triggers Raycast import dialog), pauses for user confirmation, then deletes the plaintext.
 
 This accepts a single interactive step (import dialog on fresh machine) as the cost of using a closed-source launcher — acceptable since workstation bootstrap is always run interactively on a Mac. No password to manage — the age key infrastructure already handles encryption/decryption.
@@ -108,7 +108,7 @@ This accepts a single interactive step (import dialog on fresh machine) as the c
 ### Remaining TODO (during PRD-001 implementation)
 
 - [ ] Perform the actual export and inspect `.rayconfig` format (ZIP? JSON? encrypted blob?)
-- [ ] Audit export contents for embedded secrets before first `make raycast-export`
+- [ ] Audit export contents for embedded secrets before first `make export-raycast`
 
 ---
 
