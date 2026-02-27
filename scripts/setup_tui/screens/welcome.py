@@ -99,6 +99,7 @@ class WelcomeScreen(Screen):
             )
             options = [
                 Option("Bootstrap This Machine", id="bootstrap"),
+                Option("Verify Installations", id="verify"),
                 Option("Migrate Data", id="migrate-data"),
                 Option("Edit Defaults", id="edit-defaults"),
                 Option("Edit Secrets", id="edit-secrets"),
@@ -146,6 +147,9 @@ class WelcomeScreen(Screen):
         elif option_id == "migrate-data":
             from .migration import DataMigrationScreen
             self.app.push_screen(DataMigrationScreen())
+        elif option_id == "verify":
+            from .verify import VerifyScreen
+            self.app.push_screen(VerifyScreen())
         elif option_id == "edit-defaults":
             from .defaults import EditDefaultsScreen
             self.app.push_screen(EditDefaultsScreen())

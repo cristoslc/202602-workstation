@@ -133,6 +133,36 @@ Setapp apps can't be installed via `brew bundle` — they require the Setapp des
 
 4. The Setapp cask itself is in the Brewfile and installs the Setapp app manager. Individual Setapp apps are then installed manually through its UI.
 
+## Register for Verification
+
+Every new tool MUST be added to `scripts/verify-registry.yml` under the appropriate role. This powers both the TUI verification dashboard (`make status`) and the headless check (`make verify`).
+
+1. Open `scripts/verify-registry.yml` and find the role section (e.g., `git:`).
+2. Add an entry under `apps:`:
+   ```yaml
+   - name: tig
+     platforms: [macos, linux]
+     check: {command: tig}
+     tags: [tig]
+   ```
+3. Verify: `make verify-role ROLE=git`
+
+**Check types:**
+
+| Type | Field | Method |
+|------|-------|--------|
+| CLI tool | `{ command: name }` | `shutil.which()` + `--version` |
+| App bundle | `{ app_paths: ["/Applications/X.app", ...] }` | `Path.exists()` on first match |
+| File/dir | `{ path: "~/.config/..." }` | `Path.expanduser().exists()` |
+
+**Extra fields:**
+
+| Field | Purpose |
+|-------|---------|
+| `version_flag` | Override default `--version` (e.g., `version` for docker) |
+| `optional: true` | Warn instead of fail (Setapp/MAS apps, manual installs) |
+| `note` | Shown when optional + missing (e.g., "Install via Setapp") |
+
 ## Dotfile Conventions
 
 - **Stow packages** are auto-discovered by directory name — don't need to match role names.

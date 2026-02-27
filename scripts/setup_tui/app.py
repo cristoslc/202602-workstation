@@ -258,6 +258,25 @@ Screen {
     width: 1fr;
     margin: 0 0 1 0;
 }
+
+#verify-tabs {
+    height: 1fr;
+}
+
+#verify-summary {
+    height: auto;
+    padding: 0 0 1 0;
+}
+
+#verify-buttons {
+    height: auto;
+    padding: 0 2;
+    align-horizontal: center;
+}
+
+#verify-buttons Button {
+    margin: 0 1;
+}
 """
 
 
@@ -297,5 +316,9 @@ class SetupApp(App):
             from .screens.bootstrap import BootstrapModeScreen
 
             self.push_screen(BootstrapModeScreen())
+        elif self._start_screen == "status":
+            from .screens.verify import VerifyScreen
+
+            self.push_screen(VerifyScreen())
         else:
             self.push_screen(WelcomeScreen())

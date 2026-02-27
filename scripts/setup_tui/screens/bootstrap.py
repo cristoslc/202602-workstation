@@ -467,6 +467,7 @@ class BootstrapRunScreen(Screen):
             ("Install Ansible Galaxy collections", self._step_galaxy),
             ("Resolve age key", self._step_age_key),
             ("Run Ansible playbook", self._step_ansible),
+            ("Verify installations", self._step_verify),
         ]
 
         self.app.call_from_thread(
@@ -694,6 +695,54 @@ class BootstrapRunScreen(Screen):
 
         env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
         self._run_streaming(cmd, env_extra=env_extra)
+
+    def _step_verify(
+        self, platform: str, _platform_dir: str, _apply_system: bool
+    ) -> None:
+        """Run post-install verification for the selected phases (informational only)."""
+        from ..lib.verify import filter_entries, load_registry, run_all_checks
+
+        try:
+            entries = load_registry()
+        except Exception as exc:
+            self.app.call_from_thread(
+                self._log,
+                f"  [yellow]Could not load verify registry: {exc}[/yellow]"
+            )
+            return
+
+        entries = filter_entries(
+            entries, platform=platform, phases=self.phases
+        )
+        if not entries:
+            self.app.call_from_thread(
+                self._log, "  [dim]No entries to verify for selected phases.[/dim]"
+            )
+            return
+
+        results = run_all_checks(entries, parallel=True)
+
+        pass_count = sum(1 for r in results if r.passed)
+        fail_count = sum(1 for r in results if not r.passed and not r.entry.optional)
+        warn_count = sum(1 for r in results if not r.passed and r.entry.optional)
+
+        # Log failures and warnings.
+        for r in results:
+            if not r.passed:
+                if r.entry.optional:
+                    note = f" — {r.entry.note}" if r.entry.note else ""
+                    self.app.call_from_thread(
+                        self._log,
+                        f"  [yellow]WARN[/yellow]  {r.entry.name}: {r.detail}{note}"
+                    )
+                else:
+                    self.app.call_from_thread(
+                        self._log,
+                        f"  [red]FAIL[/red]  {r.entry.name}: {r.detail}"
+                    )
+
+        summary = f"  {pass_count} passed, {fail_count} failed, {warn_count} warnings"
+        self.app.call_from_thread(self._log, summary)
 
     def _grant_nopasswd_sudo(self) -> None:
         """Create a temporary NOPASSWD sudoers entry for the current user."""

@@ -1,0 +1,713 @@
+# verify-registry.yml — Single source of truth for post-install verification.
+#
+# Each entry maps an installed app/tool to a verification check, grouped by
+# the Ansible role that installs it and the playbook phase it belongs to.
+#
+# Check types:
+#   command:      shutil.which() + version flag (default: --version)
+#   app_paths:    Path.exists() on first match (macOS .app bundles, Linux binaries)
+#   path:         Path.expanduser().exists() for config files/directories
+#
+# Extra fields:
+#   version_flag: override --version (e.g. "version" for docker)
+#   optional:     true = warn instead of fail (Setapp/MAS apps, manual installs)
+#   note:         shown when optional + missing
+
+roles:
+  # ─── Phase 0: System ────────────────────────────────────────────────
+  homebrew:
+    phase: system
+    apps:
+      - name: Homebrew
+        platforms: [macos]
+        check: {command: brew}
+        tags: [homebrew]
+
+  base:
+    phase: system
+    apps:
+      - name: curl
+        platforms: [linux]
+        check: {command: curl}
+        tags: [base]
+      - name: wget
+        platforms: [linux]
+        check: {command: wget}
+        tags: [base]
+      - name: jq
+        platforms: [linux]
+        check: {command: jq}
+        tags: [base]
+      - name: tree
+        platforms: [linux]
+        check: {command: tree}
+        tags: [base]
+
+  system:
+    phase: system
+    apps: []
+
+  hardware:
+    phase: system
+    apps: []
+
+  # ─── Phase 1: Security ─────────────────────────────────────────────
+  secrets-manager:
+    phase: security
+    apps:
+      - name: 1Password
+        platforms: [macos]
+        check: {app_paths: ["/Applications/1Password.app"]}
+        tags: [onepassword]
+      - name: 1Password
+        platforms: [linux]
+        check: {command: 1password}
+        tags: [onepassword]
+        optional: true
+        note: "Install from https://1password.com/downloads/linux"
+      - name: sops
+        platforms: [macos, linux]
+        check: {command: sops}
+        tags: [sops]
+      - name: age
+        platforms: [macos, linux]
+        check: {command: age}
+        tags: [sops]
+      - name: age key
+        platforms: [macos, linux]
+        check: {path: "~/.config/sops/age/keys.txt"}
+        tags: [sops]
+
+  firewall:
+    phase: security
+    apps: []
+
+  # ─── Phase 2: Dev Tools ────────────────────────────────────────────
+  git:
+    phase: dev-tools
+    apps:
+      - name: git
+        platforms: [macos, linux]
+        check: {command: git}
+        tags: [git]
+      - name: GitHub CLI
+        platforms: [macos, linux]
+        check: {command: gh}
+        tags: [gh]
+      - name: lazygit
+        platforms: [macos, linux]
+        check: {command: lazygit}
+        tags: [lazygit]
+      - name: delta
+        platforms: [macos, linux]
+        check: {command: delta}
+        tags: [delta]
+
+  shell:
+    phase: dev-tools
+    apps:
+      - name: zsh
+        platforms: [macos, linux]
+        check: {command: zsh}
+        tags: [zsh]
+      - name: direnv
+        platforms: [macos, linux]
+        check: {command: direnv}
+        tags: [direnv]
+
+  python:
+    phase: dev-tools
+    apps:
+      - name: python3
+        platforms: [macos, linux]
+        check: {command: python3}
+        tags: [python]
+      - name: uv
+        platforms: [macos, linux]
+        check: {command: uv}
+        tags: [python]
+
+  node:
+    phase: dev-tools
+    apps:
+      - name: node
+        platforms: [macos, linux]
+        check: {command: node}
+        tags: [node]
+
+  docker:
+    phase: dev-tools
+    apps:
+      - name: docker
+        platforms: [macos, linux]
+        check: {command: docker}
+        version_flag: version
+        tags: [docker]
+      - name: Docker Desktop
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Docker.app"]}
+        tags: [docker]
+
+  editor:
+    phase: dev-tools
+    apps:
+      - name: VS Code
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Visual Studio Code.app"]}
+        tags: [vscode]
+      - name: VS Code
+        platforms: [linux]
+        check: {command: code}
+        tags: [vscode]
+
+  claude-code:
+    phase: dev-tools
+    apps:
+      - name: Claude Code
+        platforms: [macos, linux]
+        check: {command: claude}
+        tags: [claude-code]
+
+  codex-cli:
+    phase: dev-tools
+    apps:
+      - name: Codex CLI
+        platforms: [macos, linux]
+        check: {command: codex}
+        tags: [codex-cli]
+        optional: true
+        note: "Install via npm: npm i -g @openai/codex"
+
+  gemini-cli:
+    phase: dev-tools
+    apps:
+      - name: Gemini CLI
+        platforms: [macos, linux]
+        check: {command: gemini}
+        tags: [gemini-cli]
+        optional: true
+        note: "Install via npm: npm i -g @anthropic-ai/gemini-cli"
+
+  fonts:
+    phase: dev-tools
+    apps:
+      - name: JetBrainsMono Nerd Font
+        platforms: [macos]
+        check: {path: "~/Library/Fonts/JetBrainsMonoNerdFont-Regular.ttf"}
+        tags: [fonts]
+      - name: JetBrainsMono Nerd Font
+        platforms: [linux]
+        check: {path: "~/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf"}
+        tags: [fonts]
+      - name: FiraCode Nerd Font
+        platforms: [macos]
+        check: {path: "~/Library/Fonts/FiraCodeNerdFont-Regular.ttf"}
+        tags: [fonts]
+      - name: FiraCode Nerd Font
+        platforms: [linux]
+        check: {path: "~/.local/share/fonts/FiraCodeNerdFont-Regular.ttf"}
+        tags: [fonts]
+      - name: Meslo Nerd Font
+        platforms: [macos]
+        check: {path: "~/Library/Fonts/MesloLGSNerdFont-Regular.ttf"}
+        tags: [fonts]
+      - name: Meslo Nerd Font
+        platforms: [linux]
+        check: {path: "~/.local/share/fonts/MesloLGSNerdFont-Regular.ttf"}
+        tags: [fonts]
+
+  terminal:
+    phase: dev-tools
+    apps:
+      - name: tmux
+        platforms: [macos, linux]
+        check: {command: tmux}
+        tags: [tmux]
+      - name: iTerm2
+        platforms: [macos]
+        check: {app_paths: ["/Applications/iTerm.app"]}
+        tags: [iterm2]
+
+  lint-tools:
+    phase: dev-tools
+    apps:
+      - name: shellcheck
+        platforms: [macos, linux]
+        check: {command: shellcheck}
+        tags: [shellcheck]
+      - name: yamllint
+        platforms: [macos, linux]
+        check: {command: yamllint}
+        tags: [yamllint]
+      - name: ansible-lint
+        platforms: [macos, linux]
+        check: {command: ansible-lint}
+        tags: [ansible-lint]
+      - name: ansible-playbook
+        platforms: [macos, linux]
+        check: {command: ansible-playbook}
+        tags: [ansible-lint]
+      - name: bats
+        platforms: [macos, linux]
+        check: {command: bats}
+        tags: [bats]
+
+  # ─── Phase 3: Desktop ──────────────────────────────────────────────
+  browsers:
+    phase: desktop
+    apps:
+      - name: Firefox
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Firefox.app"]}
+        tags: [firefox]
+      - name: Firefox
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/firefox", "/snap/bin/firefox"]}
+        tags: [firefox]
+      - name: Brave
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Brave Browser.app"]}
+        tags: [brave]
+      - name: Brave
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/brave-browser"]}
+        tags: [brave]
+      - name: Chrome
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Google Chrome.app"]}
+        tags: [chrome]
+      - name: Chrome
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"]}
+        tags: [chrome]
+
+  launchers:
+    phase: desktop
+    apps:
+      - name: Raycast
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Raycast.app"]}
+        tags: [raycast]
+      - name: Paletro
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Setapp/Paletro.app", "/Applications/Paletro.app"]}
+        tags: [paletro]
+        optional: true
+        note: "Install via Setapp"
+      - name: Vicinae
+        platforms: [linux]
+        check: {command: vicinae}
+        tags: [vicinae]
+        optional: true
+
+  text-expansion:
+    phase: desktop
+    apps:
+      - name: Espanso
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Espanso.app", "/opt/homebrew/bin/espanso"]}
+        tags: [espanso]
+      - name: Espanso
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/espanso", "~/.local/bin/espanso"]}
+        tags: [espanso]
+
+  notes:
+    phase: desktop
+    apps:
+      - name: Antinote
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Antinote.app"]}
+        tags: [antinote]
+        optional: true
+        note: "Install via Mac App Store"
+      - name: NormCap
+        platforms: [linux]
+        check: {command: normcap}
+        tags: [normcap]
+        optional: true
+      - name: LinNote
+        platforms: [linux]
+        check: {command: linnote}
+        tags: [linnote]
+        optional: true
+
+  calendar:
+    phase: desktop
+    apps:
+      - name: Dato
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Setapp/Dato.app", "/Applications/Dato.app"]}
+        tags: [dato]
+        optional: true
+        note: "Install via Setapp"
+      - name: BusyCal
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Setapp/BusyCal.app", "/Applications/BusyCal.app"]}
+        tags: [busycal]
+        optional: true
+        note: "Install via Setapp"
+
+  communication:
+    phase: desktop
+    apps:
+      - name: Slack
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Slack.app"]}
+        tags: [slack]
+      - name: Slack
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/slack", "/snap/bin/slack"]}
+        tags: [slack]
+      - name: Signal
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Signal.app"]}
+        tags: [signal]
+      - name: Signal
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/signal-desktop"]}
+        tags: [signal]
+
+  media:
+    phase: desktop
+    apps:
+      - name: Spotify
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Spotify.app"]}
+        tags: [spotify]
+      - name: Spotify
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/spotify", "/snap/bin/spotify"]}
+        tags: [spotify]
+      - name: VLC
+        platforms: [macos]
+        check: {app_paths: ["/Applications/VLC.app"]}
+        tags: [vlc]
+      - name: VLC
+        platforms: [linux]
+        check: {app_paths: ["/usr/bin/vlc"]}
+        tags: [vlc]
+      - name: Downie
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Setapp/Downie.app", "/Applications/Downie.app"]}
+        tags: [downie]
+        optional: true
+        note: "Install via Setapp"
+
+  vpn:
+    phase: desktop
+    apps:
+      - name: Tailscale
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Tailscale.app"]}
+        tags: [tailscale]
+      - name: Tailscale
+        platforms: [linux]
+        check: {command: tailscale}
+        tags: [tailscale]
+      - name: Surfshark
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Surfshark.app"]}
+        tags: [surfshark]
+      - name: Surfshark
+        platforms: [linux]
+        check: {command: surfshark}
+        tags: [surfshark]
+        optional: true
+
+  remote-desktop:
+    phase: desktop
+    apps:
+      - name: RustDesk
+        platforms: [macos]
+        check: {app_paths: ["/Applications/RustDesk.app"]}
+        tags: [rustdesk]
+        optional: true
+      - name: RustDesk
+        platforms: [linux]
+        check: {command: rustdesk}
+        tags: [rustdesk]
+        optional: true
+
+  backups:
+    phase: desktop
+    apps:
+      - name: Backblaze
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Backblaze.app"]}
+        tags: [backblaze]
+      - name: restic
+        platforms: [macos, linux]
+        check: {command: restic}
+        tags: [restic]
+      - name: Backrest
+        platforms: [macos, linux]
+        check: {command: backrest}
+        tags: [backrest]
+        optional: true
+      - name: Timeshift
+        platforms: [linux]
+        check: {command: timeshift}
+        tags: [timeshift]
+
+  screenshots:
+    phase: desktop
+    apps:
+      - name: CleanShot X
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Setapp/CleanShot X.app", "/Applications/CleanShot X.app"]}
+        tags: [cleanshot]
+        optional: true
+        note: "Install via Setapp"
+      - name: Flameshot
+        platforms: [linux]
+        check: {command: flameshot}
+        tags: [flameshot]
+
+  link-handler:
+    phase: desktop
+    apps:
+      - name: OpenIn
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Setapp/OpenIn.app", "/Applications/OpenIn.app"]}
+        tags: [openin]
+        optional: true
+        note: "Install via Setapp"
+
+  stream-deck:
+    phase: desktop
+    apps:
+      - name: Elgato Stream Deck
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Elgato Stream Deck.app"]}
+        tags: [stream-deck]
+      - name: OpenDeck
+        platforms: [linux]
+        check: {command: opendeck}
+        tags: [opendeck]
+        optional: true
+
+  utilities:
+    phase: desktop
+    apps:
+      - name: Keka
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Keka.app"]}
+        tags: [keka]
+      - name: bat
+        platforms: [macos, linux]
+        check: {command: bat}
+        tags: [utilities]
+      - name: ripgrep
+        platforms: [macos, linux]
+        check: {command: rg}
+        tags: [utilities]
+      - name: fd
+        platforms: [macos, linux]
+        check: {command: fd}
+        tags: [utilities]
+      - name: fzf
+        platforms: [macos, linux]
+        check: {command: fzf}
+        tags: [utilities]
+      - name: eza
+        platforms: [macos, linux]
+        check: {command: eza}
+        tags: [utilities]
+      - name: dust
+        platforms: [macos, linux]
+        check: {command: dust}
+        tags: [utilities]
+      - name: duf
+        platforms: [macos, linux]
+        check: {command: duf}
+        tags: [utilities]
+      - name: htop
+        platforms: [macos, linux]
+        check: {command: htop}
+        tags: [utilities]
+      - name: tldr
+        platforms: [macos, linux]
+        check: {command: tldr}
+        tags: [utilities]
+      - name: mc
+        platforms: [macos, linux]
+        check: {command: mc}
+        tags: [utilities]
+      - name: jq
+        platforms: [macos]
+        check: {command: jq}
+        tags: [utilities]
+      - name: wget
+        platforms: [macos]
+        check: {command: wget}
+        tags: [utilities]
+      - name: tree
+        platforms: [macos]
+        check: {command: tree}
+        tags: [utilities]
+
+  file-transfer:
+    phase: desktop
+    apps:
+      - name: Cyberduck
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Cyberduck.app"]}
+        tags: [cyberduck]
+      - name: FileZilla
+        platforms: [linux]
+        check: {command: filezilla}
+        tags: [filezilla]
+
+  mas:
+    phase: desktop
+    apps:
+      - name: mas
+        platforms: [macos]
+        check: {command: mas}
+        tags: [mas]
+
+  power:
+    phase: desktop
+    apps: []
+
+  keyboard:
+    phase: desktop
+    apps:
+      - name: Hammerspoon
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Hammerspoon.app"]}
+        tags: [hammerspoon]
+
+  macos-defaults:
+    phase: desktop
+    apps: []
+
+  desktop-env:
+    phase: desktop
+    apps: []
+
+  dev:
+    phase: desktop
+    apps: []
+
+  # ─── Phase 4: Dotfiles ─────────────────────────────────────────────
+  stow:
+    phase: dotfiles
+    apps:
+      - name: stow
+        platforms: [macos, linux]
+        check: {command: stow}
+        tags: [stow]
+      - name: gum
+        platforms: [macos, linux]
+        check: {command: gum}
+        tags: [stow]
+
+  # ─── Phase 5: Gaming ───────────────────────────────────────────────
+  gaming:
+    phase: gaming
+    apps:
+      - name: Steam
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Steam.app"]}
+        tags: [steam]
+        optional: true
+      - name: Steam
+        platforms: [linux]
+        check: {command: steam}
+        tags: [steam]
+        optional: true
+
+  # ─── Phase 6: Bureau Veritas ────────────────────────────────────────
+  word:
+    phase: bureau-veritas
+    apps:
+      - name: Microsoft Word
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Microsoft Word.app"]}
+        tags: [word]
+      - name: Microsoft Word
+        platforms: [linux]
+        check: {command: libreoffice}
+        tags: [word]
+        optional: true
+
+  excel:
+    phase: bureau-veritas
+    apps:
+      - name: Microsoft Excel
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Microsoft Excel.app"]}
+        tags: [excel]
+
+  powerpoint:
+    phase: bureau-veritas
+    apps:
+      - name: Microsoft PowerPoint
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Microsoft PowerPoint.app"]}
+        tags: [powerpoint]
+
+  outlook:
+    phase: bureau-veritas
+    apps:
+      - name: Microsoft Outlook
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Microsoft Outlook.app"]}
+        tags: [outlook]
+
+  edge:
+    phase: bureau-veritas
+    apps:
+      - name: Microsoft Edge
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Microsoft Edge.app"]}
+        tags: [edge]
+      - name: Microsoft Edge
+        platforms: [linux]
+        check: {command: microsoft-edge}
+        tags: [edge]
+        optional: true
+
+  onedrive:
+    phase: bureau-veritas
+    apps:
+      - name: OneDrive
+        platforms: [macos]
+        check: {app_paths: ["/Applications/OneDrive.app"]}
+        tags: [onedrive]
+
+  teams:
+    phase: bureau-veritas
+    apps:
+      - name: Microsoft Teams
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Microsoft Teams.app", "/Applications/Microsoft Teams classic.app"]}
+        tags: [teams]
+
+  # ─── Phase 7: Remote Access ────────────────────────────────────────
+  remote-access:
+    phase: remote-access
+    apps: []
+
+  # ─── Phase 8: Sync ─────────────────────────────────────────────────
+  syncthing:
+    phase: sync
+    apps:
+      - name: Syncthing
+        platforms: [macos, linux]
+        check: {command: syncthing}
+        tags: [syncthing]
+
+  unison:
+    phase: sync
+    apps:
+      - name: unison
+        platforms: [macos, linux]
+        check: {command: unison}
+        tags: [unison]
+      - name: wsync
+        platforms: [macos, linux]
+        check: {path: "~/.local/bin/wsync"}
+        tags: [wsync]

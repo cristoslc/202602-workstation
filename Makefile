@@ -26,7 +26,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
 
 .PHONY: help setup first-run bootstrap lint shellcheck yamllint ansible-lint \
         check-collisions check-sync check-playbook test test-bats test-python check apply \
-        decrypt clean-secrets status template-export \
+        decrypt clean-secrets status verify verify-role template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
         log-send log-receive iterm2-export raycast-export streamdeck-export \
@@ -98,8 +98,17 @@ edit-secrets-linux: ## Edit Linux encrypted vars
 edit-secrets-macos: ## Edit macOS encrypted vars
 	sops macos/secrets/vars.sops.yml
 
-status: ## Show workstation status (stub — Rich dashboard planned)
-	@uv run --with rich scripts/workstation-status.py 2>/dev/null || echo "Status dashboard requires uv + Python. Run bootstrap first."
+status: ## Show workstation verification dashboard (Textual TUI)
+	@uv run --with textual,pyyaml,jinja2 scripts/setup.py --status
+
+verify: ## Verify all installed apps (headless, exit 1 on failures)
+	@uv run --with pyyaml scripts/workstation-status.py --verify
+
+verify-role: ## Verify a single role: make verify-role ROLE=git
+ifndef ROLE
+	$(error ROLE is required. Usage: make verify-role ROLE=git)
+endif
+	@uv run --with pyyaml scripts/workstation-status.py --verify --role $(ROLE)
 
 check-collisions: ## Check for stow filename collisions between layers
 	./scripts/check-stow-collisions.sh

@@ -24,11 +24,20 @@ def main() -> None:
         "--bootstrap", action="store_true",
         help="Skip the welcome menu and go straight to bootstrap",
     )
+    parser.add_argument(
+        "--status", action="store_true",
+        help="Jump to verification dashboard",
+    )
     args = parser.parse_args()
 
     from setup_tui.app import SetupApp
 
-    app = SetupApp(debug=args.debug, start_screen="bootstrap" if args.bootstrap else None)
+    start = None
+    if args.bootstrap:
+        start = "bootstrap"
+    elif args.status:
+        start = "status"
+    app = SetupApp(debug=args.debug, start_screen=start)
     result = app.run()
 
     if result == "relaunch":

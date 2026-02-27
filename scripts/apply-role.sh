@@ -29,3 +29,10 @@ printf '%s\n' "$BECOME_PASS" | sudo -S sh -c \
 # Run the playbook without --ask-become-pass
 cd "$PLATFORM_DIR"
 ansible-playbook site.yml --tags "$ROLE" "$@"
+
+# Post-verify the role (informational only).
+cd - > /dev/null
+echo ""
+echo "Verifying $ROLE..."
+uv run --with pyyaml scripts/workstation-status.py --verify --role "$ROLE" \
+  || echo "WARNING: Some $ROLE components failed verification."
