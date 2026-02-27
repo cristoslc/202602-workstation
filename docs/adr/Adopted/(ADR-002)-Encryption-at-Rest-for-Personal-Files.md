@@ -28,7 +28,7 @@ Prior to this decision, encryption was applied inconsistently:
 
 The Raycast and Stream Deck backup exports already followed the correct pattern: age-encrypt before committing, decrypt during import. The iTerm2 plist was committed as plaintext XML in the stow package directory, and the newly added plugin list was written as plaintext JSON/HTML.
 
-Even though the repo is private, defense in depth requires that personal data not sit in plaintext in git history — repos can be forked, shared, or leaked.
+The repo is **public** — it must be visible from bootstrap machines without pre-authenticated git access. This makes plaintext personal data in git history a direct exposure, not a hypothetical risk.
 
 ## Decision
 
@@ -92,9 +92,9 @@ The age public key is read from `.sops.yaml`. The private key lives at `~/.confi
 
 SOPS supports YAML, JSON, ENV, and INI formats. It cannot handle binary files or XML plists. Age CLI handles arbitrary files, which is what we need for plist and `.rayconfig` exports.
 
-### Commit plaintext to a private repo — Rejected
+### Commit plaintext and rely on repo obscurity — Rejected
 
-Even private repos can be forked, mirrored, or leaked. Git history is permanent — data committed in plaintext stays in history even after deletion. Encryption at rest eliminates this class of risk entirely.
+The repo is public by design (bootstrap machines need unauthenticated clone access). Plaintext personal data would be directly visible to anyone. Even if the repo were made private, git history is permanent — data committed in plaintext stays in history even after deletion. Encryption at rest eliminates this class of risk entirely.
 
 ### Exclude personal files from git entirely — Rejected
 
