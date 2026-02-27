@@ -29,6 +29,7 @@ from textual.widgets import (
 )
 
 from ..lib.discovery import PlaybookManifest, discover_playbook, validate_config
+from ..lib.proc_cleanup import terminate_procs
 from ..lib.runner import REPO_ROOT
 
 logger = logging.getLogger("setup")
@@ -391,6 +392,7 @@ class BootstrapRunScreen(Screen):
         self.phases = phases
         self.become_pass = become_pass
         self.skip_tags = skip_tags or []
+        self._procs: list[subprocess.Popen] = []
         self._finished = False
         self._success = False
         self._log_file = None
@@ -423,6 +425,14 @@ class BootstrapRunScreen(Screen):
         self._start_time = time.monotonic()
         self._timer = self.set_interval(1, self._tick_elapsed)
         self._run_bootstrap()
+
+    def on_unmount(self) -> None:
+        terminate_procs(self._procs)
+        if self._timer is not None:
+            self._timer.stop()
+            self._timer = None
+        if self._log_file and not self._log_file.closed:
+            self._log_file.close()
 
     @work(thread=True)
     def _run_bootstrap(self) -> None:
@@ -743,13 +753,17 @@ class BootstrapRunScreen(Screen):
             env=env,
             cwd=cwd,
         )
+        self._procs.append(proc)
+        try:
+            for line in proc.stdout:
+                stripped = line.rstrip("\n")
+                self.app.call_from_thread(self._log_output, stripped)
+                logger.debug(stripped)
 
-        for line in proc.stdout:
-            stripped = line.rstrip("\n")
-            self.app.call_from_thread(self._log_output, stripped)
-            logger.debug(stripped)
-
-        proc.wait()
+            proc.wait()
+        finally:
+            if proc in self._procs:
+                self._procs.remove(proc)
         if proc.returncode != 0:
             raise RuntimeError(
                 f"Command failed (exit {proc.returncode}): {' '.join(cmd)}"

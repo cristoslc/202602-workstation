@@ -25,6 +25,7 @@ from textual.widgets import (
     Static,
 )
 
+from ..lib.proc_cleanup import terminate_procs
 from ..lib.runner import REPO_ROOT
 
 logger = logging.getLogger("setup")
@@ -199,11 +200,17 @@ class DataMigrationScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
+        self._procs: list[subprocess.Popen] = []
         self.query_one("#migration-output", RichLog).display = False
         self.query_one("#migration-progress", ProgressBar).display = False
         self.query_one("#progress-summary", Static).display = False
         self.query_one("#migration-done-buttons", Horizontal).display = False
         self._progress = MigrationProgress()
+
+    def on_unmount(self) -> None:
+        terminate_procs(self._procs)
+        if self._log_file and not self._log_file.closed:
+            self._log_file.close()
 
     def action_go_back(self) -> None:
         self.app.pop_screen()
@@ -460,10 +467,15 @@ class DataMigrationScreen(Screen):
                 stderr=subprocess.STDOUT,
                 env=env,
             )
-            for raw_line in proc.stdout:
-                stripped = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                self._handle_output_line(stripped, progress, dry_run)
-            proc.wait()
+            self._procs.append(proc)
+            try:
+                for raw_line in proc.stdout:
+                    stripped = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                    self._handle_output_line(stripped, progress, dry_run)
+                proc.wait()
+            finally:
+                if proc in self._procs:
+                    self._procs.remove(proc)
 
             if proc.returncode == 0:
                 if dry_run:
@@ -682,10 +694,15 @@ class DataMigrationScreen(Screen):
                 stderr=subprocess.STDOUT,
                 env={**os.environ, "PATH": f"{Path.home() / '.local/bin'}:{os.environ.get('PATH', '')}"},
             )
-            for raw_line in proc.stdout:
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                self.app.call_from_thread(self._log_output, line)
-            proc.wait()
+            self._procs.append(proc)
+            try:
+                for raw_line in proc.stdout:
+                    line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                    self.app.call_from_thread(self._log_output, line)
+                proc.wait()
+            finally:
+                if proc in self._procs:
+                    self._procs.remove(proc)
             if proc.returncode == 0:
                 self.app.call_from_thread(
                     self._log,
