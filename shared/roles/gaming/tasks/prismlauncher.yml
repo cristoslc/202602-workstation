@@ -1,0 +1,32 @@
+---
+# Prism Launcher — open-source Minecraft launcher
+- name: Install Prism Launcher (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: prismlauncher
+    state: present
+
+- name: Install Prism Launcher (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure Flatpak is installed
+      ansible.builtin.apt:
+        name: flatpak
+        state: present
+      become: true
+
+    - name: Ensure Flathub remote is configured
+      ansible.builtin.command: flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      changed_when: false
+      become: true
+
+    - name: Check if Prism Launcher Flatpak is installed
+      ansible.builtin.command: flatpak info org.prismlauncher.PrismLauncher
+      register: _prismlauncher_flatpak
+      changed_when: false
+      failed_when: false
+
+    - name: Install Prism Launcher via Flatpak
+      ansible.builtin.command: flatpak install -y flathub org.prismlauncher.PrismLauncher
+      when: _prismlauncher_flatpak.rc != 0
+      become: true

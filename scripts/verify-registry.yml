@@ -630,6 +630,16 @@ roles:
         check: {command: steam}
         tags: [steam]
         optional: true
+      - name: Prism Launcher
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Prism Launcher.app"]}
+        tags: [prismlauncher]
+        optional: true
+      - name: Prism Launcher
+        platforms: [linux]
+        check: {path: /var/lib/flatpak/app/org.prismlauncher.PrismLauncher}
+        tags: [prismlauncher]
+        optional: true
 
   # ─── Phase 6: Bureau Veritas ────────────────────────────────────────
   word:
@@ -709,6 +719,14 @@ roles:
         platforms: [linux]
         check: {command: linear}
         tags: [linear]
+
+  gli-kvm:
+    phase: bureau-veritas
+    apps:
+      - name: GLI KVM
+        platforms: [macos]
+        check: {app_paths: ["/Applications/GLKVM.app"]}
+        tags: [gli-kvm]
 
   # ─── Phase 7: Remote Access ────────────────────────────────────────
   remote-access:

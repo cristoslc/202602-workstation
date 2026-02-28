@@ -1,5 +1,5 @@
 ---
-# Linux: RustDesk + Remmina + GLI KVM (browser-only note)
+# Linux: RustDesk + Remmina
 
 - name: Install RustDesk
   ansible.builtin.include_tasks: rustdesk.yml
@@ -8,7 +8,3 @@
 - name: Install Remmina
   ansible.builtin.include_tasks: remmina.yml
   tags: [remmina]
-
-- name: GLI KVM access note
-  ansible.builtin.include_tasks: gli-kvm.yml
-  tags: [gli-kvm]

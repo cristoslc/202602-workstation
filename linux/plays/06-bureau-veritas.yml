@@ -31,3 +31,6 @@
 
     - role: linear
       tags: [linear, bureau-veritas]
+
+    - role: gli-kvm
+      tags: [gli-kvm, bureau-veritas]

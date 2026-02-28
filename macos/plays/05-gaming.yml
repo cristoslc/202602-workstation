@@ -5,4 +5,4 @@
 
   roles:
     - role: gaming
-      tags: [gaming, steam]
+      tags: [gaming, steam, prismlauncher]

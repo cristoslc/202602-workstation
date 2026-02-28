@@ -1,6 +1,10 @@
 ---
-# Gaming role: Steam
+# Gaming role: Steam, Prism Launcher
 
 - name: Install Steam
   ansible.builtin.include_tasks: steam.yml
   tags: [steam]
+
+- name: Install Prism Launcher
+  ansible.builtin.include_tasks: prismlauncher.yml
+  tags: [prismlauncher]

@@ -32,7 +32,7 @@
       tags: [vpn, tailscale, surfshark, desktop]
 
     - role: remote-desktop
-      tags: [remote-desktop, rustdesk, gli-kvm, desktop]
+      tags: [remote-desktop, rustdesk, desktop]
 
     - role: backups
       tags: [backups, backblaze, restic, backrest, desktop]
