@@ -1,0 +1,6 @@
+---
+# Markdown viewer role: Typora (cross-platform)
+
+- name: Install Typora
+  ansible.builtin.include_tasks: typora.yml
+  tags: [typora]

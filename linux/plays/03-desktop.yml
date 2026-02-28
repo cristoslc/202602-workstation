@@ -20,6 +20,9 @@
     - role: notes
       tags: [notes, normcap, linnote, desktop]
 
+    - role: markdown-viewer
+      tags: [markdown-viewer, typora, desktop]
+
     - role: calendar
       tags: [calendar, desktop]
 
