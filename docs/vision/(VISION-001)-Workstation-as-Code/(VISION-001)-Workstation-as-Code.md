@@ -96,6 +96,10 @@ See `architecture-overview.md` (forthcoming) for the full system description.
 
 | Type | ID | Title |
 |------|----|-------|
+| Persona | [PERSONA-001](../../persona/(PERSONA-001)-The-Multi-Machine-Developer/(PERSONA-001)-The-Multi-Machine-Developer.md) | The Multi-Machine Developer |
+| Journey | [JOURNEY-001](../../journey/(JOURNEY-001)-Fresh-Machine-Bootstrap/(JOURNEY-001)-Fresh-Machine-Bootstrap.md) | Fresh Machine Bootstrap |
+| Journey | [JOURNEY-002](../../journey/(JOURNEY-002)-Configuration-Evolution/(JOURNEY-002)-Configuration-Evolution.md) | Configuration Evolution |
+| Journey | [JOURNEY-003](../../journey/(JOURNEY-003)-Machine-Migration/(JOURNEY-003)-Machine-Migration.md) | Machine Migration |
 | ADR | [ADR-001](../../adr/Adopted/(ADR-001)-RustDesk-for-Remote-Desktop.md) | RustDesk for Remote Desktop |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest for Personal Files |
 | PRD | [PRD-001](../../prd/Draft/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md) | Raycast Sync |
