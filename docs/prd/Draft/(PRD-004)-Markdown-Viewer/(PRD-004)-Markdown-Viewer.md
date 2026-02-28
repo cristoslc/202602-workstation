@@ -23,15 +23,16 @@ Key pain points:
 
 - **No Linux parity.** Opening a `.md` file on a Linux workstation requires either a browser-based workaround or reading raw markup.
 - **No provisioned install.** Even on macOS, Marked 2 is obtained through SetApp rather than the Ansible/Homebrew pipeline — it is not captured in the workstation config.
-- **Preview-not-edit gap.** Most cross-platform markdown tools are editors. The use case here is a *previewer* that pairs with an existing editor (VS Code, Neovim), not a standalone writing app.
+- **GFM preview is the primary gap.** The core need is rendering GitHub-Flavored Markdown (fenced code blocks, tables, task lists, strikethrough) accurately. An inline editor is a nice-to-have — the main workflow is preview alongside VS Code or Neovim.
 
 ## Goal
 
-After `make apply`, each workstation has a markdown previewer that:
+After `make apply`, each workstation has a markdown tool that:
 
-1. Renders GitHub-Flavored Markdown with fenced code blocks, tables, and task lists.
-2. Live-reloads on file save (watch mode).
-3. Is installed and configured by the provisioning pipeline — no manual steps.
+1. **Must have:** Renders GitHub-Flavored Markdown accurately — fenced code blocks, tables, task lists, strikethrough, autolinks.
+2. **Must have:** Live-reloads on file save (watch mode) so it pairs with an external editor.
+3. **Nice to have:** Inline editing capability (split-pane or WYSIWYG) for quick fixes without switching apps.
+4. Is installed and configured by the provisioning pipeline — no manual steps.
 
 ## Scope
 
@@ -44,19 +45,19 @@ After `make apply`, each workstation has a markdown previewer that:
 
 ### Out of scope
 
-- Markdown *editing* — the editor is VS Code / Neovim, already provisioned.
+- Primary markdown *editing* — the editor is VS Code / Neovim, already provisioned. An inline editing pane is welcome but not the driver.
 - Terminal-only renderers (`glow`, `mdcat`) — useful but do not replace a desktop previewer with live-reload.
 - Note-taking / Zettelkasten apps (Obsidian, Zettlr) — different category.
 
 ## Candidates
 
-| Tool | Platforms | License | Live-reload | Notes |
-|------|-----------|---------|-------------|-------|
-| **Marked 2** | macOS only | Proprietary (SetApp / $14) | Yes (file watch) | Current tool. Gold standard for preview UX. |
-| **Mark Text** | macOS, Linux, Windows | MIT | Yes (built-in editor) | Editor-first, but has preview mode. Electron-based. Last release 2022 — maintenance unclear. |
-| **Typora** | macOS, Linux, Windows | Proprietary ($15) | Yes (inline WYSIWYG) | Polished, but editor-first, not a standalone previewer. |
-| **Apostrophe** | Linux (GNOME) | GPL-3.0 | Yes (side panel) | GNOME-native, Flatpak available. Editor+preview split pane. |
-| **Ghostwriter** | Linux, Windows | GPL-3.0 | Yes (side panel) | KDE/Qt-based, Flatpak available. Split-pane editor+preview. |
+| Tool | Platforms | GFM | Live-reload | Inline editor | License | Notes |
+|------|-----------|-----|-------------|---------------|---------|-------|
+| **Marked 2** | macOS only | Full | Yes (file watch) | No (preview only) | Proprietary (SetApp / $14) | Current tool. Gold standard for preview UX. |
+| **Mark Text** | macOS, Linux, Windows | Full | Yes (built-in) | Yes (WYSIWYG) | MIT | Electron-based. Last release 2022 — maintenance unclear. |
+| **Typora** | macOS, Linux, Windows | Full | Yes (inline) | Yes (inline WYSIWYG) | Proprietary ($15) | Polished. Actively maintained. |
+| **Apostrophe** | Linux (GNOME) | Partial (via cmark) | Yes (side panel) | Yes (split pane) | GPL-3.0 | GNOME-native, Flatpak. GFM extensions may need verification. |
+| **Ghostwriter** | Linux, Windows | Full (via cmark-gfm) | Yes (side panel) | Yes (split pane) | GPL-3.0 | KDE/Qt-based, ships with cmark-gfm processor. |
 
 ## Strategy options
 
