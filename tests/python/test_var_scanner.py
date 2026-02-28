@@ -313,6 +313,28 @@ class TestSecretsIntegration:
             assert f.label
             assert f.used_by
 
+    def test_shell_secrets_include_static_entries(self):
+        from setup_tui.lib.secrets import SHELL_SECRETS
+
+        keys = {f.key for f in SHELL_SECRETS}
+        assert "ANTHROPIC_API_KEY" in keys
+        assert "HOMEBREW_GITHUB_API_TOKEN" in keys
+
+    def test_shell_secrets_include_auto_detected(self):
+        """OPENAI_API_KEY from templatize.sh should be auto-detected."""
+        from setup_tui.lib.secrets import SHELL_SECRETS
+
+        keys = {f.key for f in SHELL_SECRETS}
+        assert "OPENAI_API_KEY" in keys
+
+    def test_auto_detected_entries_marked(self):
+        """Auto-detected entries should have '(auto-detected' in description."""
+        from setup_tui.lib.secrets import SHELL_SECRETS
+
+        openai = next(f for f in SHELL_SECRETS if f.key == "OPENAI_API_KEY")
+        assert "(auto-detected" in openai.description
+        assert openai.password is True
+
 
 # ---------------------------------------------------------------------------
 # _looks_like_secret heuristic

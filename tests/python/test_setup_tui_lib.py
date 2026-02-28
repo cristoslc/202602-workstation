@@ -474,7 +474,10 @@ class TestResumeState:
 
 class TestSecretFieldDeclarations:
     def test_shell_secrets_have_doc_urls(self):
+        """Hand-curated shell secrets should have doc_url; auto-detected may not."""
         for sf in SHELL_SECRETS:
+            if "(auto-detected" in sf.description:
+                continue  # heuristic entries lack hand-tuned metadata
             assert sf.doc_url, f"{sf.key} should have a doc_url"
             assert sf.doc_url.startswith("https://")
 

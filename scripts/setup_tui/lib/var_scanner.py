@@ -365,3 +365,49 @@ def find_unannotated_candidates(
                         )
 
     return sorted(candidates, key=lambda c: (c.source, c.key))
+
+
+def _guess_password(key: str) -> bool:
+    """Guess whether a variable should be masked in the TUI."""
+    lower = key.lower()
+    # Non-sensitive even if they end in _key
+    if any(lower.endswith(fp) for fp in _FALSE_POSITIVE_SUFFIXES):
+        return False
+    sensitive = ("_password", "_passwd", "_secret", "_key", "_api_key",
+                 "_apikey", "_token", "_credential", "_cred", "_auth")
+    return any(lower.endswith(s) for s in sensitive)
+
+
+def candidates_to_scanned_vars(
+    candidates: list[UnannotatedCandidate],
+) -> list[ScannedVar]:
+    """Convert heuristic candidates into ScannedVar entries with best-guess
+    metadata, suitable for merging into the TUI collection flow.
+
+    Role-defaults candidates become ``directive="secret"``; shell-export
+    candidates become ``directive="shell-secret"``.
+    """
+    results: list[ScannedVar] = []
+    for c in candidates:
+        if c.source.startswith("role:"):
+            # "role:backups/defaults" → role="backups"
+            role = c.source.split(":")[1].split("/")[0]
+            directive = "secret"
+        else:
+            role = "shell"
+            directive = "shell-secret"
+
+        results.append(
+            ScannedVar(
+                key=c.key,
+                role=role,
+                directive=directive,
+                label=_humanize_key(c.key),
+                placeholder="",
+                description=f"(auto-detected: {c.reason})",
+                doc_url="",
+                password=_guess_password(c.key),
+                optional=True,  # best-guess entries are always optional
+            )
+        )
+    return results
