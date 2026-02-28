@@ -3,7 +3,7 @@ title: "VISION-001: Workstation as Code"
 status: Active
 author: cristos
 created: 2026-02-27
-last-updated: 2026-02-27
+last-updated: 2026-02-28
 ---
 
 # VISION-001: Workstation as Code
@@ -54,13 +54,14 @@ A solo developer (or small team) who:
 - **Fleet management** — This is not a centralized MDM or device management platform. Each machine is self-provisioned from a personal repo.
 - **Container/VM provisioning** — The scope is bare-metal workstation setup, not cloud infrastructure or container orchestration.
 - **Application-level configuration** — Tools are installed and pointed at config files, but in-app settings that require GUI interaction (Setapp, MAS sign-in, Accessibility permissions) remain manual.
+- **Remote desktop / remote access** — Screen sharing, VNC/RDP clients, hardware KVM, and relay infrastructure are managed in a separate project.
 - **Multi-user support** — One user per machine, one age key, one repo.
 
 ## Capabilities
 
 ### Core platform
 
-- **Phase-based Ansible provisioning** — Roles organized into phases (system, security, dev tools, desktop, dotfiles, gaming, remote access, sync) applied selectively or all at once.
+- **Phase-based Ansible provisioning** — Roles organized into phases (system, security, dev tools, desktop, dotfiles, gaming, sync) applied selectively or all at once.
 - **Cross-platform OS dispatch** — Each role handles both macOS and Linux internally via platform-specific task includes.
 - **GNU Stow dotfile layering** — Four stow layers (shared, shared-secrets, platform, platform-secrets) deployed with `--no-folding` for file-level symlinks.
 - **SOPS + age secrets management** — Encrypted variables and dotfiles, decrypted on-the-fly during Ansible runs, with pre-commit hooks for safety.
@@ -100,11 +101,9 @@ See `architecture-overview.md` (forthcoming) for the full system description.
 | Journey | [JOURNEY-001](../../journey/(JOURNEY-001)-Fresh-Machine-Bootstrap/(JOURNEY-001)-Fresh-Machine-Bootstrap.md) | Fresh Machine Bootstrap |
 | Journey | [JOURNEY-002](../../journey/(JOURNEY-002)-Configuration-Evolution/(JOURNEY-002)-Configuration-Evolution.md) | Configuration Evolution |
 | Journey | [JOURNEY-003](../../journey/(JOURNEY-003)-Machine-Migration/(JOURNEY-003)-Machine-Migration.md) | Machine Migration |
-| ADR | [ADR-001](../../adr/Adopted/(ADR-001)-RustDesk-for-Remote-Desktop.md) | RustDesk for Remote Desktop |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest for Personal Files |
 | PRD | [PRD-001](../../prd/Draft/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md) | Raycast Sync |
 | PRD | [PRD-002 (Draft)](../../prd/Draft/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md) | Restic Backup Stack |
-| PRD | [PRD-002 (Impl)](../../prd/Implemented/(PRD-002)-Remote-Desktop/(PRD-002)-Remote-Desktop.md) | Remote Desktop Bootstrap |
 | PRD | [PRD-003](../../prd/Draft/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md) | Sync User Folders |
 | PRD | [PRD-004](../../prd/Implemented/(PRD-004)-Markdown-Viewer/(PRD-004)-Markdown-Viewer.md) | Markdown Viewer |
 
@@ -113,3 +112,4 @@ See `architecture-overview.md` (forthcoming) for the full system description.
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Active | 2026-02-27 | e883231 | Initial creation — project is already operational |
+| Active | 2026-02-28 | 0cf0e98 | Narrowed scope — remote desktop/access moved to separate project |

@@ -4,7 +4,7 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| VISION-001 | [Workstation as Code](./(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | 2026-02-27 | e883231 | Initial creation |
+| VISION-001 | [Workstation as Code](./(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | 2026-02-28 | 0cf0e98 | Scope narrowed — remote access moved out |
 
 ## Draft
 

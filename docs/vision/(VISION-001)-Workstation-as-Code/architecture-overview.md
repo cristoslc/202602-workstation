@@ -33,7 +33,7 @@ Exit code 7 from the TUI signals the caller to reload the shell (for dotfile cha
 
 ## Phase-based provisioning
 
-Ansible playbooks are organized into 9 numbered phases. Both platforms share the numbering scheme; each phase maps to a playbook file under `<platform>/plays/`.
+Ansible playbooks are organized into numbered phases. Both platforms share the numbering scheme; each phase maps to a playbook file under `<platform>/plays/`.
 
 | Phase | Playbook | Description |
 |-------|----------|-------------|
@@ -44,7 +44,6 @@ Ansible playbooks are organized into 9 numbered phases. Both platforms share the
 | 4 | `04-dotfiles.yml` | GNU Stow symlink deployment (4 layers) |
 | 5 | `05-gaming.yml` | Steam, entertainment |
 | 6 | `06-bureau-veritas.yml` | Compliance and monitoring (optional) |
-| 7 | `07-remote-access.yml` | RustDesk, Remmina, GLI KVM (Linux only) |
 | 8 | `08-sync.yml` | Syncthing, Unison, backups |
 
 Phases are selectable in the TUI bootstrap screen. Each phase is idempotent — running it twice produces no changes on the second pass.
