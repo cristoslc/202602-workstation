@@ -686,6 +686,18 @@ roles:
         check: {app_paths: ["/Applications/Microsoft Teams.app", "/Applications/Microsoft Teams classic.app"]}
         tags: [teams]
 
+  linear:
+    phase: bureau-veritas
+    apps:
+      - name: Linear
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Linear.app"]}
+        tags: [linear]
+      - name: Linear
+        platforms: [linux]
+        check: {command: linear}
+        tags: [linear]
+
   # ─── Phase 7: Remote Access ────────────────────────────────────────
   remote-access:
     phase: remote-access
