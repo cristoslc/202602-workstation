@@ -1,4 +1,13 @@
-"""Secret field definitions and collection logic."""
+"""Secret field definitions and collection logic.
+
+Ansible vars are auto-discovered by scanning role ``defaults/main.yml``
+files for ``# @tui`` annotations.  See :mod:`var_scanner` for the
+annotation format.
+
+Shell secrets (exports sourced by .zshrc) start from a static base list
+and are augmented by heuristic detection of unannotated shell-export
+placeholders (e.g. ``OPENAI_API_KEY`` in ``templatize.sh``).
+"""
 
 from __future__ import annotations
 
@@ -8,6 +17,14 @@ from pathlib import Path
 
 from .encryption import write_and_encrypt
 from .runner import REPO_ROOT, ToolRunner
+from .var_scanner import (
+    ScannedVar,
+    candidates_to_scanned_vars,
+    find_unannotated_candidates,
+    scan_role_defaults,
+    scanned_to_ansible_vars,
+    scanned_to_shell_secrets,
+)
 
 logger = logging.getLogger("setup")
 
@@ -25,42 +42,25 @@ class SecretField:
     password: bool = False  # Mask input
 
 
-# Ansible vars -- written to vars.sops.yml as YAML key/value pairs.
-SHARED_ANSIBLE_VARS: list[SecretField] = [
-    SecretField(
-        key="git_user_email",
-        label="Git email",
-        placeholder="you@example.com",
-        description="Sets git config user.email globally",
-        used_by="git role",
-    ),
-    SecretField(
-        key="git_user_name",
-        label="Git display name",
-        placeholder="Your Name",
-        description="Sets git config user.name globally",
-        used_by="git role",
-    ),
-    SecretField(
-        key="git_signing_key",
-        label="SSH signing key (public)",
-        placeholder="ssh-ed25519 AAAA...",
-        description="1Password SSH public key for commit signing",
-        used_by="git role",
-    ),
-    SecretField(
-        key="docker_mcp_brave_api_key",
-        label="Brave Search API key",
-        placeholder="BSA...",
-        description="Web search for Docker MCP Gateway (Brave Search server)",
-        used_by="docker role (mcp-gateway)",
-        doc_url="https://brave.com/search/api/",
-        password=True,
-    ),
-]
+def _scanned_to_field(v: ScannedVar) -> SecretField:
+    """Convert a ScannedVar from the role scanner into a SecretField."""
+    return SecretField(
+        key=v.key,
+        label=v.label,
+        placeholder=v.placeholder,
+        description=v.description,
+        used_by=f"{v.role} role",
+        doc_url=v.doc_url,
+        password=v.password,
+    )
 
-# Shell secrets -- written to secrets.zsh.sops as export statements.
-SHELL_SECRETS: list[SecretField] = [
+
+# ---------------------------------------------------------------------------
+# Static shell-secret base list — entries with hand-tuned metadata that
+# the heuristic scanner can't infer from file structure alone.
+# ---------------------------------------------------------------------------
+
+_STATIC_SHELL_SECRETS: list[SecretField] = [
     SecretField(
         key="ANTHROPIC_API_KEY",
         label="Anthropic API key",
@@ -80,6 +80,65 @@ SHELL_SECRETS: list[SecretField] = [
         password=True,
     ),
 ]
+
+
+def _discover_all(
+    repo_root: Path | None = None,
+) -> tuple[list[SecretField], list[SecretField]]:
+    """Discover all ansible vars and shell secrets.
+
+    1. Scan role defaults for ``@tui`` annotations (authoritative).
+    2. Run heuristic detection for unannotated vars that look like secrets.
+    3. Merge heuristic hits into the appropriate list (ansible or shell).
+    4. Prepend the static shell-secrets base list (hand-tuned metadata).
+
+    Returns ``(ansible_vars, shell_secrets)``.
+    """
+    root = repo_root or REPO_ROOT
+    scanned = scan_role_defaults(root)
+
+    # --- Annotated entries (authoritative) ---
+    ansible_vars = [_scanned_to_field(v) for v in scanned_to_ansible_vars(scanned)]
+    shell_secrets = [_scanned_to_field(v) for v in scanned_to_shell_secrets(scanned)]
+
+    # Start shell secrets from static base list.
+    known_shell_keys = {f.key for f in shell_secrets}
+    for sf in _STATIC_SHELL_SECRETS:
+        if sf.key not in known_shell_keys:
+            shell_secrets.append(sf)
+            known_shell_keys.add(sf.key)
+
+    # --- Heuristic: best-guess unannotated vars ---
+    known_keys = {f.key for f in ansible_vars} | known_shell_keys
+    candidates = find_unannotated_candidates(root, known_keys=known_keys)
+    if candidates:
+        guessed = candidates_to_scanned_vars(candidates)
+        for v in guessed:
+            sf = _scanned_to_field(v)
+            if v.directive == "shell-secret":
+                if sf.key not in known_shell_keys:
+                    shell_secrets.append(sf)
+                    known_shell_keys.add(sf.key)
+            else:
+                ansible_vars.append(sf)
+
+    return ansible_vars, shell_secrets
+
+
+def discover_ansible_vars(repo_root: Path | None = None) -> list[SecretField]:
+    """Scan role defaults for @tui annotations + heuristic candidates."""
+    ansible_vars, _ = _discover_all(repo_root)
+    return ansible_vars
+
+
+def discover_shell_secrets(repo_root: Path | None = None) -> list[SecretField]:
+    """Static shell secrets + heuristic shell-export candidates."""
+    _, shell_secrets = _discover_all(repo_root)
+    return shell_secrets
+
+
+# Eager evaluation at import time — the scanner is fast (pure file reads).
+SHARED_ANSIBLE_VARS, SHELL_SECRETS = _discover_all()
 
 
 def mask_value(value: str) -> str:

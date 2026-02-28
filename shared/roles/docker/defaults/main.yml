@@ -9,6 +9,5 @@ docker_mcp_servers:
   - markdownify
   - playwright
 
-# Brave Search API key — set in shared/secrets/vars.sops.yml as:
-#   docker_mcp_brave_api_key: "your-key-here"
-docker_mcp_brave_api_key: ""
+# @tui secret password label="Brave Search API key" placeholder="BSA..." doc_url="https://brave.com/search/api/"
+docker_mcp_brave_api_key: ""       # Web search for Docker MCP Gateway

@@ -5,6 +5,14 @@
 
 skip_version_check: false
 
+# ── User identity (from SOPS vars.sops.yml) ───────────────────────
+# @tui secret label="Git email" placeholder="you@example.com"
+git_user_email: ""                 # sets git config user.email globally
+# @tui secret label="Git display name" placeholder="Your Name"
+git_user_name: ""                  # sets git config user.name globally
+# @tui secret label="SSH signing key (public)" placeholder="ssh-ed25519 AAAA..."
+git_signing_key: ""                # 1Password SSH public key for commit signing
+
 lazygit_version: "0.59.0"
 lazygit_sha256: "264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2"
 lazygit_url: "https://github.com/jesseduffield/lazygit/releases/download/v{{ lazygit_version }}/lazygit_{{ lazygit_version }}_Linux_x86_64.tar.gz"

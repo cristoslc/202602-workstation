@@ -1,5 +1,5 @@
 ---
-# Self-hosted relay server address. Leave empty to use direct/public connections.
-# Example: "relay.example.com" or a Tailscale IP.
-rustdesk_relay_host: ""
+# @tui secret optional label="RustDesk relay host" placeholder="relay.example.com"
+rustdesk_relay_host: ""            # leave empty for direct/public connections
+# @tui secret optional password label="RustDesk relay key"
 rustdesk_relay_key: ""

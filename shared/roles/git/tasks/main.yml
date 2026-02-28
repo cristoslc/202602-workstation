@@ -17,7 +17,7 @@
     scope: file
     file: "{{ ansible_facts.env.HOME }}/.config/git/local.gitconfig"
     value: "{{ git_user_name }}"
-  when: git_user_name is defined
+  when: git_user_name | default('') | length > 0
 
 - name: Configure git user email
   community.general.git_config:
@@ -25,7 +25,7 @@
     scope: file
     file: "{{ ansible_facts.env.HOME }}/.config/git/local.gitconfig"
     value: "{{ git_user_email }}"
-  when: git_user_email is defined
+  when: git_user_email | default('') | length > 0
 
 - name: Configure git signing key
   community.general.git_config:
@@ -33,7 +33,7 @@
     scope: file
     file: "{{ ansible_facts.env.HOME }}/.config/git/local.gitconfig"
     value: "{{ git_signing_key }}"
-  when: git_signing_key is defined
+  when: git_signing_key | default('') | length > 0
 
 - name: Check git default branch setting
   ansible.builtin.command: git config --global init.defaultBranch
