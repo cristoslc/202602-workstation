@@ -312,6 +312,18 @@ roles:
         check: {app_paths: ["/usr/bin/espanso", "~/.local/bin/espanso"]}
         tags: [espanso]
 
+  markdown-viewer:
+    phase: desktop
+    apps:
+      - name: Typora
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Typora.app"]}
+        tags: [typora]
+      - name: Typora
+        platforms: [linux]
+        check: {command: typora}
+        tags: [typora]
+
   notes:
     phase: desktop
     apps:
