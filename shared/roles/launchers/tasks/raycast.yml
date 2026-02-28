@@ -31,24 +31,39 @@
         creates: "{{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig"
 
     - name: Open Raycast settings import
-      when: raycast_export.stat.exists
+      when:
+        - raycast_export.stat.exists
+        - interactive_imports | default(true) | bool
       ansible.builtin.command:
         cmd: "open {{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig"
       register: raycast_import_open
       changed_when: false
 
     - name: Wait for user to confirm Raycast import dialog
-      when: raycast_export.stat.exists
+      when:
+        - raycast_export.stat.exists
+        - interactive_imports | default(true) | bool
       ansible.builtin.pause:
         prompt: >-
           Raycast import dialog should be open.
           Confirm the import in Raycast, then press Enter to continue.
 
     - name: Clean up decrypted Raycast export
-      when: raycast_export.stat.exists
+      when:
+        - raycast_export.stat.exists
+        - interactive_imports | default(true) | bool
       ansible.builtin.file:
         path: "{{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig"
         state: absent
+
+    - name: Note about deferred Raycast import
+      when:
+        - raycast_export.stat.exists
+        - not (interactive_imports | default(true) | bool)
+      ansible.builtin.debug:
+        msg: >-
+          Raycast export decrypted to {{ ansible_env.HOME }}/.cache/workstation/raycast-import.rayconfig.
+          Use the TUI Import Settings screen to complete the import.
 
     - name: Note about Raycast configuration
       when: not raycast_export.stat.exists

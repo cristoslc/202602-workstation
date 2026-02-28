@@ -13,7 +13,7 @@ hs.hotkey.bind({ "cmd", "shift" }, "v", function()
 end)
 
 -- Emoji picker
-hs.hotkey.bind({ "cmd", "shift" }, "e", function()
+hs.hotkey.bind({ "alt" }, ".", function()
   hs.execute("open raycast://extensions/raycast/emoji-symbols/search-emoji-symbols", true)
 end)
 
@@ -28,42 +28,42 @@ hs.hotkey.bind({ "cmd", "shift" }, "3", function()
 end)
 
 -- Tile window left half
-hs.hotkey.bind({ "cmd", "shift" }, "left", function()
+hs.hotkey.bind({ "ctrl", "alt" }, "left", function()
   local win = hs.window.focusedWindow()
   if win then win:moveToUnit(hs.layout.left50) end
 
 end)
 
 -- Tile window right half
-hs.hotkey.bind({ "cmd", "shift" }, "right", function()
+hs.hotkey.bind({ "ctrl", "alt" }, "right", function()
   local win = hs.window.focusedWindow()
   if win then win:moveToUnit(hs.layout.right50) end
 
 end)
 
 -- Maximize window
-hs.hotkey.bind({ "cmd", "shift" }, "up", function()
+hs.hotkey.bind({ "ctrl", "alt" }, "up", function()
   local win = hs.window.focusedWindow()
   if win then win:maximize() end
 
 end)
 
 -- Restore window
-hs.hotkey.bind({ "cmd", "shift" }, "down", function()
+hs.hotkey.bind({ "ctrl", "alt" }, "down", function()
   local win = hs.window.focusedWindow()
   if win then win:moveToUnit({x = 0.1, y = 0.1, w = 0.8, h = 0.8}) end
 
 end)
 
 -- Move window to next monitor
-hs.hotkey.bind({ "cmd", "shift", "alt" }, "right", function()
+hs.hotkey.bind({ "ctrl", "alt", "cmd" }, "right", function()
   local win = hs.window.focusedWindow()
   if win then win:moveToScreen(win:screen():next()) end
 
 end)
 
 -- Move window to previous monitor
-hs.hotkey.bind({ "cmd", "shift", "alt" }, "left", function()
+hs.hotkey.bind({ "ctrl", "alt", "cmd" }, "left", function()
   local win = hs.window.focusedWindow()
   if win then win:moveToScreen(win:screen():previous()) end
 

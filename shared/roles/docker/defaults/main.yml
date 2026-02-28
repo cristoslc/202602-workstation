@@ -1,8 +1,6 @@
 ---
-docker_mcp_profile_name: workstation
-
 docker_mcp_servers:
-  - brave-search
+  - brave
   - context7
   - dockerhub
   - duckduckgo

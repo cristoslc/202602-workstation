@@ -679,6 +679,7 @@ class BootstrapRunScreen(Screen):
             "-e", f"apply_system_roles={str(apply_system_roles).lower()}",
             "-e", f"platform={platform}",
             "-e", f"platform_dir={platform_dir}",
+            "-e", "interactive_imports=false",
         ]
 
         if platform == "macos":
