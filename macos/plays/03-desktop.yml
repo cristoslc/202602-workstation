@@ -16,6 +16,9 @@
     - role: notes
       tags: [notes, antinote, desktop]
 
+    - role: markdown-viewer
+      tags: [markdown-viewer, typora, desktop]
+
     - role: calendar
       tags: [calendar, dato, busycal, desktop]
 

@@ -1,0 +1,49 @@
+---
+# Typora sub-task
+# Cross-platform markdown editor with inline WYSIWYG and GFM support.
+
+- name: Install Typora (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: typora
+    state: present
+
+- name: Install Typora (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Download Typora GPG key
+      ansible.builtin.get_url:
+        url: https://typora.io/linux/public-key.asc
+        dest: /tmp/typora-public-key.asc
+        mode: "0644"
+      register: _typora_key_download
+      retries: 3
+      delay: 5
+      until: _typora_key_download is not failed
+
+    - name: Dearmor and install Typora GPG key
+      ansible.builtin.shell: >
+        gpg --dearmor < /tmp/typora-public-key.asc
+        > /usr/share/keyrings/typora-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/typora-keyring.gpg
+      become: true
+
+    - name: Clean up armored key
+      ansible.builtin.file:
+        path: /tmp/typora-public-key.asc
+        state: absent
+
+    - name: Add Typora apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/typora-keyring.gpg] https://typora.io/linux ./"
+        filename: typora
+        state: present
+      become: true
+
+    - name: Install Typora
+      ansible.builtin.apt:
+        name: typora
+        state: present
+        update_cache: true
+      become: true

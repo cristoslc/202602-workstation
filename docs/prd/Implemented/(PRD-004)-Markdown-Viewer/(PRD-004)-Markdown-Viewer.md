@@ -1,6 +1,6 @@
 # PRD-004: Markdown Viewer
 
-**Status:** Draft
+**Status:** Implemented
 **Author:** cristos
 **Created:** 2026-02-28
 **Last Updated:** 2026-02-28
@@ -12,6 +12,7 @@
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-02-28 | 18fbe9b | Initial creation |
+| Implemented | 2026-02-28 | 13866ba | Typora role created, wired into Phase 3 desktop playbooks (macOS + Linux) |
 
 ---
 
