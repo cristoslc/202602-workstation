@@ -22,6 +22,10 @@ Key-value overrides:
 
 Variables with empty-string defaults ("") that have NO annotation are ignored
 by the scanner — the @tui marker is an opt-in signal.
+
+A separate **heuristic lint** (``find_unannotated_candidates``) scans for
+empty-string vars whose names look like secrets but lack any ``@tui``
+annotation, as a safety-net to catch omissions.
 """
 
 from __future__ import annotations
@@ -30,6 +34,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import NamedTuple
 
 logger = logging.getLogger("setup")
 
@@ -217,3 +222,146 @@ def scanned_to_ansible_vars(scanned: list[ScannedVar]) -> list[ScannedVar]:
 def scanned_to_shell_secrets(scanned: list[ScannedVar]) -> list[ScannedVar]:
     """Filter to only ``shell-secret`` directive vars."""
     return [v for v in scanned if v.directive == "shell-secret"]
+
+
+# ---------------------------------------------------------------------------
+# Heuristic lint — catch unannotated secrets
+# ---------------------------------------------------------------------------
+
+# Suffixes that strongly suggest a variable is a secret.
+_SECRET_SUFFIXES = (
+    "_api_key", "_apikey", "_token", "_password", "_passwd",
+    "_secret", "_credential", "_cred", "_auth",
+)
+
+# Suffixes that look secret-ish but are typically non-sensitive.
+_FALSE_POSITIVE_SUFFIXES = ("_key_id", "_public_key", "signing_key")
+
+# Whole-name patterns for ALL_CAPS env-var style secrets.
+_ALLCAPS_SECRET_RE = re.compile(
+    r"^[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD|AUTH_KEY|CREDENTIAL)$"
+)
+
+# Regex for shell-export lines:  ``export FOO="bar"``  or  ``export FOO=bar``
+# Allows optional leading whitespace (heredocs in templatize.sh are indented).
+_SHELL_EXPORT_RE = re.compile(
+    r'^\s*export\s+([A-Z][A-Z0-9_]+)=["\']?(.+?)["\']?\s*$',
+    re.MULTILINE,
+)
+
+
+class UnannotatedCandidate(NamedTuple):
+    """A variable that looks like a secret but has no @tui annotation."""
+
+    key: str
+    source: str  # "role:<name>/defaults" or "shell-export:<file>"
+    reason: str  # human-readable explanation of why it was flagged
+
+
+def _looks_like_secret(key: str) -> str | None:
+    """Return a reason string if *key* looks like a secret, else None."""
+    lower = key.lower()
+
+    # Check false-positive exclusions first.
+    if any(lower.endswith(fp) for fp in _FALSE_POSITIVE_SUFFIXES):
+        return None
+
+    for suffix in _SECRET_SUFFIXES:
+        if lower.endswith(suffix):
+            return f"name ends with {suffix!r}"
+
+    # Bare ``_key`` suffix (but not ``_key_id`` etc. filtered above).
+    if lower.endswith("_key") and not lower.endswith("_public_key"):
+        return "name ends with '_key'"
+
+    # ALL_CAPS env-var style.
+    if _ALLCAPS_SECRET_RE.match(key):
+        return "ALL_CAPS name matches secret pattern"
+
+    return None
+
+
+def find_unannotated_candidates(
+    repo_root: Path,
+    known_keys: set[str] | None = None,
+) -> list[UnannotatedCandidate]:
+    """Find empty-string vars and shell exports that look like secrets but
+    lack ``@tui`` annotations.
+
+    *known_keys* is the set of keys already handled (annotated vars +
+    static SHELL_SECRETS).  If ``None``, it is built from
+    ``scan_role_defaults``.
+
+    This is a **lint**, not a hard gate — results should be surfaced as
+    warnings to prompt the developer to annotate (or ``@tui skip``).
+    """
+    if known_keys is None:
+        scanned = scan_role_defaults(repo_root)
+        known_keys = {v.key for v in scanned}
+
+    candidates: list[UnannotatedCandidate] = []
+
+    # --- Pass 1: unannotated empty-string vars in role defaults ---
+    for pattern in [
+        "shared/roles/*/defaults/main.yml",
+        "linux/roles/*/defaults/main.yml",
+        "macos/roles/*/defaults/main.yml",
+    ]:
+        for path in sorted(repo_root.glob(pattern)):
+            role_name = path.parent.parent.name
+            try:
+                lines = path.read_text().splitlines()
+            except OSError:
+                continue
+
+            prev_is_annotation = False
+            for line in lines:
+                stripped = line.strip()
+                if _ANNOTATION_RE.match(stripped):
+                    prev_is_annotation = True
+                    continue
+
+                vm = _YAML_VAR_RE.match(line)
+                if vm and not prev_is_annotation:
+                    var_key = vm.group(1)
+                    if var_key not in known_keys:
+                        reason = _looks_like_secret(var_key)
+                        if reason:
+                            candidates.append(
+                                UnannotatedCandidate(
+                                    key=var_key,
+                                    source=f"role:{role_name}/defaults",
+                                    reason=reason,
+                                )
+                            )
+                prev_is_annotation = False
+
+    # --- Pass 2: shell-export placeholders in templatize.sh / SOPS templates ---
+    for shell_pattern in [
+        "scripts/templatize.sh",
+        "shared/secrets/dotfiles/**/*.sops",
+    ]:
+        for path in sorted(repo_root.glob(shell_pattern)):
+            try:
+                content = path.read_text()
+            except OSError:
+                continue
+
+            for m in _SHELL_EXPORT_RE.finditer(content):
+                env_key = m.group(1)
+                env_val = m.group(2)
+                if env_key in known_keys:
+                    continue
+                # Only flag if the value is a placeholder or empty.
+                if env_val in ("PLACEHOLDER", "", '""', "''"):
+                    reason = _looks_like_secret(env_key)
+                    if reason:
+                        candidates.append(
+                            UnannotatedCandidate(
+                                key=env_key,
+                                source=f"shell-export:{path.relative_to(repo_root)}",
+                                reason=reason,
+                            )
+                        )
+
+    return sorted(candidates, key=lambda c: (c.source, c.key))

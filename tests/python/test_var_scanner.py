@@ -11,9 +11,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"
 
 from setup_tui.lib.var_scanner import (
     ScannedVar,
+    UnannotatedCandidate,
     _humanize_key,
+    _looks_like_secret,
     _parse_annotation,
     _parse_defaults_file,
+    find_unannotated_candidates,
     scan_role_defaults,
     scanned_to_ansible_vars,
     scanned_to_shell_secrets,
@@ -309,3 +312,147 @@ class TestSecretsIntegration:
             assert f.key
             assert f.label
             assert f.used_by
+
+
+# ---------------------------------------------------------------------------
+# _looks_like_secret heuristic
+# ---------------------------------------------------------------------------
+
+
+class TestLooksLikeSecret:
+    def test_api_key(self):
+        assert _looks_like_secret("stripe_api_key") is not None
+
+    def test_token(self):
+        assert _looks_like_secret("github_token") is not None
+
+    def test_password(self):
+        assert _looks_like_secret("db_password") is not None
+
+    def test_credential(self):
+        assert _looks_like_secret("aws_credential") is not None
+
+    def test_bare_key(self):
+        assert _looks_like_secret("b2_master_key") is not None
+
+    def test_allcaps_api_key(self):
+        assert _looks_like_secret("OPENAI_API_KEY") is not None
+
+    def test_allcaps_token(self):
+        assert _looks_like_secret("GITHUB_TOKEN") is not None
+
+    def test_allcaps_secret(self):
+        assert _looks_like_secret("MY_APP_SECRET") is not None
+
+    def test_public_key_excluded(self):
+        assert _looks_like_secret("ssh_public_key") is None
+
+    def test_signing_key_excluded(self):
+        assert _looks_like_secret("git_signing_key") is None
+
+    def test_key_id_excluded(self):
+        assert _looks_like_secret("b2_master_key_id") is None
+
+    def test_normal_var(self):
+        assert _looks_like_secret("app_version") is None
+
+    def test_empty_string_default(self):
+        assert _looks_like_secret("some_host") is None
+
+    def test_bucket(self):
+        assert _looks_like_secret("restic_b2_bucket") is None
+
+
+# ---------------------------------------------------------------------------
+# find_unannotated_candidates
+# ---------------------------------------------------------------------------
+
+
+class TestFindUnannotatedCandidates:
+    def test_catches_unannotated_api_key(self, tmp_path):
+        role_dir = tmp_path / "shared/roles/my-app/defaults"
+        role_dir.mkdir(parents=True)
+        (role_dir / "main.yml").write_text(
+            "---\n"
+            'my_app_api_key: ""\n'
+            'normal_var: ""\n'
+        )
+        candidates = find_unannotated_candidates(tmp_path, known_keys=set())
+        assert len(candidates) == 1
+        assert candidates[0].key == "my_app_api_key"
+        assert candidates[0].source == "role:my-app/defaults"
+
+    def test_catches_unannotated_password(self, tmp_path):
+        role_dir = tmp_path / "shared/roles/db/defaults"
+        role_dir.mkdir(parents=True)
+        (role_dir / "main.yml").write_text(
+            "---\n"
+            'db_password: ""\n'
+        )
+        candidates = find_unannotated_candidates(tmp_path, known_keys=set())
+        assert len(candidates) == 1
+        assert candidates[0].key == "db_password"
+
+    def test_skips_annotated_vars(self, tmp_path):
+        role_dir = tmp_path / "shared/roles/my-app/defaults"
+        role_dir.mkdir(parents=True)
+        (role_dir / "main.yml").write_text(
+            "---\n"
+            "# @tui secret\n"
+            'my_app_api_key: ""\n'
+        )
+        candidates = find_unannotated_candidates(
+            tmp_path, known_keys={"my_app_api_key"}
+        )
+        assert len(candidates) == 0
+
+    def test_skips_known_keys(self, tmp_path):
+        role_dir = tmp_path / "shared/roles/my-app/defaults"
+        role_dir.mkdir(parents=True)
+        (role_dir / "main.yml").write_text(
+            "---\n"
+            'my_app_token: ""\n'
+        )
+        candidates = find_unannotated_candidates(
+            tmp_path, known_keys={"my_app_token"}
+        )
+        assert len(candidates) == 0
+
+    def test_catches_shell_export_placeholder(self, tmp_path):
+        scripts_dir = tmp_path / "scripts"
+        scripts_dir.mkdir()
+        (scripts_dir / "templatize.sh").write_text(
+            '#!/bin/bash\n'
+            'export MY_SERVICE_API_KEY="PLACEHOLDER"\n'
+            'export NORMAL_PATH="/usr/bin"\n'
+        )
+        candidates = find_unannotated_candidates(tmp_path, known_keys=set())
+        assert len(candidates) == 1
+        assert candidates[0].key == "MY_SERVICE_API_KEY"
+        assert "shell-export" in candidates[0].source
+
+    def test_ignores_shell_export_with_real_value(self, tmp_path):
+        scripts_dir = tmp_path / "scripts"
+        scripts_dir.mkdir()
+        (scripts_dir / "templatize.sh").write_text(
+            '#!/bin/bash\n'
+            'export MY_API_KEY="sk-ant-real-value-here"\n'
+        )
+        candidates = find_unannotated_candidates(tmp_path, known_keys=set())
+        assert len(candidates) == 0
+
+    def test_real_repo_no_unannotated_ansible_secrets(self):
+        """In the real repo, all secret-like vars in defaults should be annotated."""
+        from setup_tui.lib.secrets import SHELL_SECRETS
+
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        scanned = scan_role_defaults(repo_root)
+        known = {v.key for v in scanned} | {s.key for s in SHELL_SECRETS}
+        candidates = find_unannotated_candidates(repo_root, known_keys=known)
+
+        # Filter to only role defaults (not shell exports like OPENAI_API_KEY).
+        role_candidates = [c for c in candidates if c.source.startswith("role:")]
+        assert role_candidates == [], (
+            f"Unannotated secret-like vars in role defaults: "
+            f"{[(c.key, c.source) for c in role_candidates]}"
+        )
