@@ -5,6 +5,8 @@ license: UNLICENSED
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 metadata:
   short-description: Manage spec artifact creation and lifecycle
+  version: 1.1.0
+  author: cristos
 ---
 
 # Spec Management
@@ -57,11 +59,75 @@ Maps an end-to-end user experience across features and touchpoints. Journeys des
 
 - **Folder structure:** `docs/journey/(JOURNEY-NNN)-<Title>/`
   - Primary file: `(JOURNEY-NNN)-<Title>.md` — the journey narrative.
-  - Supporting docs: journey map diagrams, flow charts, interview notes.
+  - Supporting docs: flow charts, interview notes, extended research.
 - Frontmatter must include: title, status, author, created date, last updated date, parent Vision, and linked Persona(s).
 - Must define: persona (who — reference a PERSONA-NNN artifact), goal (what they're trying to accomplish), steps/stages (the flow), pain points (friction), and opportunities (where the product can improve).
 - A Journey is "Validated" when its steps and pain points have been confirmed through user research, stakeholder review, or prototype testing.
 - Journeys are *discovery artifacts* — they inform Epic and PRD creation but are not directly implemented. They do NOT contain acceptance criteria or task breakdowns.
+
+#### Mermaid journey diagram
+
+Every journey MUST include a Mermaid `journey` diagram embedded in the primary file. The diagram is a structured visualization of the narrative — it encodes stages, actions, satisfaction levels, and actors in a single view. Place the diagram immediately after the **Steps / Stages** section.
+
+**Syntax:**
+
+~~~markdown
+```mermaid
+journey
+    title <Journey Title>
+    section <Stage Name>
+      <Action>: <score>: <Actor>
+```
+~~~
+
+**Mapping conventions:**
+
+| Journey element | Mermaid element | Rule |
+|-----------------|-----------------|------|
+| Steps / stages | `section` blocks | One section per stage, in narrative order |
+| Actions within a stage | Task lines | Concise verb phrases (3-6 words) |
+| Persona | Actor name | Use the persona's archetype label from its PERSONA-NNN, not the artifact ID |
+| System / other actors | Additional actors | Add when a handoff or interaction with another party occurs |
+
+**Satisfaction scores** (1–5 scale):
+
+| Score | Sentiment | Signals |
+|-------|-----------|---------|
+| 5 | Delighted | Moment of delight, exceeds expectations |
+| 4 | Satisfied | Works well, minor friction at most |
+| 3 | Neutral | Functional but unremarkable |
+| 2 | Frustrated | Noticeable friction — flags a **pain point** |
+| 1 | Blocked | Severe friction or failure — flags a critical **pain point** |
+
+Every pain point identified in the narrative MUST appear as a score ≤ 2 task in the diagram, and every score ≤ 2 task MUST have a corresponding pain point in the narrative. This keeps the diagram and narrative in sync.
+
+**Example:**
+
+~~~markdown
+```mermaid
+journey
+    title First-Time Project Setup
+    section Discovery
+      Find product landing page: 4: Developer
+      Read getting-started guide: 3: Developer
+    section Installation
+      Install CLI tool: 5: Developer
+      Run init command: 4: Developer
+      Configure credentials: 2: Developer
+    section First Use
+      Create first project: 4: Developer
+      Invite team member: 1: Developer, Admin
+      Run first build: 5: Developer
+```
+~~~
+
+In this example, "Configure credentials" (2) and "Invite team member" (1) surface as pain points — the narrative must describe the corresponding friction and opportunities.
+
+**Workflow integration:**
+
+- When creating a journey, draft the narrative first, then build the diagram from it. The diagram is a *derived visualization*, not the source of truth — the narrative is.
+- When updating a journey (adding stages, revising pain points), update **both** the narrative and the diagram in the same commit.
+- When transitioning a journey to Validated, confirm that satisfaction scores reflect validated research findings, not initial assumptions. Adjust scores as user feedback dictates.
 
 ### Epics (EPIC-NNN)
 
@@ -112,6 +178,10 @@ A user archetype that represents a distinct segment of the product's audience. P
 
 ### ADRs (ADR-NNN)
 
+- **Directory structure:** `docs/adr/<Phase>/(ADR-NNN)-<Title>.md` — each ADR is a single Markdown file placed in the subdirectory matching its current lifecycle phase. Phase subdirectories: `Draft/`, `Proposed/`, `Adopted/`, `Retired/`, `Superseded/`.
+  - Example: `docs/adr/Adopted/(ADR-001)-Subtree-Split-Distribution-Model.md`
+  - When transitioning phases, **move the file** to the new phase directory (e.g., `git mv docs/adr/Draft/(ADR-003)-Foo.md docs/adr/Proposed/(ADR-003)-Foo.md`).
+  - **Never** store ADRs flat in `docs/adr/` with phase tracked only in frontmatter — the directory structure must reflect the phase.
 - Frontmatter must include: title, status, author, created date, last updated date, and links to all affected Epics/PRDs.
 - ADRs are cross-cutting: they link to all affected artifacts but are not owned by any single one.
 - ADRs record **decisions**: a specific choice between alternatives, with rationale and consequences. They require status, alternatives considered, and a decision outcome.
@@ -141,48 +211,39 @@ Phases listed in AGENTS.md are available waypoints, not mandatory gates. An arti
 ### Completion rules
 
 - An Epic is "Complete" only when all child PRDs are "Implemented" and success criteria are met.
-- A PRD is "Implemented" only when its bd implementation plan epic is closed (or all tasks are done in fallback mode).
+- A PRD is "Implemented" only when its implementation plan is closed (or all tasks are done in fallback mode).
 - An ADR is "Superseded" only when the superseding ADR is "Adopted" and links back.
 
-## Implementation plans (bd execution bridge)
+## Implementation plans
 
-Implementation Plans are not a doc-type artifact. They bridge declarative specs (`docs/`) and execution tracking (`bd`). Plans are materialized as live `bd` epics with dependency-ordered child tasks.
+Implementation plans are not a doc-type artifact. They bridge declarative specs (`docs/`) and execution tracking. All concrete CLI operations are handled by the **execution-tracking** skill — this skill describes *what* to do, not *how*.
+
+### Prerequisites
+
+Before creating or modifying implementation plans, invoke the **execution-tracking** skill to bootstrap the task backend (availability check, installation if missing, initialization). That skill owns the install, recovery, and CLI command layer.
 
 ### Seeding a plan from a spec
 
-1. A PRD (or Epic) may include an "Implementation Approach" section sketching the high-level plan. This seeds the `bd` plan but is not the plan of record.
-2. When work begins, create a `bd` epic from that outline:
-   ```
-   bd create "Implement PRD-003 CSV Export" --type=epic --external-ref PRD-003
-   ```
-3. Create child tasks under the epic with dependencies:
-   ```
-   bd create "Add export endpoint" --parent <epic-id> --labels spec:PRD-003
-   bd create "Write serializer" --parent <epic-id> --deps <endpoint-id> --labels spec:PRD-003
-   ```
+1. A PRD (or Epic) may include an "Implementation Approach" section sketching the high-level plan. This seeds the implementation plan but is not the plan of record.
+2. When work begins, create an **implementation plan** for the spec artifact, linked via an **origin ref** (e.g., `PRD-003`).
+3. Create **tasks** under the implementation plan with dependencies between them. Tag each task with a **spec tag** for the originating spec.
 
 ### Lineage and cross-spec impact
 
-- **`--external-ref`** records which spec *seeded* the plan (immutable origin).
-- **`spec:<ID>` labels** record which specs a task *currently affects* (mutable, may grow).
-- When a task impacts additional specs:
-  ```
-  bd label add <task-id> spec:PRD-007
-  bd dep relate <task-id> <other-spec-task-id>
-  ```
-- Use `bd dep add --type=discovered-from` for provenance when tasks spawn from existing ones.
-- Query all work for a spec: `bd list --label spec:PRD-003`.
+- Every implementation plan has an **origin ref** — an immutable link to the spec that seeded it.
+- Every task carries one or more **spec tags** — mutable labels recording which specs it currently affects.
+- When a task impacts additional specs, add spec tags for the new specs and create **dependencies** linking related tasks across plans.
+- Track provenance when tasks spawn from existing ones.
 
 ### Parallel coordination
 
-- `bd swarm create <epic-id>` sets up a swarm — agents use `bd ready` to pick up unblocked work.
-- For repeatable workflows, define a formula in `.beads/formulas/` and instantiate with `bd mol pour`.
+- Use the execution-tracking skill's parallel coordination features (swarms, formulas) when multiple agents need to pick up **ready work** from the same implementation plan.
 
 ### Closing the loop
 
-- Progress is tracked in `bd`, not in the spec doc. The PRD's lifecycle table records the transition to "Implemented" once the `bd` epic completes.
+- Progress is tracked in the execution backend, not in the spec doc. The PRD's lifecycle table records the transition to "Implemented" once the implementation plan completes.
 - Cross-spec tasks should be noted in each affected artifact's lifecycle table entry (e.g., "Implemented — shared serializer also covers PRD-007").
 
 ### Fallback
 
-If `bd` is unavailable, use the agent's built-in todo system with canonical states (`todo`, `in_progress`, `blocked`, `done`) per the external-task-management skill. The plan structure (ordered steps, dependencies, completion tracking) remains the same — only the backend changes. Lineage is maintained by including artifact IDs in task titles or notes (e.g., `[PRD-003] Add export endpoint`).
+If the **execution-tracking** skill is not available in the current agent environment, fall back to the agent's built-in todo system with canonical states (`todo`, `in_progress`, `blocked`, `done`). The plan structure (ordered steps, dependencies, completion tracking) remains the same — only the backend changes. Lineage is maintained by including artifact IDs in task titles or notes (e.g., `[PRD-003] Add export endpoint`).
