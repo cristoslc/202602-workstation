@@ -24,6 +24,7 @@ Roles are organized by **function** (capability), not by tool name. Before creat
 | A link/file routing handler | `shared/roles/link-handler` |
 | A remote desktop client/server | `shared/roles/remote-desktop` |
 | Stream Deck companion software | `shared/roles/stream-deck` |
+| A project management or issue tracker | `shared/roles/linear` |
 
 ## Add a Sub-Task to an Existing Role
 

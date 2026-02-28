@@ -1,0 +1,10 @@
+---
+# Pinned version and SHA-256 checksum for Linear desktop (Linux).
+# An automatic update check runs before install — set skip_version_check: true
+# to opt out.
+
+skip_version_check: false
+
+linear_version: "0.2.3"
+linear_sha256: "1e9ddf4f50c0bde993de3950109a83174897c1b426d3e5aeb4cffffcee63e182"
+linear_url: "https://github.com/zacharyftw/linear-linux/releases/download/v{{ linear_version }}/Linear_{{ linear_version }}_amd64.deb"

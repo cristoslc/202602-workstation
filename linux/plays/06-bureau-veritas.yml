@@ -28,3 +28,6 @@
 
     - role: teams
       tags: [teams, bureau-veritas]
+
+    - role: linear
+      tags: [linear, bureau-veritas]

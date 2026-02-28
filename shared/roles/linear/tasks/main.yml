@@ -1,0 +1,44 @@
+---
+# Linear — project management and issue tracking
+- name: Install Linear (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: linear-linear
+    state: present
+
+- name: Install Linear (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check Linear version
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/version-check.yml"
+      vars:
+        tool_name: linear
+        tool_repo: zacharyftw/linear-linux
+        pinned_version: "{{ linear_version }}"
+
+    - name: Check if Linear is installed at correct version
+      ansible.builtin.shell: dpkg-query -W -f='${Version}' linear 2>/dev/null | grep -qF '{{ linear_version }}'
+      register: linear_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download and verify Linear
+      when: linear_installed.rc != 0
+      ansible.builtin.include_tasks: "{{ workstation_dir }}/shared/tasks/download-and-verify.yml"
+      vars:
+        download_url: "{{ linear_url }}"
+        expected_sha256: "{{ linear_sha256 }}"
+        tool_name: linear
+
+    - name: Install Linear .deb
+      when: linear_installed.rc != 0
+      ansible.builtin.apt:
+        deb: "{{ _verified_download.path }}"
+        state: present
+      become: true
+
+    - name: Clean up Linear temp file
+      when: linear_installed.rc != 0 and _verified_download is defined
+      ansible.builtin.file:
+        path: "{{ _verified_download.path }}"
+        state: absent
