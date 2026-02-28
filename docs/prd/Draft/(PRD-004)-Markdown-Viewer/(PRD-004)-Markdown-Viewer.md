@@ -53,52 +53,42 @@ After `make apply`, each workstation has a markdown tool that:
 
 | Tool | Platforms | GFM | Live-reload | Inline editor | License | Notes |
 |------|-----------|-----|-------------|---------------|---------|-------|
-| **Marked 2** | macOS only | Full | Yes (file watch) | No (preview only) | Proprietary (SetApp / $14) | Current tool. Gold standard for preview UX. |
+| **Marked 2** | macOS only | Full | Yes (file watch) | No (preview only) | Proprietary (SetApp / $14) | Current tool. Gold standard for preview UX. No Linux support. |
 | **Mark Text** | macOS, Linux, Windows | Full | Yes (built-in) | Yes (WYSIWYG) | MIT | Electron-based. Last release 2022 — maintenance unclear. |
-| **Typora** | macOS, Linux, Windows | Full | Yes (inline) | Yes (inline WYSIWYG) | Proprietary ($15) | Polished. Actively maintained. |
-| **Apostrophe** | Linux (GNOME) | Partial (via cmark) | Yes (side panel) | Yes (split pane) | GPL-3.0 | GNOME-native, Flatpak. GFM extensions may need verification. |
-| **Ghostwriter** | Linux, Windows | Full (via cmark-gfm) | Yes (side panel) | Yes (split pane) | GPL-3.0 | KDE/Qt-based, ships with cmark-gfm processor. |
+| ~~**Typora**~~ **Selected** | macOS, Linux, Windows | Full | Yes (inline) | Yes (inline WYSIWYG) | Proprietary ($15) | Polished. Actively maintained. Cross-platform with identical UX. |
+| **Apostrophe** | Linux (GNOME) | Partial (via cmark) | Yes (side panel) | Yes (split pane) | GPL-3.0 | Linux-only, GFM extensions unverified. |
+| **Ghostwriter** | Linux, Windows | Full (via cmark-gfm) | Yes (side panel) | Yes (split pane) | GPL-3.0 | No official macOS build. |
 
-## Strategy options
+## Decision
 
-### Option A — Keep Marked 2 on macOS, add a Linux previewer
+**Typora on both macOS and Linux.** One tool, identical GFM rendering and inline WYSIWYG editing on both platforms. Replaces Marked 2 on macOS.
 
-- macOS: Marked 2 via SetApp (status quo, no provisioning change needed).
-- Linux: Apostrophe or Ghostwriter via Flatpak/package manager.
-- Pro: Best-in-class UX on macOS. Minimal disruption.
-- Con: Two different tools to learn; no config parity.
+- macOS: `brew install --cask typora`
+- Linux: Typora APT/DNF repo or Snap (`snap install typora`)
 
-### Option B — Single cross-platform tool on both platforms
-
-- Replace Marked 2 with Mark Text or Typora everywhere.
-- Pro: Identical UX and config on both platforms.
-- Con: Gives up Marked 2's superior preview-only workflow; Mark Text maintenance risk.
-
-### Option C — Marked 2 on macOS + Ghostwriter on Linux (recommended starting point)
-
-- macOS: Marked 2 via `mas` role or SetApp (capture in provisioning either way).
-- Linux: Ghostwriter via system package (`ghostwriter` is in Fedora/Ubuntu repos and Flathub).
-- Pro: Native-feeling app per platform. Both support GFM, live preview, and custom CSS.
-- Con: Different tools, but both are split-pane previewer+editor — close enough in workflow.
+Rationale:
+- Full GFM support (fenced code blocks, tables, task lists, strikethrough, autolinks).
+- Inline WYSIWYG editing — satisfies the nice-to-have without a separate editor.
+- Actively maintained with regular releases.
+- Single tool to learn and provision across platforms.
+- $15 one-time purchase (no subscription).
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Mark Text abandoned (last release v0.17.1, Aug 2022) | Stuck on outdated Electron, security issues | Prefer actively maintained alternatives (Ghostwriter, Apostrophe) |
-| Ghostwriter UX gap vs Marked 2 | Friction on Linux | Evaluate in spike; accept minor parity gap if core preview works |
-| SetApp Marked 2 not capturable in provisioning | macOS install stays manual | Check if Marked 2 is also on `mas` (Mac App Store CLI); if so, provision via `mas` role |
-| Flatpak sandboxing limits file access | Previewer can't watch project directories | Use system package where available; configure Flatpak overrides if needed |
+| Typora is proprietary / closed-source | Vendor lock-in; no community fork if abandoned | Low switching cost — Typora edits plain `.md` files, no lock-in on data. Monitor alternatives. |
+| $15 license per machine | Minor cost | One-time purchase, not subscription. Acceptable for a professional tool. |
+| Linux package freshness | Repo may lag behind macOS releases | Typora maintains its own APT repo; Snap is also an option. Pin to known-good version if needed. |
+| No file-watch mode (unlike Marked 2) | Must open files directly rather than auto-following editor saves | Typora auto-reloads on external change when the file is already open. Acceptable trade-off since inline editing reduces the need for a separate previewer. |
 
 ## Research
 
-| ID | Question | Status | Blocks |
-|----|----------|--------|--------|
-| SPIKE-002 | Evaluate Ghostwriter + Apostrophe on Linux: GFM support, live-reload, file-watch, custom CSS, desktop integration | Planned | Tool selection and implementation |
+No research spikes required — Typora is a known, actively maintained tool with documented cross-platform support. Evaluate during implementation if any provisioning issues arise.
 
 ## Success Criteria
 
-1. `make apply` on a Linux workstation installs a markdown previewer with GFM support and live-reload.
-2. `.md` files can be opened in the previewer from the file manager or command line.
-3. On macOS, Marked 2 (or chosen replacement) is captured in the provisioning pipeline — not a manual SetApp install.
-4. Both platforms can preview a test document with fenced code blocks, tables, task lists, and images without rendering errors.
+1. `make apply` installs Typora on both macOS and Linux workstations — no manual steps.
+2. `.md` files can be opened in Typora from the file manager or command line.
+3. A test document with fenced code blocks, tables, task lists, and images renders correctly on both platforms.
+4. Typora is configured as a `.md` file association on both platforms.
