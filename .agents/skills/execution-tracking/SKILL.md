@@ -51,15 +51,15 @@ Use this logical mapping even if the CLI uses different labels:
 1. Create/update external tasks at the start of work, after each major milestone, and before final response.
 2. Keep task titles short and action-oriented.
 3. Store handoff notes in the task entry rather than ephemeral chat context when possible.
-4. Include references to related artifact IDs in task notes. Valid prefixes: `VISION-NNN`, `EPIC-NNN`, `PRD-NNN`, `SPIKE-NNN`, `ADR-NNN`.
+4. Include references to related artifact IDs in task notes. Valid prefixes: `VISION-NNN`, `EPIC-NNN`, `SPEC-NNN`, `SPIKE-NNN`, `ADR-NNN`.
 
 ## Spec lineage tagging (bd-specific)
 When creating `bd` tasks that implement a spec artifact:
-- Tag the origin spec with `--external-ref <ID>` (e.g., `--external-ref PRD-003`). This is immutable — it records which spec seeded the work.
-- Tag all tasks with `spec:<ID>` labels (e.g., `--labels spec:PRD-003`). These are mutable — add labels as cross-spec impact is discovered.
-- When a task affects multiple specs, add additional labels: `bd label add <task-id> spec:PRD-007`.
+- Tag the origin spec with `--external-ref <ID>` (e.g., `--external-ref SPEC-003`). This is immutable — it records which spec seeded the work.
+- Tag all tasks with `spec:<ID>` labels (e.g., `--labels spec:SPEC-003`). These are mutable — add labels as cross-spec impact is discovered.
+- When a task affects multiple specs, add additional labels: `bd label add <task-id> spec:SPEC-007`.
 - Use `bd dep relate` for bidirectional links between tasks in different plans.
-- Query all work for a spec with: `bd list --label spec:PRD-003`.
+- Query all work for a spec with: `bd list --label spec:SPEC-003`.
 
 ## Parallel coordination (bd-specific)
 - `bd swarm create <plan-id>` sets up a swarm — agents use `bd ready` to pick up unblocked work.
