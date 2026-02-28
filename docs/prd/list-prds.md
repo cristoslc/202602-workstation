@@ -20,7 +20,6 @@ _None._
 
 | PRD | Title | Created | Last Updated | Notes |
 |-----|-------|---------|--------------|-------|
-| PRD-002 | Remote Desktop Bootstrap | 2026-02-26 | 2026-02-26 | RustDesk + GLI KVM + Remmina; replaces Remotix |
 | PRD-004 | Markdown Viewer | 2026-02-28 | 2026-02-28 | Typora on macOS + Linux; shared `markdown-viewer` role in Phase 3 |
 
 ## Deprecated
