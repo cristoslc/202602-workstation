@@ -23,11 +23,14 @@
 
 - name: "Decrypt files to .decrypted/"
   ansible.builtin.shell: |
-    sops -d "{{ item.path }}" > "{{ decrypted_path }}"
+    sops -d {{ sops_type_flags }} "{{ item.path }}" > "{{ decrypted_path }}"
     chmod 600 "{{ decrypted_path }}"
   vars:
     # Strip .sops from the filename: "foo.sops" → "foo", "foo.sops.yml" → "foo.yml"
     decrypted_path: "{{ item.path | regex_replace(secrets_source, secrets_target) | regex_replace('\\.sops(\\.yml|\\.yaml)?$', '\\1') }}"
+    # Files named *.yml.sops or *.yaml.sops need explicit type flags because
+    # SOPS sees .sops as the extension and cannot auto-detect YAML format.
+    sops_type_flags: "{{ '--input-type yaml --output-type yaml' if item.path is regex('\\.ya?ml\\.sops$') else '' }}"
   loop: "{{ encrypted_files.files }}"
   loop_control:
     label: "{{ item.path | basename }}"
