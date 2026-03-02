@@ -1,0 +1,8 @@
+---
+# Tesseract OCR — system-level OCR engine used by document processing
+# pipelines (e.g., HouseOps Filing Cabinet). The pytesseract Python
+# wrapper calls this binary.
+
+# Language packs to install alongside the engine.
+tesseract_languages:
+  - eng

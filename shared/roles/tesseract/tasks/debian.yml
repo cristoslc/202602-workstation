@@ -1,0 +1,6 @@
+---
+- name: Install Tesseract OCR and language packs
+  ansible.builtin.apt:
+    name: "{{ ['tesseract-ocr'] + tesseract_languages | map('regex_replace', '^(.*)$', 'tesseract-ocr-\\1') | list }}"
+    state: present
+  become: true

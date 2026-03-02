@@ -53,6 +53,9 @@
     - role: ollama
       tags: [ollama, desktop]
 
+    - role: tesseract
+      tags: [tesseract, desktop]
+
     - role: utilities
       tags: [utilities, desktop]
 

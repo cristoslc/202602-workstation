@@ -571,6 +571,14 @@ roles:
         check: {command: ollama}
         tags: [ollama]
 
+  tesseract:
+    phase: desktop
+    apps:
+      - name: tesseract
+        platforms: [macos, linux]
+        check: {command: tesseract}
+        tags: [tesseract]
+
   file-transfer:
     phase: desktop
     apps:
