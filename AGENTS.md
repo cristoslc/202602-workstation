@@ -46,7 +46,7 @@ Phases are **available waypoints**, not mandatory gates. Artifacts may skip inte
 
 | Type | Path | Format | Phases |
 |------|------|--------|--------|
-| Product Vision | `docs/vision/` | Folder containing titled `.md` + supporting docs (competitive analysis, market research, etc.) | Draft → Active → Sunset · Abandoned |
+| Product Vision | `docs/vision/` | Folder containing titled `.md` + supporting docs (architecture overview, roadmap, competitive analysis, etc.) | Draft → Active → Sunset · Abandoned |
 | User Journey | `docs/journey/` | Folder containing titled `.md` with embedded Mermaid journey diagram + supporting docs | Draft → Validated · Archived · Abandoned |
 | Epics | `docs/epic/` | Folder containing titled `.md` + supporting docs | Proposed → Active → Complete · Abandoned |
 | User Story | `docs/story/` | Markdown file per story | Draft → Ready → Implemented · Abandoned |
