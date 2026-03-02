@@ -1,20 +1,23 @@
+---
+title: "PRD-003: Sync User Folders"
+artifact: PRD-003
+status: Abandoned
+author: cristos
+created: 2026-02-26
+last-updated: 2026-03-01
+migrated-to: EPIC-002
+---
+
 # PRD-003: Sync User Folders
 
 > **Migrated:** This PRD has been superseded by [EPIC-002](../../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md). This file is retained for history.
-
-**Status:** Abandoned
-**Author:** cristos
-**Created:** 2026-02-26
-**Last Updated:** 2026-02-26
-**Implementation:** Ansible roles (`syncthing`, `unison`), `scripts/wsync`, `scripts/data-pull.sh`
-**Research:** [sync-user-folders](../../../research/Active/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md)
-**ADR:** —
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-02-26 | 0e37f65 | Initial creation from commit 216d808 research |
+| Abandoned | 2026-03-01 | dc0f8d9 | Migrated to EPIC-002 |
 
 ---
 

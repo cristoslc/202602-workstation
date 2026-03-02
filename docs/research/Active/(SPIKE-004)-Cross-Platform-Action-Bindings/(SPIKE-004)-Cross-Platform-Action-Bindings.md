@@ -1,8 +1,13 @@
-# Research: Cross-Platform Action Bindings
+---
+title: "SPIKE-004: Cross-Platform Action Bindings"
+artifact: SPIKE-004
+status: Active
+author: cristos
+created: 2026-02-25
+last-updated: 2026-02-25
+---
 
-**Status:** Active
-**Started:** 2026-02-25
-**Goal:** Define a semantic action layer that maps user-intent actions (take screenshot, open launcher, clipboard history) to per-platform keybindings and implementations, deployed by bootstrap.
+# SPIKE-004: Cross-Platform Action Bindings
 
 ---
 
@@ -420,3 +425,9 @@ Skip Hammerspoon entirely — have Karabiner's `shell_command` call scripts dire
 | Cinnamon Wayland breaks dconf keybindings | Low (dconf is display-independent) | Medium | swhkd fallback ready |
 | Complexity of action registry YAML | Low | Low | Start small — migrate existing 3 Vicinae bindings first |
 | Config drift between platforms | Medium | Low | Single source of truth in shared vars; CI could validate |
+
+### Lifecycle
+
+| Phase | Date | Commit | Notes |
+|-------|------|--------|-------|
+| Active | 2026-02-25 | 16b92e3 | Initial creation |

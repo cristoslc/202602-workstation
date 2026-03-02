@@ -1,10 +1,13 @@
-# Research: Backup Solution Evaluation
+---
+title: "SPIKE-003: Backup Solution Evaluation"
+artifact: SPIKE-003
+status: Active
+author: cristos
+created: 2026-02-26
+last-updated: 2026-02-26
+---
 
-**Status:** Active
-**Date:** 2026-02-26
-**Scope:** Evaluate file-level backup tools that provide 365+ days of versioned
-history, unique per-workstation namespacing, and self-hosted backend support.
-Cross-platform (macOS + Linux) required.
+# SPIKE-003: Backup Solution Evaluation
 
 **In scope:** Deduplicated, encrypted, file-level backup tools that can be
 automated via Ansible (systemd timers / launchd plists). Backend options
@@ -556,7 +559,7 @@ systemd service / launchd agent just keeps Backrest running.
 5. **First backup + retention test** — verify `forget --keep-daily 365` works
    as expected.
 
-See [(PRD-002) Restic Backup Stack](../../../prd/Draft/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md)
+See [(PRD-002) Restic Backup Stack](../../../prd/Abandoned/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md)
 for full implementation spec.
 
 ---
@@ -577,3 +580,9 @@ for full implementation spec.
 - Borgmatic documentation: https://torsion.org/borgmatic/
 - Backblaze B2 pricing: https://www.backblaze.com/cloud-storage/pricing
 - Wasabi pricing: https://wasabi.com/pricing
+
+### Lifecycle
+
+| Phase | Date | Commit | Notes |
+|-------|------|--------|-------|
+| Active | 2026-02-26 | e7a258a | Initial creation |

@@ -17,7 +17,7 @@ Home servers and personal infrastructure — media servers, backup targets, deve
 
 **Extend infrastructure-as-code from workstations to servers.** A shared platform layer handles the capabilities every machine needs — backups, remote access, security, monitoring — while server-specific roles handle the services only servers run. Defining a new server means declaring its role in inventory, not writing a new playbook from scratch.
 
-The same Ansible provisioning model proven on workstations (VISION-001) applies to servers: idempotent, version-controlled, secrets-encrypted, and reproducible. Workstations and servers share a platform; they diverge only in what runs on top of it.
+The same provisioning model proven on workstations (VISION-001) applies to servers: idempotent, version-controlled, secrets-encrypted, and reproducible. Workstations and servers share a platform; they diverge only in what runs on top of it.
 
 ## Target audience
 
@@ -40,7 +40,7 @@ The same solo developer or homelab operator from VISION-001 who also maintains o
 
 ## Non-goals
 
-- **Cloud infrastructure provisioning** — This manages what runs *on* a server, not the server's existence. VM lifecycle, networking, and DNS are out of scope (or handled separately via Terraform).
+- **Cloud infrastructure provisioning** — This manages what runs *on* a server, not the server's existence. VM lifecycle, networking, and DNS are out of scope (or handled by separate infrastructure-as-code tooling).
 - **Container orchestration** — Kubernetes, Docker Compose stacks, and similar are workloads *deployed to* a server, not part of the server provisioning itself.
 - **Multi-tenant or team use** — Same single-user model as VISION-001.
 

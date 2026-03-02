@@ -1,9 +1,15 @@
-# ADR-003: Cross-Platform Action Bindings via Hammerspoon + dconf
+---
+title: "ADR-003: Cross-Platform Action Bindings via Hammerspoon + dconf"
+artifact: ADR-003
+status: Proposed
+author: cristos
+created: 2026-02-25
+last-updated: 2026-02-25
+linked-research:
+  - SPIKE-004
+---
 
-**Status:** Proposed
-**Date:** 2026-02-25
-**Artifact:** ADR-003
-**Research:** [cross-platform-action-bindings](../../research/Active/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md)
+# ADR-003: Cross-Platform Action Bindings via Hammerspoon + dconf
 
 ## Context
 
@@ -49,22 +55,7 @@ The Lua config lives in a Stow package at `macos/dotfiles/hammerspoon/.hammerspo
 
 ### 3. Linux: Data-driven dconf custom keybindings
 
-The existing `desktop-env` role's hardcoded dconf tasks are replaced by a loop that reads from the action registry. The same `community.general.dconf` module is used, but the binding data comes from `workstation_actions` instead of being inlined per-task.
-
-```yaml
-# Dynamically generate custom keybindings from action registry
-- name: "Set {{ item.action }} keybinding"
-  community.general.dconf:
-    key: "/org/cinnamon/desktop/keybindings/custom-keybindings/custom{{ idx }}/binding"
-    value: "['{{ item.keybinding.linux }}']"
-    state: present
-  loop: "{{ workstation_actions | selectattr('implementation.linux.type', 'equalto', 'dconf') | list }}"
-  loop_control:
-    index_var: idx
-    label: "{{ item.action }}"
-```
-
-Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), configured via dconf window management keys for consistency.
+The existing `desktop-env` role's hardcoded dconf tasks are replaced by a loop that reads from the action registry. The binding data comes from `workstation_actions` instead of being inlined per-task. Window management on Linux uses Cinnamon's built-in tiling (Super+Arrow), configured via dconf window management keys for consistency.
 
 ### 4. Initial action set
 
@@ -110,3 +101,9 @@ See [research doc](../../research/Active/(SPIKE-004)-Cross-Platform-Action-Bindi
 - sxhkd on Linux (conflicts with Cinnamon, not integrated)
 - macOS Shortcuts.app (not programmable enough)
 - BetterTouchTool (paid, proprietary)
+
+### Lifecycle
+
+| Phase | Date | Commit | Notes |
+|-------|------|--------|-------|
+| Proposed | 2026-02-25 | 16b92e3 | Initial creation |

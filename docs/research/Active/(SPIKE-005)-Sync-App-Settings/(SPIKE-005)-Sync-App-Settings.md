@@ -1,8 +1,13 @@
-# Research: App Settings Sync Across Machines
+---
+title: "SPIKE-005: App Settings Sync Across Machines"
+artifact: SPIKE-005
+status: Active
+author: cristos
+created: 2026-02-25
+last-updated: 2026-02-25
+---
 
-**Status:** Active
-**Started:** 2026-02-25
-**Goal:** Determine the best mechanism to migrate settings for all role-driven apps from a source Mac and instate them on Linux machines and additional Macs.
+# SPIKE-005: App Settings Sync Across Machines
 
 ---
 
@@ -254,3 +259,9 @@ Declarative home directory configuration.
 3. Classify cloud-synced apps as out of scope (they sync themselves)
 
 This keeps the architecture simple, the source of truth in git, and the deployment idempotent via `make apply`.
+
+### Lifecycle
+
+| Phase | Date | Commit | Notes |
+|-------|------|--------|-------|
+| Active | 2026-02-25 | 85c953e | Initial creation |

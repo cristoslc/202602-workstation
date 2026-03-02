@@ -1,5 +1,6 @@
 ---
 title: "JOURNEY-003: Machine Migration"
+artifact: JOURNEY-003
 status: Validated
 author: cristos
 created: 2026-02-27

@@ -1,19 +1,23 @@
+---
+title: "PRD-001: Raycast Sync"
+artifact: PRD-001
+status: Abandoned
+author: cristos
+created: 2026-02-25
+last-updated: 2026-03-01
+migrated-to: SPEC-001
+---
+
 # PRD-001: Raycast Sync
 
 > **Migrated:** This PRD has been superseded by [SPEC-001](../../../spec/(SPEC-001)-Raycast-Sync.md). This file is retained for history.
-
-**Status:** Abandoned
-**Author:** cristos
-**Created:** 2026-02-25
-**Last Updated:** 2026-02-25
-**Research:** [(SPIKE-001) Raycast Settings Export](../../../research/Complete/(SPIKE-001)-Raycast-Settings-Export/README.md)
-**ADR:** [Sync App Settings](../../../adr/Proposed/(ADR-004)-Sync-App-Settings.md)
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-02-25 | 03eb670 | Initial creation |
+| Abandoned | 2026-03-01 | dc0f8d9 | Migrated to SPEC-001 |
 
 ---
 

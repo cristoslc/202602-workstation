@@ -1,5 +1,6 @@
 ---
 title: "JOURNEY-001: Fresh Machine Bootstrap"
+artifact: JOURNEY-001
 status: Validated
 author: cristos
 created: 2026-02-27

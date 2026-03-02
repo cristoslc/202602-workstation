@@ -1,15 +1,25 @@
-# ADR-002: Encryption at Rest for Personal Files
+---
+title: "ADR-002: Encryption at Rest for Personal Files"
+artifact: ADR-002
+status: Adopted
+author: cristos
+created: 2026-02-27
+last-updated: 2026-02-27
+affects:
+  - iTerm2
+  - Raycast
+  - Espanso snippets
+  - Stream Deck profiles
+  - Stream Deck plugins
+---
 
-**Status:** Adopted
-**Date:** 2026-02-27
-**Author:** cristos
-**Affects:** All export/import flows (iTerm2, Raycast, Espanso snippets, Stream Deck profiles, Stream Deck plugins)
+# ADR-002: Encryption at Rest for Personal Files
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Adopted | 2026-02-27 | d546629 | Created directly as Adopted; implementation complete |
+| Adopted | 2026-02-27 | 13636a6 | Created directly as Adopted; implementation complete |
 
 ---
 

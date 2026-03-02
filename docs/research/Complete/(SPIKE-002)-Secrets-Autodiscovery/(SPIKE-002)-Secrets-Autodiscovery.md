@@ -1,14 +1,21 @@
-# Research: Secrets Placeholder Autodiscovery
+---
+title: "SPIKE-002: Secrets Placeholder Autodiscovery"
+artifact: SPIKE-002
+status: Complete
+author: cristos
+created: 2026-02-25
+last-updated: 2026-02-27
+gate: Pre-MVP (blocks reliable multi-machine bootstrap)
+---
 
-**Status:** Complete
-**Gate:** Pre-MVP (blocks reliable multi-machine bootstrap)
+# SPIKE-002: Secrets Placeholder Autodiscovery
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Planned | 2026-02-25 | — | Initial creation |
-| Complete | 2026-02-27 | — | Implemented approach B (@tui annotations) |
+| Planned | 2026-02-25 | e4643a6 | Initial creation |
+| Complete | 2026-02-27 | 19b2dd7 | Implemented approach B (@tui annotations) |
 
 ---
 

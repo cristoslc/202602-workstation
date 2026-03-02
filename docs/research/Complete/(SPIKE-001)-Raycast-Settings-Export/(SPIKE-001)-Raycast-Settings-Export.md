@@ -1,8 +1,16 @@
-# SPIKE-001: Raycast Settings Export
+---
+title: "SPIKE-001: Raycast Settings Export"
+artifact: SPIKE-001
+status: Complete
+author: cristos
+created: 2026-02-25
+last-updated: 2026-02-25
+gate: Pre-implementation (blocks SPEC-001 delivery)
+linked-specs:
+  - SPEC-001
+---
 
-**Status:** Complete
-**Gate:** Pre-implementation (blocks PRD-001 delivery)
-**PRD:** [(PRD-001) Raycast Sync](../../../prd/Draft/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md)
+# SPIKE-001: Raycast Settings Export
 
 ### Lifecycle
 

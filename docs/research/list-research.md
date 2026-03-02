@@ -13,8 +13,8 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| SPIKE-001 | [Raycast Settings Export](./Complete/(SPIKE-001)-Raycast-Settings-Export/README.md) | 2026-02-25 | 03eb670 | .rayconfig export viable |
-| SPIKE-002 | [Secrets Autodiscovery](./Complete/(SPIKE-002)-Secrets-Autodiscovery/(SPIKE-002)-Secrets-Autodiscovery.md) | 2026-02-25 | 03eb670 | @tui YAML annotations |
+| SPIKE-001 | [Raycast Settings Export](./Complete/(SPIKE-001)-Raycast-Settings-Export/(SPIKE-001)-Raycast-Settings-Export.md) | 2026-02-25 | 03eb670 | .rayconfig export viable |
+| SPIKE-002 | [Secrets Autodiscovery](./Complete/(SPIKE-002)-Secrets-Autodiscovery/(SPIKE-002)-Secrets-Autodiscovery.md) | 2026-02-27 | 19b2dd7 | @tui YAML annotations |
 
 ## Planned
 

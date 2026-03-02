@@ -1,5 +1,6 @@
 ---
 title: "PERSONA-001: The Multi-Machine Developer"
+artifact: PERSONA-001
 status: Validated
 author: cristos
 created: 2026-02-27

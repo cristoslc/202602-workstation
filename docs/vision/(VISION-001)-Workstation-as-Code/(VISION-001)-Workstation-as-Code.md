@@ -37,12 +37,12 @@ A solo developer (or small team) who:
 | Without this project | With this project |
 |---------------------|-------------------|
 | Hours of manual setup per machine | Single-command bootstrap (~10 min unattended) |
-| Dotfiles diverge across machines | Stow-managed dotfiles, version-controlled |
-| Secrets in plaintext or memory | SOPS + age encryption, repo-safe |
-| Platform-specific ad-hoc scripts | Unified Ansible roles with OS dispatch |
+| Dotfiles diverge across machines | Symlink-managed dotfiles, version-controlled |
+| Secrets in plaintext or memory | Encrypted at rest, repo-safe |
+| Platform-specific ad-hoc scripts | Unified roles with OS dispatch |
 | "Works on my machine" configuration | Idempotent, repeatable provisioning |
 | No audit trail for changes | Full git history of every configuration change |
-| Painful machine migration | `rsync` data pull + Syncthing/Unison for ongoing sync |
+| Painful machine migration | One-time data pull + continuous sync across fleet |
 | Each machine configured ad-hoc | Fleet defined in inventory — shared defaults, per-machine overrides |
 | Drift between machines invisible | One repo, one truth — diff any machine's config against any other |
 

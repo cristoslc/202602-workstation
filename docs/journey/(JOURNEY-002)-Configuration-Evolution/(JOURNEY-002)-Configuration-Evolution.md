@@ -1,5 +1,6 @@
 ---
 title: "JOURNEY-002: Configuration Evolution"
+artifact: JOURNEY-002
 status: Validated
 author: cristos
 created: 2026-02-27

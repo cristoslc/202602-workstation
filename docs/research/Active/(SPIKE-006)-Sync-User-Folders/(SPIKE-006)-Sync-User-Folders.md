@@ -1,10 +1,13 @@
-# Sync user folders: migration and ongoing sync
+---
+title: "SPIKE-006: Sync User Folders"
+artifact: SPIKE-006
+status: Active
+author: cristos
+created: 2026-02-24
+last-updated: 2026-02-26
+---
 
-**Status:** Active
-**Date:** 2026-02-24
-**Scope:** Evaluate tools and approaches for (A) non-destructively migrating
-user data folders between machines after bootstrap, and (B) keeping user data
-folders in ongoing sync across 2-3 workstations.
+# SPIKE-006: Sync User Folders
 
 **In scope:** Documents, Pictures, Music, Videos, Downloads, and similar
 user-created content folders. Code repositories (working tree sync — see
@@ -1055,3 +1058,9 @@ handle committed history and CI only.
 ### macOS Migration Assistant
 - [Apple Support: Migration Assistant](https://support.apple.com/en-us/102613)
 - [What Migration Assistant transfers (mactakeawaydata.com)](https://mactakeawaydata.com/what-does-migration-assistant-transfer/)
+
+### Lifecycle
+
+| Phase | Date | Commit | Notes |
+|-------|------|--------|-------|
+| Active | 2026-02-26 | f14b1e7 | Initial creation |

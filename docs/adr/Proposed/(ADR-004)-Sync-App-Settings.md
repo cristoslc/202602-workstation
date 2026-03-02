@@ -1,9 +1,15 @@
-# ADR-004: Sync App Settings via Expanded Stow + Ansible
+---
+title: "ADR-004: Sync App Settings via Expanded Stow + Ansible"
+artifact: ADR-004
+status: Proposed
+author: cristos
+created: 2026-02-25
+last-updated: 2026-02-25
+linked-research:
+  - SPIKE-005
+---
 
-**Status:** Proposed
-**Date:** 2026-02-25
-**Artifact:** ADR-004
-**Research:** [sync-app-settings](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md)
+# ADR-004: Sync App Settings via Expanded Stow + Ansible
 
 ## Context
 
@@ -50,30 +56,11 @@ Every app setting is classified into exactly one category:
 
 ### Binary Plist Handling
 
-Before committing macOS plist files to git:
-
-```bash
-plutil -convert xml1 <file>.plist
-```
-
-This produces human-readable XML diffs. The stow'd symlink serves the XML plist to the app, which still reads it correctly.
+Binary macOS plists are converted to XML before committing for readable git diffs. The symlinked XML plist is still readable by the app.
 
 ### Migration Workflow
 
-**One-time export from source machine:**
-
-1. Identify config file locations for the target role
-2. Copy into the correct stow package path in the repo
-3. For plists: convert to XML with `plutil`
-4. For secrets: SOPS-encrypt with `sops --encrypt --in-place`
-5. Test with `stow --simulate`
-6. Commit and push
-
-**Ongoing sync between machines:**
-
-1. Edit config on any machine (it's a symlink into the repo)
-2. Commit and push from that machine
-3. Pull and re-stow on other machines: `git pull && make apply ROLE=stow`
+One-time export captures settings from a source machine into the correct stow package path, converts binary formats, encrypts secrets, and commits. Ongoing sync uses the git workflow: edit on any machine (via symlink), commit, pull on others, re-stow.
 
 ### What's Explicitly Out of Scope
 
@@ -108,3 +95,9 @@ This produces human-readable XML diffs. The stow'd symlink serves the XML plist 
 ## Alternatives Considered
 
 See [research doc](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md#alternatives-considered) for detailed evaluation of Mackup, Chezmoi, Syncthing, and Nix Home Manager.
+
+### Lifecycle
+
+| Phase | Date | Commit | Notes |
+|-------|------|--------|-------|
+| Proposed | 2026-02-25 | 85c953e | Initial creation |
