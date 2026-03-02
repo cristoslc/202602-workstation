@@ -559,6 +559,18 @@ roles:
         check: {command: tree}
         tags: [utilities]
 
+  ollama:
+    phase: desktop
+    apps:
+      - name: Ollama
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Ollama.app"]}
+        tags: [ollama]
+      - name: ollama
+        platforms: [linux]
+        check: {command: ollama}
+        tags: [ollama]
+
   file-transfer:
     phase: desktop
     apps:

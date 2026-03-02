@@ -50,6 +50,9 @@
     - role: stream-deck
       tags: [stream-deck, opendeck, desktop]
 
+    - role: ollama
+      tags: [ollama, desktop]
+
     - role: utilities
       tags: [utilities, desktop]
 

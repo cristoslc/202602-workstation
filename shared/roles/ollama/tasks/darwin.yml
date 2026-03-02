@@ -1,0 +1,5 @@
+---
+- name: Install Ollama via Homebrew cask
+  community.general.homebrew_cask:
+    name: ollama
+    state: present

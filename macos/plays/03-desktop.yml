@@ -46,6 +46,9 @@
     - role: stream-deck
       tags: [stream-deck, elgato, desktop]
 
+    - role: ollama
+      tags: [ollama, desktop]
+
     - role: utilities
       tags: [utilities, keka, desktop]
 

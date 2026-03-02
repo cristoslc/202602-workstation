@@ -1,0 +1,35 @@
+---
+- name: Check if Ollama is installed
+  ansible.builtin.command: ollama --version
+  register: _ollama_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Ollama
+  when: _ollama_check.rc != 0
+  block:
+    - name: Download Ollama install script
+      ansible.builtin.get_url:
+        url: https://ollama.com/install.sh
+        dest: /tmp/ollama-install.sh
+        mode: "0755"
+      register: _ollama_installer
+      retries: 3
+      delay: 5
+      until: _ollama_installer is not failed
+
+    - name: Run Ollama install script
+      ansible.builtin.command: /tmp/ollama-install.sh
+      become: true
+
+    - name: Clean up install script
+      ansible.builtin.file:
+        path: /tmp/ollama-install.sh
+        state: absent
+
+- name: Enable and start Ollama service
+  ansible.builtin.systemd:
+    name: ollama
+    state: started
+    enabled: true
+  become: true

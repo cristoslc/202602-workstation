@@ -34,3 +34,12 @@
     value: PfHm
     state: present
   notify: restart finder
+
+- name: "Finder: Auto-size column view widths to fit filenames"
+  community.general.osx_defaults:
+    domain: com.apple.finder
+    key: _FXEnableColumnAutoSizing
+    type: bool
+    value: true
+    state: present
+  notify: restart finder

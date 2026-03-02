@@ -1,0 +1,5 @@
+---
+# Ollama manages its own service lifecycle:
+#   macOS — runs as a GUI app (launchd-managed by the .app bundle)
+#   Linux — runs as a systemd service (installed by the official script)
+# No handlers needed.
