@@ -3,7 +3,7 @@ title: "VISION-001: Workstation as Code"
 status: Active
 author: cristos
 created: 2026-02-27
-last-updated: 2026-02-28
+last-updated: 2026-03-01
 ---
 
 # VISION-001: Workstation as Code
@@ -14,11 +14,13 @@ Setting up a development workstation is slow, manual, and error-prone. Every fre
 
 There is no good way to treat a workstation like infrastructure: version-controlled, reproducible, and recoverable.
 
+When you maintain multiple workstations, the problem compounds. Each machine drifts on its own trajectory — different tools enabled, different versions installed, different phases applied. There is no single source of truth for what each machine should look like, and no mechanism for ensuring that shared configurations stay coherent across the fleet.
+
 ## Vision
 
-**Make development workstations fungible.** Run a single command on a fresh macOS or Linux machine and get a fully configured, identical development environment — tools installed, dotfiles deployed, secrets decrypted, keybindings set, applications configured — in minutes, not hours.
+**Make development workstations fungible — whether you have one or five.** Run a single command on a fresh macOS or Linux machine and get a fully configured development environment — tools installed, dotfiles deployed, secrets decrypted, keybindings set, applications configured — in minutes, not hours.
 
-The workstation is defined in code, versioned in git, and applied idempotently. Changing a configuration means editing a file and re-running the playbook. Adding a machine means cloning the repo and bootstrapping. Losing a machine means nothing, because the environment is the repo.
+The workstation fleet is defined in code, versioned in git, and applied idempotently. Changing a configuration means editing a file and re-running the playbook. Adding a machine means declaring it in the repo and bootstrapping. Losing a machine means nothing, because every machine's desired state lives in the repo. Machines that share roles stay coherent; machines that differ do so explicitly.
 
 ## Target audience
 
@@ -40,6 +42,8 @@ A solo developer (or small team) who:
 | "Works on my machine" configuration | Idempotent, repeatable provisioning |
 | No audit trail for changes | Full git history of every configuration change |
 | Painful machine migration | `rsync` data pull + Syncthing/Unison for ongoing sync |
+| Each machine configured ad-hoc | Fleet defined in inventory — shared defaults, per-machine overrides |
+| Drift between machines invisible | One repo, one truth — diff any machine's config against any other |
 
 ## Success metrics
 
@@ -48,16 +52,24 @@ A solo developer (or small team) who:
 3. **Cross-platform parity** — The same role set produces functionally equivalent environments on macOS and Linux.
 4. **Secret safety** — Zero plaintext secrets committed to git (enforced by pre-commit hooks).
 5. **Recovery confidence** — Losing a machine requires only a new age key and `./setup.sh` to fully rebuild.
+6. **Fleet coherence** — Shared roles produce identical outcomes on every machine they target; per-machine variation is limited to explicit overrides in inventory.
 
 ## Non-goals
 
-- **Fleet management** — This is not a centralized MDM or device management platform. Each machine is self-provisioned from a personal repo.
+- **Centralized MDM** — This manages a personal workstation fleet, not an enterprise device fleet. There is no central control plane pushing policy — each machine self-provisions from the same repo.
+- **Server provisioning** — Servers are a different workload profile with different roles and lifecycle; see [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md). A shared platform layer may emerge across both visions.
 - **Container/VM provisioning** — The scope is bare-metal workstation setup, not cloud infrastructure or container orchestration.
 - **Application-level configuration** — Tools are installed and pointed at config files, but in-app settings that require GUI interaction (Setapp, MAS sign-in, Accessibility permissions) remain manual.
 - **Remote desktop / remote access** — Screen sharing, VNC/RDP clients, hardware KVM, and relay infrastructure are managed in a separate project.
 - **Multi-user support** — One user per machine, one age key, one repo.
 
 ## Capabilities
+
+### Multi-machine fleet
+
+- **Declarative inventory** — Every workstation is defined in the repo with its platform and enabled phases. Adding a machine is a config change, not a new playbook.
+- **Selective convergence** — Each machine converges only the phases and roles it declares. Not every workstation needs gaming or compliance — differences are explicit, not accidental.
+- **Shared role coherence** — Roles applied to multiple machines produce consistent results everywhere they run.
 
 ### Core platform
 
@@ -106,6 +118,7 @@ See `architecture-overview.md` (forthcoming) for the full system description.
 | PRD | [PRD-002 (Draft)](../../prd/Draft/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md) | Restic Backup Stack |
 | PRD | [PRD-003](../../prd/Draft/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md) | Sync User Folders |
 | PRD | [PRD-004](../../prd/Implemented/(PRD-004)-Markdown-Viewer/(PRD-004)-Markdown-Viewer.md) | Markdown Viewer |
+| Vision | [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (sibling — shared platform layer) |
 
 ### Lifecycle
 
@@ -113,3 +126,4 @@ See `architecture-overview.md` (forthcoming) for the full system description.
 |-------|------|--------|-------|
 | Active | 2026-02-27 | e883231 | Initial creation — project is already operational |
 | Active | 2026-02-28 | 0cf0e98 | Narrowed scope — remote desktop/access moved to separate project |
+| Active | 2026-03-01 | 75224f8 | Expanded scope — multi-workstation fleet management |
