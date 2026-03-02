@@ -16,7 +16,7 @@ migrated-to: EPIC-001
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-02-26 | 20e5b38 | Initial creation |
+| Draft | 2026-02-26 | 7b8952a | Initial creation |
 | Abandoned | 2026-03-01 | dc0f8d9 | Migrated to EPIC-001 |
 
 ---

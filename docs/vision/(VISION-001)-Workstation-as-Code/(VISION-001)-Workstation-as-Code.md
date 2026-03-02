@@ -107,7 +107,7 @@ See [architecture-overview.md](./architecture-overview.md) for the full system d
 | ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
 | Epic | [EPIC-001](../../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | Restic Backup Stack |
 | Epic | [EPIC-002](../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | Sync User Folders |
-| Spec | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync.md) | Raycast Sync |
+| Spec | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync |
 | Vision | [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (sibling — shared platform layer) |
 
 ### Lifecycle

@@ -124,7 +124,7 @@ variable_name: ""
 - Reliable multi-machine bootstrap (secrets silently empty if not prompted).
 - Scaling to more roles with API keys (each new key is manual bookkeeping today).
 
-## PRD risks addressed
+## Risks addressed
 
 - Secret collection completeness during first-run and bootstrap.
 - Maintainability as the role count grows.

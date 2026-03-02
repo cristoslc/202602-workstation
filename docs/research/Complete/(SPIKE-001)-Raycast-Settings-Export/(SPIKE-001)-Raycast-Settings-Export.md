@@ -16,8 +16,8 @@ linked-specs:
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Planned | 2026-02-25 | 03eb670 | Initial creation |
-| Complete | 2026-02-25 | dfbec8b | Investigation complete; go decision |
+| Planned | 2026-02-25 | dfa9e8d | Initial creation |
+| Complete | 2026-02-25 | 20fb970 | Investigation complete; go decision |
 
 ---
 
@@ -25,7 +25,7 @@ linked-specs:
 
 What is the most reliable way to export, version-control, and re-import Raycast settings so that bootstrap yields a fully-configured instance?
 
-## PRD risks addressed
+## Risks addressed
 
 - Opaque/binary settings format (need to determine if diffs are reviewable)
 - Embedded secrets in export (need to audit what the export contains)
@@ -37,7 +37,7 @@ What is the most reliable way to export, version-control, and re-import Raycast 
 
 ## Blocks
 
-- PRD-001 implementation (can't build the sync mechanism without knowing the format).
+- SPEC-001 implementation (can't build the sync mechanism without knowing the format).
 
 ---
 
@@ -113,7 +113,7 @@ The go/no-go criteria specified: "At least one approach produces a complete sett
 
 This accepts a single interactive step (import dialog on fresh machine) as the cost of using a closed-source launcher — acceptable since workstation bootstrap is always run interactively on a Mac. No password to manage — the age key infrastructure already handles encryption/decryption.
 
-### Remaining TODO (during PRD-001 implementation)
+### Remaining TODO (during SPEC-001 implementation)
 
 - [ ] Perform the actual export and inspect `.rayconfig` format (ZIP? JSON? encrypted blob?)
 - [ ] Audit export contents for embedded secrets before first `make export-raycast`

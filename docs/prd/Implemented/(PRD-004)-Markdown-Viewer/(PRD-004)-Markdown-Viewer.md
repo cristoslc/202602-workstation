@@ -1,18 +1,20 @@
-# PRD-004: Markdown Viewer
+---
+title: "PRD-004: Markdown Viewer"
+artifact: PRD-004
+status: Implemented
+author: cristos
+created: 2026-02-28
+last-updated: 2026-02-28
+---
 
-**Status:** Implemented
-**Author:** cristos
-**Created:** 2026-02-28
-**Last Updated:** 2026-02-28
-**Research:** —
-**ADR:** —
+# PRD-004: Markdown Viewer
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-02-28 | 18fbe9b | Initial creation |
-| Implemented | 2026-02-28 | 13866ba | Typora role created, wired into Phase 3 desktop playbooks (macOS + Linux) |
+| Draft | 2026-02-28 | 0428efb | Initial creation |
+| Implemented | 2026-02-28 | 824c312 | Typora role created, wired into Phase 3 desktop playbooks (macOS + Linux) |
 
 ---
 

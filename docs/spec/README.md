@@ -8,4 +8,4 @@ See [list-specs.md](list-specs.md) for the full lifecycle index.
 
 | ID | Title | Status |
 |----|-------|--------|
-| [SPEC-001](./(SPEC-001)-Raycast-Sync.md) | Raycast Sync | Draft |
+| [SPEC-001](./(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync | Draft |

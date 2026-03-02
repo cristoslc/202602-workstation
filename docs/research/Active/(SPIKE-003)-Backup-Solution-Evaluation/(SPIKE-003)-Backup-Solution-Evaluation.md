@@ -263,7 +263,7 @@ restic's backend flexibility wins.
 
 ### Backend architecture: B2-direct (v1) + Proxmox REST server (v2)
 
-**v1 — B2-direct (implemented by PRD-002):**
+**v1 — B2-direct (implemented by EPIC-001):**
 
 ```
 ┌──────────────────────┐
@@ -559,8 +559,8 @@ systemd service / launchd agent just keeps Backrest running.
 5. **First backup + retention test** — verify `forget --keep-daily 365` works
    as expected.
 
-See [(PRD-002) Restic Backup Stack](../../../prd/Abandoned/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md)
-for full implementation spec.
+See [EPIC-001: Restic Backup Stack](../../../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md)
+for the implementation Epic.
 
 ---
 

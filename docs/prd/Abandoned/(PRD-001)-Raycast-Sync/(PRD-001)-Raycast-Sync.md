@@ -10,13 +10,13 @@ migrated-to: SPEC-001
 
 # PRD-001: Raycast Sync
 
-> **Migrated:** This PRD has been superseded by [SPEC-001](../../../spec/(SPEC-001)-Raycast-Sync.md). This file is retained for history.
+> **Migrated:** This PRD has been superseded by [SPEC-001](../../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md). This file is retained for history.
 
 ### Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-02-25 | 03eb670 | Initial creation |
+| Draft | 2026-02-25 | dfa9e8d | Initial creation |
 | Abandoned | 2026-03-01 | dc0f8d9 | Migrated to SPEC-001 |
 
 ---

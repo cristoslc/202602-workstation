@@ -16,7 +16,7 @@ migrated-to: EPIC-002
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-02-26 | 0e37f65 | Initial creation from commit 216d808 research |
+| Draft | 2026-02-26 | 28b0c6d | Initial creation (originally PRD-002, renumbered at 4fbccef) |
 | Abandoned | 2026-03-01 | dc0f8d9 | Migrated to EPIC-002 |
 
 ---
