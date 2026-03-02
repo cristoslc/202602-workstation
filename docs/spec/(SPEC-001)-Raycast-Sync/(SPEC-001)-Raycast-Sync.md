@@ -76,9 +76,9 @@ Raycast is installed by the `launchers` role but all configuration is left manua
 
 | Type | ID | Title |
 |------|----|-------|
-| Spike | [SPIKE-001](../research/Complete/(SPIKE-001)-Raycast-Settings-Export/(SPIKE-001)-Raycast-Settings-Export.md) | Raycast Settings Export |
-| ADR | [ADR-004](../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
-| Legacy | [PRD-001](../prd/Abandoned/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md) | Raycast Sync (migrated from PRD) |
+| Spike | [SPIKE-001](../../research/Complete/(SPIKE-001)-Raycast-Settings-Export/(SPIKE-001)-Raycast-Settings-Export.md) | Raycast Settings Export |
+| ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
+| Legacy | [PRD-001](../../prd/Abandoned/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md) | Raycast Sync (migrated from PRD) |
 
 ### Lifecycle
 
