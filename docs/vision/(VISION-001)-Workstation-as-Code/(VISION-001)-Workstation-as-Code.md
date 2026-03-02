@@ -1,5 +1,6 @@
 ---
 title: "VISION-001: Workstation as Code"
+artifact: VISION-001
 status: Active
 author: cristos
 created: 2026-02-27
@@ -73,37 +74,25 @@ A solo developer (or small team) who:
 
 ### Core platform
 
-- **Phase-based Ansible provisioning** — Roles organized into phases (system, security, dev tools, desktop, dotfiles, gaming, sync) applied selectively or all at once.
-- **Cross-platform OS dispatch** — Each role handles both macOS and Linux internally via platform-specific task includes.
-- **GNU Stow dotfile layering** — Four stow layers (shared, shared-secrets, platform, platform-secrets) deployed with `--no-folding` for file-level symlinks.
-- **SOPS + age secrets management** — Encrypted variables and dotfiles, decrypted on-the-fly during Ansible runs, with pre-commit hooks for safety.
-- **Textual TUI** — Python-based interactive setup wizard for first-run personalization, bootstrap mode selection, role/phase picking, secrets editing, and settings import/export.
+- **Phase-based provisioning** — Roles organized into phases (system, security, dev tools, desktop, dotfiles, gaming, sync) applied selectively or all at once.
+- **Cross-platform OS dispatch** — Each role handles both macOS and Linux internally, abstracting platform differences.
+- **Layered dotfile management** — Multiple dotfile layers (shared, secrets, platform-specific) deployed with file-level granularity and collision detection.
+- **Encrypted secrets at rest** — Variables and sensitive config files encrypted in the repo, decrypted on-the-fly during provisioning, with pre-commit hooks to prevent plaintext leaks.
+- **Interactive setup wizard** — TUI for first-run personalization, bootstrap mode selection, role/phase picking, secrets editing, and settings import/export.
 
 ### Data & sync
 
-- **Machine migration** — Bulk data pull via SSH/rsync for Documents, Pictures, Music, Videos, Downloads.
-- **Ongoing sync** — Syncthing (hub-and-spoke) for user data, Unison for git working trees with uncommitted changes.
-- **Settings export/import** — Age-encrypted capture of iTerm2, Raycast, Stream Deck, and OpenIn preferences.
+- **Machine migration** — Bulk data pull for documents, media, and code from an existing machine to a new one.
+- **Ongoing sync** — User data synced across machines continuously; code working trees (including uncommitted changes) synced with branch isolation.
+- **Settings export/import** — Encrypted capture and restore of application preferences that cannot be managed as dotfiles.
 
 ### Developer experience
 
-- **Selective application** — `make apply ROLE=git` for single-role runs, tags for sub-task granularity.
-- **Verification** — `make verify` post-install checks on all tools; per-role verification available.
-- **Extensibility** — Adding a new tool follows a documented pattern: create/extend a role, add platform includes, wire into a phase playbook.
+- **Selective application** — Apply a single role or sub-task without re-running the full provisioning.
+- **Verification** — Post-install checks confirm every tool is installed and correctly configured.
+- **Extensibility** — Adding a new tool follows a documented pattern with cross-platform support.
 
-## Architecture (summary)
-
-```
-./setup.sh  →  Textual TUI  →  Ansible playbooks
-                                    ├── shared/roles/ (45+ roles, OS dispatch)
-                                    ├── macos/roles/ (Homebrew, MAS, defaults)
-                                    ├── linux/roles/ (apt, system, desktop-env)
-                                    └── Stow dotfile deployment (4 layers)
-
-Secrets: SOPS + age  |  Signing: 1Password SSH  |  Supply chain: pinned + checksums
-```
-
-See `architecture-overview.md` (forthcoming) for the full system description.
+See [architecture-overview.md](./architecture-overview.md) for the full system description including technology choices and implementation details.
 
 ## Related artifacts
 
@@ -114,10 +103,11 @@ See `architecture-overview.md` (forthcoming) for the full system description.
 | Journey | [JOURNEY-002](../../journey/(JOURNEY-002)-Configuration-Evolution/(JOURNEY-002)-Configuration-Evolution.md) | Configuration Evolution |
 | Journey | [JOURNEY-003](../../journey/(JOURNEY-003)-Machine-Migration/(JOURNEY-003)-Machine-Migration.md) | Machine Migration |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest for Personal Files |
-| PRD | [PRD-001](../../prd/Draft/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md) | Raycast Sync |
-| PRD | [PRD-002 (Draft)](../../prd/Draft/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md) | Restic Backup Stack |
-| PRD | [PRD-003](../../prd/Draft/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md) | Sync User Folders |
-| PRD | [PRD-004](../../prd/Implemented/(PRD-004)-Markdown-Viewer/(PRD-004)-Markdown-Viewer.md) | Markdown Viewer |
+| ADR | [ADR-003](../../adr/Proposed/(ADR-003)-Cross-Platform-Action-Bindings.md) | Cross-Platform Action Bindings |
+| ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
+| Epic | [EPIC-001](../../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | Restic Backup Stack |
+| Epic | [EPIC-002](../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | Sync User Folders |
+| Spec | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync.md) | Raycast Sync |
 | Vision | [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (sibling — shared platform layer) |
 
 ### Lifecycle

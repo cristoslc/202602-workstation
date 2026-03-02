@@ -1,10 +1,12 @@
 # PRD-002: Restic Backup Stack
 
-**Status:** Draft
+> **Migrated:** This PRD has been superseded by [EPIC-001](../../../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md). This file is retained for history.
+
+**Status:** Abandoned
 **Author:** cristos
 **Created:** 2026-02-26
 **Last Updated:** 2026-02-26
-**Research:** [Backup Solution Evaluation](../../../research/Active/backup-solution-evaluation/README.md)
+**Research:** [Backup Solution Evaluation](../../../research/Active/(SPIKE-003)-Backup-Solution-Evaluation/(SPIKE-003)-Backup-Solution-Evaluation.md)
 
 ### Lifecycle
 

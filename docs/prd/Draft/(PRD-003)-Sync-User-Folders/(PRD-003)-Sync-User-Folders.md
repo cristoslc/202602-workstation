@@ -1,11 +1,13 @@
 # PRD-003: Sync User Folders
 
-**Status:** Draft
+> **Migrated:** This PRD has been superseded by [EPIC-002](../../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md). This file is retained for history.
+
+**Status:** Abandoned
 **Author:** cristos
 **Created:** 2026-02-26
 **Last Updated:** 2026-02-26
 **Implementation:** Ansible roles (`syncthing`, `unison`), `scripts/wsync`, `scripts/data-pull.sh`
-**Research:** [sync-user-folders](../../../research/Active/sync-user-folders/README.md)
+**Research:** [sync-user-folders](../../../research/Active/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md)
 **ADR:** —
 
 ### Lifecycle
@@ -24,7 +26,7 @@ After `make bootstrap` provisions a workstation, user data folders (Documents, P
 
 2. **Ongoing sync** — No mechanism keeps user folders and code working trees in sync across 2-3 workstations (desktop, laptop, possibly macOS). Switching machines means either committing WIP code (noisy, loses staging state) or manually copying files.
 
-Code repositories pose a special challenge: general file-sync tools (Syncthing, Dropbox) either corrupt `.git/` internals or garble working trees when machines are on different branches (see [syncthing-git-repos.md](../../../research/Active/sync-user-folders/syncthing-git-repos.md)).
+Code repositories pose a special challenge: general file-sync tools (Syncthing, Dropbox) either corrupt `.git/` internals or garble working trees when machines are on different branches (see [syncthing-git-repos.md](../../../research/Active/(SPIKE-006)-Sync-User-Folders/syncthing-git-repos.md)).
 
 This contradicts the workstation goal of single-command provisioning that produces a fully usable machine.
 

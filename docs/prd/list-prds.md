@@ -1,18 +1,8 @@
 # PRD Index
 
+> **Note:** PRDs are a legacy artifact type. New work uses Epics and Agent Specs (see `docs/epic/` and `docs/spec/`). Remaining PRDs are retained for history.
+
 ## Draft
-
-| PRD | Title | Created | Last Updated | Notes |
-|-----|-------|---------|--------------|-------|
-| PRD-001 | Raycast Sync | 2026-02-25 | 2026-02-25 | Initial draft |
-| PRD-002 | Restic Backup Stack | 2026-02-26 | 2026-02-26 | Initial draft |
-| PRD-003 | Sync User Folders | 2026-02-26 | 2026-02-26 | Initial draft — covers migration, Syncthing hub-and-spoke, Unison code sync |
-
-## Review
-
-_None._
-
-## Approved
 
 _None._
 
@@ -22,6 +12,10 @@ _None._
 |-----|-------|---------|--------------|-------|
 | PRD-004 | Markdown Viewer | 2026-02-28 | 2026-02-28 | Typora on macOS + Linux; shared `markdown-viewer` role in Phase 3 |
 
-## Deprecated
+## Abandoned (migrated)
 
-_None._
+| PRD | Title | Migrated to | Notes |
+|-----|-------|------------|-------|
+| PRD-001 | Raycast Sync | [SPEC-001](../spec/(SPEC-001)-Raycast-Sync.md) | Migrated to Agent Spec |
+| PRD-002 | Restic Backup Stack | [EPIC-001](../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | Migrated to Epic |
+| PRD-003 | Sync User Folders | [EPIC-002](../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | Migrated to Epic |

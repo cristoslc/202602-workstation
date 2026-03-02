@@ -1,8 +1,9 @@
-# ADR: Cross-Platform Action Bindings via Hammerspoon + dconf
+# ADR-003: Cross-Platform Action Bindings via Hammerspoon + dconf
 
 **Status:** Proposed
 **Date:** 2026-02-25
-**Research:** [cross-platform-action-bindings](../../research/Active/cross-platform-action-bindings/README.md)
+**Artifact:** ADR-003
+**Research:** [cross-platform-action-bindings](../../research/Active/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md)
 
 ## Context
 
@@ -101,34 +102,9 @@ The canonical action list with current keybindings lives in `shared/roles/keyboa
 - The Linux side stays with the existing dconf approach — this ADR adds structure (data-driven loop) but does not change the underlying mechanism.
 - Karabiner-Elements remains available as a future add-on if hardware-level key remapping is ever needed (e.g., Caps Lock → Escape). It is not required for the action binding system.
 
-## Implementation Plan
-
-### Phase 1: Hammerspoon bootstrap (macOS only)
-
-1. Create `shared/roles/keyboard/` with `tasks/darwin.yml`:
-   - Install Hammerspoon via `homebrew_cask`
-   - Deploy Hammerspoon base config via Stow
-   - Add `debug` note about required Accessibility permission
-2. Create Stow package:
-   - `macos/dotfiles/hammerspoon/.hammerspoon/` — `init.lua` + `actions.lua`
-
-### Phase 2: Action registry + data-driven keybindings
-
-3. Create `shared/vars/action-bindings.yml` with the initial action set (launcher, clipboard, emoji, screenshots, window management).
-4. Refactor `linux/roles/desktop-env/tasks/main.yml` to loop over the registry instead of hardcoding per-binding tasks.
-5. Create Ansible template for `actions.lua` that generates Hammerspoon bindings from the registry.
-6. Add the `keyboard` role to both platform playbooks (`03-desktop.yml`).
-
-### Phase 3: Expand and harden
-
-7. Confirm CleanShot X URL scheme for screenshot region capture.
-8. Configure Cinnamon window management dconf keys explicitly for consistency.
-9. Add Ansible handler for Cinnamon restart after keybinding changes.
-10. Update `post-install.md` to remove items that are now automated.
-
 ## Alternatives Considered
 
-See [research doc](../../research/Active/cross-platform-action-bindings/README.md#alternatives-considered) for detailed evaluation of:
+See [research doc](../../research/Active/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md#alternatives-considered) for detailed evaluation of:
 - Karabiner-Elements Hyper key pattern (unnecessary complexity — a well-chosen modifier avoids conflicts without a second tool)
 - Karabiner only (too limited for rich action dispatch and window management)
 - sxhkd on Linux (conflicts with Cinnamon, not integrated)

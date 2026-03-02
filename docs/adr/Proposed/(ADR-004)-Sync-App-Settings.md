@@ -1,8 +1,9 @@
-# ADR: Sync App Settings via Expanded Stow + Ansible
+# ADR-004: Sync App Settings via Expanded Stow + Ansible
 
 **Status:** Proposed
 **Date:** 2026-02-25
-**Research:** [sync-app-settings](../../research/Active/sync-app-settings/README.md)
+**Artifact:** ADR-004
+**Research:** [sync-app-settings](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md)
 
 ## Context
 
@@ -106,4 +107,4 @@ This produces human-readable XML diffs. The stow'd symlink serves the XML plist 
 
 ## Alternatives Considered
 
-See [research doc](../../research/Active/sync-app-settings/README.md#alternatives-considered) for detailed evaluation of Mackup, Chezmoi, Syncthing, and Nix Home Manager.
+See [research doc](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md#alternatives-considered) for detailed evaluation of Mackup, Chezmoi, Syncthing, and Nix Home Manager.
