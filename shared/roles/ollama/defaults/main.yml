@@ -1,3 +1,8 @@
 ---
 # Ollama — local LLM inference for embeddings and other tasks.
 # No secrets needed; Ollama runs locally without API keys.
+
+# Models to pull after install. Pinned across the fleet so embeddings
+# are interoperable between machines.
+ollama_models:
+  - nomic-embed-text

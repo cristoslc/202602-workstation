@@ -1,0 +1,12 @@
+---
+- name: Check which models are already pulled
+  ansible.builtin.command: ollama list
+  register: _ollama_list
+  changed_when: false
+  failed_when: false
+
+- name: "Pull model: {{ item }}"
+  ansible.builtin.command: "ollama pull {{ item }}"
+  loop: "{{ ollama_models }}"
+  when: item not in (_ollama_list.stdout | default(''))
+  changed_when: true
