@@ -1,10 +1,10 @@
 ---
 title: "EPIC-003: Sync App Settings"
 artifact: EPIC-003
-status: Proposed
+status: Active
 author: cristos
 created: 2026-03-02
-last-updated: 2026-03-02
+last-updated: 2026-03-03
 parent-vision: VISION-001
 success-criteria:
   - "`make apply` reproduces all captured app configurations on a fresh machine"
@@ -58,8 +58,8 @@ _Planned (to be created from SPIKE-005 gap list):_
 
 | Dependency | Type | Status | Notes |
 |------------|------|--------|-------|
-| [SPIKE-005](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md) | Research | Active | Coverage audit and classification framework |
-| [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Decision | Proposed | Expanded Stow + Ansible pattern (no new tools) |
+| [SPIKE-005](../../research/Complete/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md) | Research | Complete | Coverage audit and classification framework |
+| [ADR-004](../../adr/Adopted/(ADR-004)-Sync-App-Settings.md) | Decision | Adopted | Expanded Stow + Ansible pattern (no new tools) |
 
 ## Risks
 
@@ -76,8 +76,8 @@ _Planned (to be created from SPIKE-005 gap list):_
 | Type | ID | Title |
 |------|----|-------|
 | Vision | [VISION-001](../../vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code |
-| Spike | [SPIKE-005](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md) | App Settings Sync Across Machines |
-| ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings via Expanded Stow + Ansible |
+| Spike | [SPIKE-005](../../research/Complete/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md) | App Settings Sync Across Machines |
+| ADR | [ADR-004](../../adr/Adopted/(ADR-004)-Sync-App-Settings.md) | Sync App Settings via Expanded Stow + Ansible |
 | Spec | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest for Personal Files |
 
@@ -86,3 +86,4 @@ _Planned (to be created from SPIKE-005 gap list):_
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-03-02 | f99e8fa | Created to parent SPEC-001 and coordinate SPIKE-005/ADR-004 work |
+| Active | 2026-03-03 | cff3f69 | Dependencies resolved; beginning settings capture work |
