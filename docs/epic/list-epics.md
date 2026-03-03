@@ -11,7 +11,7 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | EPIC-001 | [Restic Backup Stack](./(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | 2026-03-03 | 007be42 | Implementation exists; pending bootstrap validation |
-| EPIC-003 | [Sync App Settings](./(EPIC-003)-Sync-App-Settings/(EPIC-003)-Sync-App-Settings.md) | 2026-03-03 | cff3f69 | Dependencies resolved; beginning settings capture |
+| EPIC-003 | [Sync App Settings](./(EPIC-003)-Sync-App-Settings/(EPIC-003)-Sync-App-Settings.md) | 2026-03-03 | 170ae5e | Dependencies resolved; beginning settings capture |
 
 ## Complete
 

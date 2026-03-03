@@ -86,4 +86,4 @@ _Planned (to be created from SPIKE-005 gap list):_
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-03-02 | f99e8fa | Created to parent SPEC-001 and coordinate SPIKE-005/ADR-004 work |
-| Active | 2026-03-03 | cff3f69 | Dependencies resolved; beginning settings capture work |
+| Active | 2026-03-03 | 170ae5e | Dependencies resolved; beginning settings capture work |
