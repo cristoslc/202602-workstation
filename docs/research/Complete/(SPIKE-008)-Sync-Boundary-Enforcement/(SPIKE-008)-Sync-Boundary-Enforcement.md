@@ -234,76 +234,89 @@ The current `wsync` implementation (319-line bash script) has three limitations 
 
 ### Approach evaluation matrix
 
-| Criterion | A (Pre-scan) | B (Event hook) | C (Unison all) | D (Hybrid) | E (Convention) |
+| Criterion | A (Pre-scan) | B (Event hook) | C (Unison all) | D+ (Hybrid + real-time) | E (Convention) |
 |-----------|:---:|:---:|:---:|:---:|:---:|
 | **Detection** (automatic) | PASS | PASS | N/A | PASS | FAIL |
-| **Protection** (before damage) | PARTIAL | PARTIAL | PASS | PARTIAL | FAIL |
+| **Protection** (before damage) | PARTIAL | PARTIAL | PASS | PASS | FAIL |
 | **Coverage** (repos outside ~/code/) | PASS | PASS | PASS | PASS | FAIL |
 | **UX** (no sync tool knowledge) | PASS | PASS | PASS | PASS | FAIL |
 | **Feasibility** | High | Medium | Low | High | High |
 | **Complexity** | Low | High | Very High | Medium | Very Low |
 
-**Why Protection is PARTIAL for A/B/D:** Both `LocalChangeDetected` and `RemoteChangeDetected` events fire *after* the sync operation. The first sync of a new repo's working tree files will already have happened before any detection fires. The race window for Approach A is the scan interval (5 minutes); for Approach B it is the time between filesystem event and ignore update (seconds, but first sync still lands).
+**Why D+ achieves PASS on Protection:** The combination of delayed Syncthing start (boot) + real-time fswatch (runtime) closes the race window. At boot, the scanner runs before Syncthing starts — zero window for existing repos. At runtime, fswatch detects `.git/` creation at the same speed as Syncthing detects file changes — millisecond window for new repos, with near-zero practical damage because fresh clones share the same branch.
+
+**Why A is PARTIAL on Protection:** Polling interval (5 minutes) loses the race against Syncthing's real-time filesystem watching every time.
+
+**Why B is PARTIAL on Protection:** Syncthing's event API fires *after* the sync operation. The first sync of working tree files has already happened.
 
 **Why C is eliminated:** Unison's 30-minute initial scan time for 100K files, 600MB memory footprint, lack of native continuous watching on macOS, and absence of conflict versioning make it unsuitable as a Syncthing replacement for user data.
 
 **Why E is eliminated:** Fails three of four go/no-go criteria. Warnings don't prevent damage.
 
-### Recommendation: Approach D (Hybrid) with phased rollout
+### Recommendation: Approach D+ (Hybrid with real-time detection and journal)
 
-**Approach D is recommended** — keep the two-tool architecture, add a scanner service, and expand wsync. Each tool stays in its sweet spot.
+**Approach D is recommended**, refined with real-time filesystem watching and a centralized detection journal. The two-tool architecture is retained; each tool stays in its sweet spot.
 
-#### Phase 1: Scanner + .stignore exclusion (Protection)
+#### Architecture: detection journal as single source of truth
 
-A lightweight scanner script (`git-repo-scanner` or integrated into wsync):
+A centralized journal file (`~/.config/wsync/detected-repos`) is the authoritative registry of git repos found in Syncthing-managed folders. Both tools consume it:
 
 ```
-For each Syncthing folder (Documents, Pictures, Music, Videos, Downloads):
-  find <folder> -name .git -type d -prune
-  For each .git/ found:
-    Compute relative path of parent directory
-    Add to .stignore via POST /rest/db/ignores (REST API)
-    Log detection
+fswatch detects .git/ creation in Syncthing folders
+  + boot-time find scan (catches existing repos)
+         |
+         v
+  ~/.config/wsync/detected-repos   (journal)
+         |
+    +----+----+
+    |         |
+    v         v
+Syncthing   wsync
+(.stignore   (WSYNC_EXTRA_DIRS
+ via REST     for Unison sync)
+ API)
 ```
 
-- Runs on boot/login (catches existing repos immediately)
-- Runs every 5 minutes via the existing wsync timer (piggyback, no new timer)
-- Uses Syncthing REST API for atomic `.stignore` updates with immediate rescan
-- Preserves existing `.stignore` patterns (read current, append new, write back)
-- Marks auto-generated entries with a comment prefix for identification:
-  ```
-  // Auto-detected git repos (do not edit below this line)
-  HouseOps
-  projects/some-experiment
-  ```
+The journal provides auditability (what was detected, when, on which machine) and a single place to debug if something goes wrong.
 
-**Race window mitigation:** The 5-minute window is acceptable because:
-1. Boot/login scan catches all existing repos with zero window
-2. New `git init` in a Syncthing folder is rare (most repos are cloned into `~/code/`)
-3. Even if Syncthing syncs working tree files during the window, the damage is limited to the files that differ between branches — recoverable with `git checkout .`
+#### Boot sequence: delayed Syncthing start
 
-#### Phase 2: wsync multi-directory support (Coverage)
+Syncthing must not start before the scanner has run:
 
-Extend wsync to discover and sync repos found by the scanner:
+1. System boots
+2. Scanner runs as a oneshot service (`Before=syncthing@.service` on Linux, launchd dependency on macOS)
+3. Scanner does a `find` sweep of all Syncthing-managed folders, writes journal, updates `.stignore` via REST API
+4. Syncthing starts with correct ignores already in place
 
-1. Scanner writes detected repo paths to a config file (e.g., `~/.config/wsync/extra-repos`)
-2. `wsync_discover_repos()` reads this file in addition to scanning `$WSYNC_CODE_DIR`
-3. Repos outside `~/code/` get the same branch-aware Unison sync treatment
-4. Handle name collisions by using a qualified name (e.g., `documents--HouseOps` on the hub)
+This provides **zero race window for existing repos** — the most dangerous case, where two machines reconnect after being on different branches.
 
-#### Phase 3 (optional): fswatch enhancement
+#### Runtime: real-time filesystem watching
 
-If the 5-minute race window proves problematic in practice, add a persistent filesystem watcher:
+After boot, a persistent `fswatch` process monitors Syncthing-managed folders for `.git/` directory creation. On detection:
 
-1. `fswatch` monitors Syncthing-managed folders for `.git` directory creation
-2. On detection, immediately calls the scanner's exclusion logic
-3. Race window drops from 5 minutes to sub-second
+1. Parent directory path written to journal
+2. `.stignore` updated via `POST /rest/db/ignores` (atomic, triggers immediate rescan)
+3. Repo registered for wsync coverage
 
-This is optional because Phase 1's boot scan + 5-minute interval covers the common case.
+The scanner uses the **same technology Syncthing does** (FSEvents on macOS, inotify on Linux) via `fswatch`. This means the scanner detects `.git/` creation at the same speed as Syncthing detects file changes. The remaining race window is milliseconds — and the practical damage during that window is near-zero because a freshly cloned repo has the same branch on both machines.
 
-#### Safety net: `make verify` (from Approach E)
+**Why not poll every 5 minutes?** Syncthing's filesystem watcher detects changes within milliseconds. A 5-minute scanner would always lose the race. A 5-second scanner would usually lose. Only real-time filesystem watching matches Syncthing's detection speed.
 
-Regardless of the chosen approach, add a `make verify` target that warns about git repos in Syncthing folders. This provides a manual check for situations where the scanner isn't running (e.g., first install before the timer is set up).
+#### wsync multi-directory support
+
+Extend wsync to discover and sync repos from the journal:
+
+1. `wsync_discover_repos()` reads `~/.config/wsync/detected-repos` in addition to scanning `$WSYNC_CODE_DIR`
+2. Repos outside `~/code/` get the same branch-aware Unison sync treatment
+3. Name collisions handled with qualified names (e.g., `documents--HouseOps` on the hub)
+
+#### Safety net: `make verify`
+
+A `make verify` target warns about git repos in Syncthing folders. This provides a manual check for situations where the scanner isn't running (e.g., first install before the timer is set up).
+
+#### Formal decision
+
+This recommendation is formalized in **ADR-006: Git Repo Detection Journal with Sync Boundary Enforcement**.
 
 ### Impact assessment
 
@@ -315,7 +328,7 @@ Regardless of the chosen approach, add a `make verify` target that warns about g
 
 ### Go / No-Go verdict
 
-**GO** — Approach D satisfies Detection, Coverage, and UX criteria fully. Protection is partial (5-minute race window for new repos) but acceptable given the mitigations. The two-tool architecture is validated; the boundary just needs active enforcement rather than passive convention.
+**GO** — Approach D+ satisfies all four go/no-go criteria fully. The combination of delayed Syncthing start + real-time fswatch closes the race window that made Protection only PARTIAL in the original Approach D. The two-tool architecture is validated; the boundary needs active enforcement via a detection journal rather than passive convention.
 
 ## Lifecycle
 
