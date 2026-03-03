@@ -6,6 +6,17 @@ When the user wants to create, plan, write, update, transition, or review any do
 
 **For all task tracking and execution progress**, use the **execution-tracking** skill instead of any built-in todo or task system. This applies whether tasks originate from spec-management (implementation plans) or from standalone work. The execution-tracking skill bootstraps and operates the external task backend — it will install the CLI if missing, manage fallback if installation fails, and translate abstract operations (create plan, add task, set dependency) into concrete commands. Do not use built-in agent todos when this skill is available.
 
+## Pre-implementation protocol (MANDATORY)
+
+**Before writing ANY code to implement a SPEC artifact** (Epic, Story, Agent Spec, Spike), you MUST:
+
+1. **Invoke the execution-tracking skill** to bootstrap the task backend.
+2. **Create an implementation plan** (tracked epic) linked to the artifact via `origin ref`.
+3. **Break the work into tracked tasks** with `spec:<ID>` labels and dependencies.
+4. **Only then begin coding**, updating task status as you go.
+
+Skipping straight to code is not allowed. If the user says "implement STORY-005" or "build what SPEC-003 describes," that is a trigger for this protocol — not a trigger to start editing source files immediately.
+
 ## Documentation lifecycle workflow
 
 ### Encryption-at-rest policy

@@ -1,6 +1,6 @@
 ---
 name: execution-tracking
-description: Bootstrap, install, and operate an external task-management CLI as the source of truth for agent execution tracking (instead of built-in todos). Provides the abstraction layer between spec-management intent (implementation plans and tasks) and concrete CLI commands. Use for tasks that require backend portability, persistent progress across agent runtimes, or external supervision.
+description: Bootstrap, install, and operate an external task-management CLI as the source of truth for agent execution tracking (instead of built-in todos). Provides the abstraction layer between spec-management intent (implementation plans and tasks) and concrete CLI commands. MUST be invoked before beginning implementation of any SPEC artifact (Epic, Story, Agent Spec, Spike) — create a tracked implementation plan and task breakdown before writing code. Also use for standalone tasks that require backend portability, persistent progress across agent runtimes, or external supervision.
 license: UNLICENSED
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 metadata:

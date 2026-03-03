@@ -91,8 +91,9 @@ cp -R "$TMPDIR_WORK/repo/$SKILL_PATH/." "$DEST/"
 rm -f "$DEST/.source.yml"
 
 # --- Compute integrity hash ---
-# Deterministic tar: sorted entries, no timestamps, exclude .source.yml
-INTEGRITY_DIGEST="$(tar cf - --exclude='.source.yml' -C "$TARGET_DIR" "$SKILL_NAME" 2>/dev/null | sha256_hash)"
+# Content-only hash: hash file paths + contents, not filesystem metadata.
+# This avoids tar non-determinism from directory mtime changes.
+INTEGRITY_DIGEST="$(cd "$TARGET_DIR" && find "$SKILL_NAME" -type f ! -name '.source.yml' | LC_ALL=C sort | while IFS= read -r f; do printf '%s\n' "$f"; sha256_hash < "$f"; done | sha256_hash)"
 
 # --- Generate .source.yml ---
 FETCHED_AT="$(iso_timestamp)"

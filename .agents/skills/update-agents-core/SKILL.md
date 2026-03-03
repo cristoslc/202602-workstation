@@ -5,7 +5,7 @@ license: UNLICENSED
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
   short-description: Update agents scaffolding from upstream
-  version: 1.0.0
+  version: 1.1.0
   author: cristos
 ---
 
@@ -15,24 +15,53 @@ Pull the latest agents-standalone scaffolding from the upstream repository into 
 
 ## Prerequisites
 
-This skill assumes the project was originally set up via the `import-agents-standalone.sh` script, which configures a git remote named `agents-upstream` pointing at the source repository.
+- The working tree must be clean before starting.
+- `npx` is the preferred update path for skills. If unavailable, the skill falls back to pure git.
+- The `agents-upstream` git remote is required for updating `AGENTS.md` and other non-skill scaffolding. If it is missing, the skill will prompt the user to add it.
 
 ## Workflow
 
 ### 1. Preflight checks
 
-1. Confirm the working tree is clean (`git status`). If there are uncommitted changes, stop and ask the user to commit or stash first — the merge may produce conflicts that are easier to resolve on a clean tree.
-2. Verify the `agents-upstream` remote exists:
-   ```bash
-   git remote get-url agents-upstream
-   ```
-   If it does not exist, tell the user the remote is missing and show them how to add it:
-   ```
-   git remote add agents-upstream https://github.com/cristoslc/LLM-personal-agent-patterns.git
-   ```
-   Then ask them to re-invoke the skill after adding it.
+Confirm the working tree is clean (`git status`). If there are uncommitted changes, stop and ask the user to commit or stash first — the merge may produce conflicts that are easier to resolve on a clean tree.
 
-### 2. Fetch latest
+### 2. Update skills via npx (preferred)
+
+Check whether `npx` is available:
+
+```bash
+command -v npx >/dev/null 2>&1
+```
+
+If available, run:
+
+```bash
+npx skills add https://github.com/cristoslc/LLM-personal-agent-patterns@l3-standalone --yes
+```
+
+Track the outcome:
+- **npx succeeded** — skills are updated. Proceed to step 3 to update `AGENTS.md` and other non-skill scaffolding via git.
+- **npx failed or unavailable** — proceed to step 3, which will handle updating everything (skills included) via git.
+
+### 3. Git procedure — AGENTS.md and scaffolding (and full fallback)
+
+#### 3a. Verify remote
+
+Verify the `agents-upstream` remote exists:
+
+```bash
+git remote get-url agents-upstream
+```
+
+If it does not exist, tell the user the remote is missing and show them how to add it:
+
+```
+git remote add agents-upstream https://github.com/cristoslc/LLM-personal-agent-patterns.git
+```
+
+Then ask them to re-invoke the skill after adding it.
+
+#### 3b. Fetch latest
 
 Use a shallow fetch — only the tip commit is needed because the merge always squashes (no merge base is recorded between the two histories):
 
@@ -40,17 +69,24 @@ Use a shallow fetch — only the tip commit is needed because the merge always s
 git fetch --depth=1 agents-upstream l3-standalone
 ```
 
-### 3. Check for changes
+#### 3c. Check for changes
 
-Compare the current HEAD to the fetched upstream. Use a two-dot diff (three-dot is unreliable with unrelated histories):
+Compare the current HEAD to the fetched upstream. Use a two-dot diff (three-dot is unreliable with unrelated histories).
 
-```bash
-git diff HEAD..agents-upstream/l3-standalone --stat -- .agents/ AGENTS.md
-```
+The diff scope depends on whether npx already updated the skills:
+
+- **If npx succeeded** — narrow scope (only non-skill scaffolding):
+  ```bash
+  git diff HEAD..agents-upstream/l3-standalone --stat -- AGENTS.md .agents/README.md .agents/AGENTS-SETUP.md import-agents-standalone.sh
+  ```
+- **If npx failed or was unavailable** — full scope:
+  ```bash
+  git diff HEAD..agents-upstream/l3-standalone --stat -- .agents/ AGENTS.md
+  ```
 
 If the diff is empty, tell the user they are already up to date and stop.
 
-### 4. Merge
+#### 3d. Merge
 
 ```bash
 git merge agents-upstream/l3-standalone --allow-unrelated-histories --squash
@@ -58,11 +94,11 @@ git merge agents-upstream/l3-standalone --allow-unrelated-histories --squash
 
 The `--allow-unrelated-histories` flag is always required because the initial import used `--squash`, which does not record a merge base.
 
-### 5. Resolve conflicts
+#### 3e. Resolve conflicts
 
 After the squash merge, two categories of files need different treatment:
 
-#### 5a. Skills and scaffolding — remote wins
+**Skills and scaffolding — remote wins**
 
 All files under `.agents/` (skills, README, AGENTS-SETUP.md, etc.) and the `import-agents-standalone.sh` script are **upstream-owned**. If there are conflicts on any of these files, accept the upstream version unconditionally:
 
@@ -74,7 +110,7 @@ git add <file>
 
 Local projects should not modify files inside `.agents/skills/` directly. Project-specific customizations belong in `AGENTS.md` or in separate skill directories that upstream does not ship.
 
-#### 5b. AGENTS.md — reconcile
+**AGENTS.md — reconcile**
 
 `AGENTS.md` is the one file that lives at the boundary between upstream scaffolding and local project configuration. Upstream may add new routing rules, artifact types, or structural sections, while the local project may have added its own routing rules, custom artifact types, or project-specific workflow notes.
 
@@ -88,7 +124,7 @@ When `AGENTS.md` has conflicts:
 
 If there are no conflicts (clean merge), no manual reconciliation is needed.
 
-### 6. Review
+### 4. Review
 
 Show the user what was staged:
 
@@ -98,7 +134,7 @@ git diff --cached --stat
 
 Walk through the changes briefly so the user understands what upstream updated.
 
-### 7. Commit
+### 5. Commit
 
 Ask the user to confirm, then commit:
 
