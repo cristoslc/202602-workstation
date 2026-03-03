@@ -1,10 +1,10 @@
 ---
 title: "EPIC-002: Sync User Folders"
 artifact: EPIC-002
-status: Proposed
+status: Active
 author: cristos
 created: 2026-03-01
-last-updated: 2026-03-01
+last-updated: 2026-03-03
 parent-vision: VISION-001
 success-criteria:
   - "One-time data migration via `make data-pull SOURCE=<host>` works across macOS and Linux"
