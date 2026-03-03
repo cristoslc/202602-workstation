@@ -41,3 +41,7 @@ __pycache__/
 *~
 .idea/
 .vscode/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
