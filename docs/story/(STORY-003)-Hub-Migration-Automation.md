@@ -1,7 +1,7 @@
 ---
 title: "STORY-003: Hub Migration Automation"
 artifact: STORY-003
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -33,3 +33,4 @@ SPIKE-007 designed two automation components: a `make hub-migrate` script for pl
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | 52cf8b1 | Created from SPIKE-007 recommendations; skipped Draft (design completed during research). Depends on STORY-001 (key backup) for the restore flow. |
+| Implemented | 2026-03-03 | 0452fe1 | hub-migrate.sh, infra/hub/ Ansible structure, inject-keys.yml, Makefile targets |

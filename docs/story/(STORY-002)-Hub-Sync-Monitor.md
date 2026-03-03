@@ -1,7 +1,7 @@
 ---
 title: "STORY-002: Hub Sync Monitor"
 artifact: STORY-002
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -32,3 +32,4 @@ SPIKE-007 identified "no hub monitoring" as a medium-severity gap. The design fo
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | 52cf8b1 | Created from SPIKE-007 recommendations; skipped Draft (design completed during research) |
+| Implemented | 2026-03-03 | 0452fe1 | sync-monitor role with health-check script, systemd/launchd timers, wired into playbooks |
