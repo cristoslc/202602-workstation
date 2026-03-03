@@ -30,4 +30,4 @@ JOURNEY-001 documents "Ansible error messages are hard to parse in the TUI" as a
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Ready | 2026-03-03 | — | Created from JOURNEY-001 pain point; scope is well-defined TUI enhancement |
+| Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-001 pain point; scope is well-defined TUI enhancement |

@@ -29,4 +29,4 @@ JOURNEY-003 documents "large data transfers take hours with no resume-on-disconn
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Ready | 2026-03-03 | — | Created from JOURNEY-003 pain point; skipped Draft (trivial scope) |
+| Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-003 pain point; skipped Draft (trivial scope) |

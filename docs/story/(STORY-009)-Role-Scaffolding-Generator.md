@@ -30,4 +30,4 @@ JOURNEY-002 documents "cross-platform authoring requires knowing both platforms'
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Ready | 2026-03-03 | — | Created from JOURNEY-002 pain point; well-defined scope |
+| Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-002 pain point; well-defined scope |

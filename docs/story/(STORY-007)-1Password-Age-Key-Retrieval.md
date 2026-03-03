@@ -31,4 +31,4 @@ JOURNEY-001 documents "age key transfer requires coordination with another machi
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-03-03 | — | Created from JOURNEY-001 pain point; requires 1Password CLI integration and chicken-and-egg timing investigation |
+| Draft | 2026-03-03 | ad25d92 | Created from JOURNEY-001 pain point; requires 1Password CLI integration and chicken-and-egg timing investigation |

@@ -29,4 +29,4 @@ JOURNEY-001 documents "Raycast and Stream Deck require interactive confirmation 
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-03-03 | — | Created from JOURNEY-001 pain point; feasibility of headless import needs investigation |
+| Draft | 2026-03-03 | ad25d92 | Created from JOURNEY-001 pain point; feasibility of headless import needs investigation |

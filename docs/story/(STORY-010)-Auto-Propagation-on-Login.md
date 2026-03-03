@@ -31,4 +31,4 @@ JOURNEY-002 documents "no push-based propagation; must manually pull + apply on 
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-03-03 | — | Created from JOURNEY-002 pain point; design requires careful handling of async execution and failure modes |
+| Draft | 2026-03-03 | ad25d92 | Created from JOURNEY-002 pain point; design requires careful handling of async execution and failure modes |

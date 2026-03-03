@@ -54,4 +54,4 @@ None — this epic addresses platform DX gaps independent of the sync and backup
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Proposed | 2026-03-03 | — | Created to own JOURNEY-001/002 pain points that had no parent epic |
+| Proposed | 2026-03-03 | ad25d92 | Created to own JOURNEY-001/002 pain points that had no parent epic |
