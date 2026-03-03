@@ -1,10 +1,10 @@
 ---
 title: "SPIKE-006: Sync User Folders"
 artifact: SPIKE-006
-status: Active
+status: Complete
 author: cristos
 created: 2026-02-24
-last-updated: 2026-02-26
+last-updated: 2026-03-03
 ---
 
 # SPIKE-006: Sync User Folders
