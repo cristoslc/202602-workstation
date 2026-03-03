@@ -17,13 +17,13 @@ _None._
 | SPIKE-004 | [Cross-Platform Action Bindings](./Complete/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md) | 2026-03-02 | 39f786f | Hammerspoon on macOS confirmed; dconf on Mint untested |
 | SPIKE-005 | [Sync App Settings](./Complete/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md) | 2026-03-03 | f95ecc5 | Research concluded; findings feed EPIC-003 |
 | SPIKE-006 | [Sync User Folders](./Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) | 2026-03-03 | fda9b50 | Research concluded; findings feed EPIC-002 |
+| SPIKE-007 | [Hub Server Failover and Migration](./Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | 2026-03-03 | 5595b38 | All go/no-go criteria pass; runbooks at docs/runbooks/hub-replacement.md; accept single-hub, defer dual-hub to VISION-002 |
 | SPIKE-008 | [Sync Boundary Enforcement](./Complete/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | 2026-03-03 | 52ee0c6 | Research concluded; recommends Approach D+ (Hybrid with real-time detection and journal); see ADR-006 |
 
 ## Planned
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| SPIKE-007 | [Hub Server Failover and Migration](./Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | 2026-03-03 | 3dccece | Hub outage recovery and migration procedures for EPIC-002 |
 
 ## Abandoned
 

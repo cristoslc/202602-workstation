@@ -15,3 +15,4 @@ Project documentation organized by artifact type. See [AGENTS.md](../AGENTS.md) 
 | [Research / Spikes](research/) | `docs/research/` | Time-boxed investigations |
 | [ADRs](adr/) | `docs/adr/` | Architectural decisions |
 | [PRDs](prd/) | `docs/prd/` | Legacy (migrated to Epics/Specs) |
+| [Runbooks](runbooks/) | `docs/runbooks/` | Operational procedures (ad-hoc) |
