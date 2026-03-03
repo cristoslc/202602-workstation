@@ -1,7 +1,7 @@
 ---
 title: "SPIKE-008: Sync Boundary Enforcement"
 artifact: SPIKE-008
-status: Planned
+status: Active
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
