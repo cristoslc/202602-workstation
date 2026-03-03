@@ -257,13 +257,14 @@ The current `wsync` implementation (319-line bash script) has three limitations 
 
 **Approach D is recommended**, refined with real-time filesystem watching and a centralized detection journal. The two-tool architecture is retained; each tool stays in its sweet spot.
 
-#### Architecture: detection journal as single source of truth
+#### Architecture: detection journal + `.stglobalignore` propagation
 
-A centralized journal file (`~/.config/wsync/detected-repos`) is the authoritative registry of git repos found in Syncthing-managed folders. Both tools consume it:
+A centralized journal file (`~/.config/wsync/detected-repos`) is the authoritative registry of git repos found in Syncthing-managed folders. Both tools consume it, and exclusion patterns propagate fleet-wide via `.stglobalignore`:
 
 ```
 fswatch detects .git/ creation in Syncthing folders
-  + boot-time find scan (catches existing repos)
+  + boot/wake find scan (catches existing repos)
+  + .stglobalignore changes from other machines
          |
          v
   ~/.config/wsync/detected-repos   (journal)
@@ -272,33 +273,40 @@ fswatch detects .git/ creation in Syncthing folders
     |         |
     v         v
 Syncthing   wsync
-(.stignore   (WSYNC_EXTRA_DIRS
- via REST     for Unison sync)
- API)
+(.stglobal-  (WSYNC_EXTRA_DIRS
+ ignore,      for Unison sync)
+ synced to
+ all devices)
 ```
 
-The journal provides auditability (what was detected, when, on which machine) and a single place to debug if something goes wrong.
+The `.stignore` deployed by Ansible is static. It includes a single `#include .stglobalignore` directive. The scanner writes ONLY to `.stglobalignore`, which is a regular file that Syncthing syncs to Hub and all other devices. This means Machine A's detection protects Machine B without out-of-band coordination.
 
-#### Boot sequence: delayed Syncthing start
+**Syncthing #7096 workaround:** Syncthing may not automatically rescan when a synced `#include`-d file changes. The fswatch process on each machine also watches for `.stglobalignore` modifications (arriving from other devices) and calls `POST /rest/db/scan` to force a rescan.
 
-Syncthing must not start before the scanner has run:
+#### Boot and wake: scanner runs before Syncthing
 
-1. System boots
-2. Scanner runs as a oneshot service (`Before=syncthing@.service` on Linux, launchd dependency on macOS)
-3. Scanner does a `find` sweep of all Syncthing-managed folders, writes journal, updates `.stignore` via REST API
-4. Syncthing starts with correct ignores already in place
+Syncthing must not start or reconnect before the scanner has run:
 
-This provides **zero race window for existing repos** — the most dangerous case, where two machines reconnect after being on different branches.
+**Boot:**
+1. Scanner runs as a oneshot service (`Before=syncthing@.service` on Linux, launchd dependency on macOS)
+2. Scanner does a `find` sweep of all Syncthing-managed folders, writes journal and `.stglobalignore` directly to disk
+3. Syncthing starts with correct ignores already in place
+
+**Wake from sleep:**
+1. The existing `syncthing-resume.sh` restarts Syncthing on wake. The scanner is inserted before the restart.
+2. Scanner runs `find` sweep, updates journal and `.stglobalignore`
+3. Syncthing restarts with current ignores
+
+This provides **zero race window at boot and wake** — the most dangerous scenarios, where machines reconnect after being on different branches.
 
 #### Runtime: real-time filesystem watching
 
-After boot, a persistent `fswatch` process monitors Syncthing-managed folders for `.git/` directory creation. On detection:
+After boot, a persistent `fswatch` process monitors Syncthing-managed folders for two event types:
 
-1. Parent directory path written to journal
-2. `.stignore` updated via `POST /rest/db/ignores` (atomic, triggers immediate rescan)
-3. Repo registered for wsync coverage
+1. **`.git/` directory creation:** A new repo appeared. Scanner updates journal + `.stglobalignore` + calls `POST /rest/db/ignores` for immediate local effect. `.stglobalignore` syncs to all devices.
+2. **`.stglobalignore` modification:** Another machine detected a repo and its exclusion pattern arrived via Syncthing sync. Scanner calls `POST /rest/db/scan` to force Syncthing to re-read the updated `#include`.
 
-The scanner uses the **same technology Syncthing does** (FSEvents on macOS, inotify on Linux) via `fswatch`. This means the scanner detects `.git/` creation at the same speed as Syncthing detects file changes. The remaining race window is milliseconds — and the practical damage during that window is near-zero because a freshly cloned repo has the same branch on both machines.
+The scanner uses the **same technology Syncthing does** (FSEvents on macOS, inotify on Linux) via `fswatch`. The remaining race window at runtime is milliseconds — and the practical damage during that window is near-zero because a freshly cloned repo has the same branch on both machines, and `.stglobalignore` propagation prevents other machines from pulling the files.
 
 **Why not poll every 5 minutes?** Syncthing's filesystem watcher detects changes within milliseconds. A 5-minute scanner would always lose the race. A 5-second scanner would usually lose. Only real-time filesystem watching matches Syncthing's detection speed.
 
