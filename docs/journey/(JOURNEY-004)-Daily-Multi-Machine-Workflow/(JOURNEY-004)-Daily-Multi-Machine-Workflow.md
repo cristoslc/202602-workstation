@@ -6,7 +6,7 @@ author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
 parent-vision: VISION-001
-linked-personas:
+personas:
   - PERSONA-001
 depends-on:
   - EPIC-002

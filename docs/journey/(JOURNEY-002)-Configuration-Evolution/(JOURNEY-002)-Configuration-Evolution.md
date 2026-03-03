@@ -4,7 +4,7 @@ artifact: JOURNEY-002
 status: Validated
 author: cristos
 created: 2026-02-27
-last-updated: 2026-02-27
+last-updated: 2026-03-03
 parent-vision: VISION-001
 personas:
   - PERSONA-001
@@ -95,11 +95,11 @@ journey
 
 ## Pain points summary
 
-| Stage | Pain point | Severity | Opportunity |
-|-------|-----------|----------|-------------|
-| Edit | Cross-platform authoring requires knowing both platforms' install mechanisms | Frustrated | Templates or generators for common install patterns (brew/apt, binary download, snap) |
-| Propagate | No push-based propagation; must manually pull + apply on each machine | Frustrated | A pull-and-apply hook triggered on login or a Syncthing-based config watcher |
-| Cross-Platform Verify | Blind-authored tasks for the other platform aren't tested until used | Frustrated | GitHub Actions CI with macOS + Linux matrix for lint + syntax checking |
+| Stage | Pain point | Severity | Owning artifact | Opportunity |
+|-------|-----------|----------|-----------------|-------------|
+| Edit | Cross-platform authoring requires knowing both platforms' install mechanisms | Frustrated | STORY-009 (EPIC-004) | `make new-role` scaffolding generator with cross-platform boilerplate |
+| Propagate | No push-based propagation; must manually pull + apply on each machine | Frustrated | STORY-010 (EPIC-004) | Pull-and-apply hook triggered on login |
+| Cross-Platform Verify | Blind-authored tasks for the other platform aren't tested until used | Frustrated | STORY-011 (EPIC-004) | GitHub Actions CI with macOS + Linux matrix |
 
 ## Opportunities
 

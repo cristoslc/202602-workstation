@@ -4,11 +4,12 @@ artifact: PERSONA-001
 status: Validated
 author: cristos
 created: 2026-02-27
-last-updated: 2026-02-27
+last-updated: 2026-03-03
 related-journeys:
   - JOURNEY-001
   - JOURNEY-002
   - JOURNEY-003
+  - JOURNEY-004
 related-visions:
   - VISION-001
 ---

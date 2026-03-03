@@ -4,7 +4,7 @@ artifact: JOURNEY-001
 status: Validated
 author: cristos
 created: 2026-02-27
-last-updated: 2026-02-27
+last-updated: 2026-03-03
 parent-vision: VISION-001
 personas:
   - PERSONA-001
@@ -104,11 +104,11 @@ journey
 
 ## Pain points summary
 
-| Stage | Pain point | Severity | Opportunity |
-|-------|-----------|----------|-------------|
-| Prerequisites | Age key transfer requires coordination with another machine | Frustrated | Explore 1Password-based key storage or QR-code key export for offline transfer |
-| Bootstrap | Ansible error messages are hard to parse in the TUI | Frustrated | Add error summarization or a "failed tasks" panel after the run |
-| Settings Import | Raycast and Stream Deck require interactive confirmation dialogs | Frustrated | Investigate headless import via CLI tools or plist manipulation |
+| Stage | Pain point | Severity | Owning artifact | Opportunity |
+|-------|-----------|----------|-----------------|-------------|
+| Prerequisites | Age key transfer requires coordination with another machine | Frustrated | STORY-007 (EPIC-004) | 1Password CLI retrieval after Phase 1 installs `op` |
+| Bootstrap | Ansible error messages are hard to parse in the TUI | Frustrated | STORY-008 (EPIC-004) | Post-run failed-tasks summary panel with retry |
+| Settings Import | Raycast and Stream Deck require interactive confirmation dialogs | Frustrated | STORY-006 (EPIC-003) | Headless import via CLI tools or plist manipulation |
 
 ## Opportunities
 

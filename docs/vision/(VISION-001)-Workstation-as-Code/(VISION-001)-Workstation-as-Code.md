@@ -4,7 +4,7 @@ artifact: VISION-001
 status: Active
 author: cristos
 created: 2026-02-27
-last-updated: 2026-03-01
+last-updated: 2026-03-03
 ---
 
 # VISION-001: Workstation as Code
@@ -102,11 +102,16 @@ See [architecture-overview.md](./architecture-overview.md) for the full system d
 | Journey | [JOURNEY-001](../../journey/(JOURNEY-001)-Fresh-Machine-Bootstrap/(JOURNEY-001)-Fresh-Machine-Bootstrap.md) | Fresh Machine Bootstrap |
 | Journey | [JOURNEY-002](../../journey/(JOURNEY-002)-Configuration-Evolution/(JOURNEY-002)-Configuration-Evolution.md) | Configuration Evolution |
 | Journey | [JOURNEY-003](../../journey/(JOURNEY-003)-Machine-Migration/(JOURNEY-003)-Machine-Migration.md) | Machine Migration |
+| Journey | [JOURNEY-004](../../journey/(JOURNEY-004)-Daily-Multi-Machine-Workflow/(JOURNEY-004)-Daily-Multi-Machine-Workflow.md) | Daily Multi-Machine Workflow |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest for Personal Files |
 | ADR | [ADR-003](../../adr/Proposed/(ADR-003)-Cross-Platform-Action-Bindings.md) | Cross-Platform Action Bindings |
 | ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
+| ADR | [ADR-005](../../adr/Adopted/(ADR-005)-@tui-Annotation-Based-Secrets-Autodiscovery.md) | @tui Annotation-Based Secrets Autodiscovery |
+| ADR | [ADR-006](../../adr/Adopted/(ADR-006)-Git-Repo-Detection-Journal-with-Sync-Boundary-Enforcement.md) | Git Repo Detection Journal with Sync Boundary Enforcement |
 | Epic | [EPIC-001](../../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | Restic Backup Stack |
 | Epic | [EPIC-002](../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | Sync User Folders |
+| Epic | [EPIC-003](../../epic/(EPIC-003)-Sync-App-Settings/(EPIC-003)-Sync-App-Settings.md) | Sync App Settings |
+| Epic | [EPIC-004](../../epic/(EPIC-004)-Platform-Developer-Experience/(EPIC-004)-Platform-Developer-Experience.md) | Platform Developer Experience |
 | Spec | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync |
 | Vision | [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (sibling — shared platform layer) |
 

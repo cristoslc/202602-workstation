@@ -2,7 +2,9 @@
 
 ## Proposed
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| EPIC-004 | [Platform Developer Experience](./(EPIC-004)-Platform-Developer-Experience/(EPIC-004)-Platform-Developer-Experience.md) | 2026-03-03 | — | Owns JOURNEY-001/002 pain points: key retrieval, error UX, scaffolding, propagation, CI |
 
 ## Active
 

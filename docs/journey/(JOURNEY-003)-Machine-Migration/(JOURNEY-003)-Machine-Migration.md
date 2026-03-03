@@ -4,7 +4,7 @@ artifact: JOURNEY-003
 status: Validated
 author: cristos
 created: 2026-02-27
-last-updated: 2026-02-27
+last-updated: 2026-03-03
 parent-vision: VISION-001
 personas:
   - PERSONA-001
@@ -55,8 +55,9 @@ User data migration covers documents and media, but git repositories need specia
 
 - **Clone fresh repos** — For repos with no local-only work, `git clone` on the new machine is cleanest.
 - **Transfer repos with uncommitted work** — For repos with in-progress changes, the developer uses Unison or manual rsync to preserve the working tree state.
+- **Repos outside `~/code/`** — Since SPEC-002 and SPEC-003, repos in user data folders (e.g., `~/Documents/HouseOps/`) are auto-detected by the git-repo-scanner and registered for wsync sync. These repos are already excluded from Syncthing and covered by wsync's multi-directory support. The developer no longer needs to manually track them — once the scanner runs on the new machine, repos discovered in Syncthing folders are automatically added to wsync coverage.
 
-**Pain point: Uncommitted work transfer.** There's no single command to "move all my git repos, preserving uncommitted changes, to the new machine." The developer must identify which repos have local-only state and handle them individually.
+**Pain point: Uncommitted work transfer.** There's no single `make code-pull SOURCE=<host>` command that discovers all repos on the source machine, detects which have uncommitted changes, and transfers them preserving working tree state. The developer must identify repos individually. _(Partially addressed by SPEC-002/003 for repos in user data folders — they sync automatically via wsync once both machines are running.)_
 
 ### 5. Set up ongoing sync
 
@@ -91,7 +92,7 @@ journey
       Wait for large transfer: 2: Multi-Machine Developer
     section Migrate Code
       Clone clean repos: 4: Multi-Machine Developer
-      Transfer repos with uncommitted work: 2: Multi-Machine Developer
+      Transfer repos with uncommitted work: 3: Multi-Machine Developer
     section Set Up Sync
       Configure Syncthing nodes: 3: Multi-Machine Developer
       Configure Unison profiles: 3: Multi-Machine Developer
@@ -103,10 +104,10 @@ journey
 
 ## Pain points summary
 
-| Stage | Pain point | Severity | Opportunity |
-|-------|-----------|----------|-------------|
-| Migrate Data | Large data transfers take hours with no resume-on-disconnect | Frustrated | Use rsync's `--partial` flag and support resumable transfers; or migrate via Syncthing initial sync instead of rsync |
-| Migrate Code | No unified way to transfer repos with uncommitted work | Frustrated | A `make code-pull SOURCE=<host>` target that discovers repos, detects local state, and uses Unison for dirty repos / git clone for clean ones |
+| Stage | Pain point | Severity | Owning artifact | Opportunity |
+|-------|-----------|----------|-----------------|-------------|
+| Migrate Data | Large data transfers take hours with no resume-on-disconnect | Frustrated | STORY-004 (EPIC-002) | rsync `--partial` flags for resumable transfers |
+| Migrate Code | No unified way to transfer repos with uncommitted work | Frustrated | STORY-005 (EPIC-002) | `make code-pull SOURCE=<host>` with repo discovery and dirty-state detection |
 
 ## Opportunities
 
