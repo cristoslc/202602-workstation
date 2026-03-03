@@ -1,0 +1,6 @@
+---
+- name: Install Paprika (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: paprika-recipe-manager
+    state: present

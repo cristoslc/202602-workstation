@@ -1,7 +1,6 @@
 ---
-# Cyberduck sub-task (macOS only)
-- name: Install Cyberduck (macOS)
+- name: Install Transmit (macOS)
   when: ansible_facts.os_family == "Darwin"
   community.general.homebrew_cask:
-    name: cyberduck
+    name: transmit
     state: present

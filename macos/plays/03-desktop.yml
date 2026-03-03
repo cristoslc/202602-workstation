@@ -56,7 +56,10 @@
       tags: [utilities, keka, desktop]
 
     - role: file-transfer
-      tags: [file-transfer, cyberduck, desktop]
+      tags: [file-transfer, transmit, desktop]
+
+    - role: recipes
+      tags: [recipes, paprika, desktop]
 
     - role: mas
       tags: [mas, desktop]

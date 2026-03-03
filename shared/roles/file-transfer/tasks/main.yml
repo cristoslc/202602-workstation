@@ -1,9 +1,9 @@
 ---
-# File Transfer role: Cyberduck (macOS) + Filezilla (Linux)
+# File Transfer role: Transmit (macOS) + Filezilla (Linux)
 
-- name: Install Cyberduck
-  ansible.builtin.include_tasks: cyberduck.yml
-  tags: [cyberduck]
+- name: Install Transmit
+  ansible.builtin.include_tasks: transmit.yml
+  tags: [transmit]
 
 - name: Install Filezilla
   ansible.builtin.include_tasks: filezilla.yml

@@ -582,14 +582,22 @@ roles:
   file-transfer:
     phase: desktop
     apps:
-      - name: Cyberduck
+      - name: Transmit
         platforms: [macos]
-        check: {app_paths: ["/Applications/Cyberduck.app"]}
-        tags: [cyberduck]
+        check: {app_paths: ["/Applications/Transmit.app"]}
+        tags: [transmit]
       - name: FileZilla
         platforms: [linux]
         check: {command: filezilla}
         tags: [filezilla]
+
+  recipes:
+    phase: desktop
+    apps:
+      - name: Paprika
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Paprika Recipe Manager 3.app"]}
+        tags: [paprika]
 
   mas:
     phase: desktop
