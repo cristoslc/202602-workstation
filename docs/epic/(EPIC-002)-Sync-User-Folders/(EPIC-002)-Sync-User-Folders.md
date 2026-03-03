@@ -1,7 +1,7 @@
 ---
 title: "EPIC-002: Sync User Folders"
 artifact: EPIC-002
-status: Testing
+status: Active
 author: cristos
 created: 2026-03-01
 last-updated: 2026-03-03
@@ -42,11 +42,17 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 
 ## Child Specs
 
-Implementation completed directly at epic level (no child specs needed):
+### Completed (implemented directly at epic level)
+
 - Data migration: `scripts/data-pull.sh` + `make data-pull`
 - Syncthing hub-spoke: `shared/roles/syncthing/` (spoke) + `shared/roles/syncthing-hub/` (hub) with REST API automation
 - Unison code sync: `shared/roles/unison/` + `scripts/wsync` with branch isolation
 - Wake triggers: systemd-sleep hook + launchd polling
+
+### Active
+
+- [SPEC-002](../../spec/(SPEC-002)-Git-Repo-Detection-and-Sync-Boundary-Enforcement/(SPEC-002)-Git-Repo-Detection-and-Sync-Boundary-Enforcement.md) — Git Repo Detection and Sync Boundary Enforcement
+- [SPEC-003](../../spec/(SPEC-003)-wsync-Multi-Directory-Support/(SPEC-003)-wsync-Multi-Directory-Support.md) — wsync Multi-Directory Support (depends on SPEC-002)
 
 ## Key Dependencies
 
@@ -69,6 +75,8 @@ Implementation completed directly at epic level (no child specs needed):
 | Vision | [VISION-001](../../vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code |
 | Spike | [SPIKE-006](../../research/Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) | Sync User Folders |
 | Spike | [SPIKE-007](../../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | Hub Server Failover and Migration |
+| Spike | [SPIKE-008](../../research/Complete/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | Sync Boundary Enforcement |
+| ADR | [ADR-006](../../adr/Adopted/(ADR-006)-Git-Repo-Detection-Journal-with-Sync-Boundary-Enforcement.md) | Git Repo Detection Journal with Sync Boundary Enforcement |
 | Legacy | [PRD-003](../../prd/Abandoned/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md) | Sync User Folders (migrated from PRD) |
 
 ### Lifecycle
