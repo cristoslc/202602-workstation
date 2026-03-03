@@ -85,3 +85,4 @@ Raycast is installed by the `launchers` role but all configuration is left manua
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-01 | 028b2ad | Migrated from PRD-001 |
+| Implemented | 2026-03-03 | 28d3959 | All acceptance criteria met; skipped intermediate phases (developed conversationally) |

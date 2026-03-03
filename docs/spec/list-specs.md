@@ -2,9 +2,7 @@
 
 ## Draft
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| SPEC-001 | [Raycast Sync](./(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | 2026-03-02 | f99e8fa | Re-parented under EPIC-003 |
+_None._
 
 ## Review
 
@@ -16,7 +14,9 @@ _None._
 
 ## Implemented
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| SPEC-001 | [Raycast Sync](./(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | 2026-03-03 | 28d3959 | All acceptance criteria met |
 
 ## Deprecated
 
