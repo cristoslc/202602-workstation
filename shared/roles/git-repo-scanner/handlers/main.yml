@@ -1,0 +1,23 @@
+---
+- name: Restart git-repo-scanner-watch (Linux)
+  when: ansible_facts.os_family != 'Darwin'
+  ansible.builtin.systemd:
+    name: git-repo-scanner-watch
+    state: restarted
+    scope: user
+    daemon_reload: true
+  become: false
+
+- name: Restart git-repo-scanner (macOS)
+  when: ansible_facts.os_family == 'Darwin'
+  block:
+    - name: Unload git-repo-scanner launchd agent
+      ansible.builtin.command:
+        cmd: launchctl unload ~/Library/LaunchAgents/com.workstation.git-repo-scanner.plist
+      changed_when: true
+      failed_when: false
+
+    - name: Load git-repo-scanner launchd agent
+      ansible.builtin.command:
+        cmd: launchctl load ~/Library/LaunchAgents/com.workstation.git-repo-scanner.plist
+      changed_when: true

@@ -1,0 +1,9 @@
+---
+# Install fswatch on Debian/Ubuntu for real-time .git/ detection.
+
+- name: Install fswatch
+  ansible.builtin.apt:
+    name: fswatch
+    state: present
+    update_cache: true
+  become: true

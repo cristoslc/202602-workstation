@@ -1,0 +1,11 @@
+---
+# git-repo-scanner role defaults
+
+# Whether to enable the git-repo-scanner on this machine
+git_repo_scanner_enabled: true
+
+# User data folders to scan (should match syncthing_user_folders)
+git_repo_scanner_folders: "{{ syncthing_user_folders | default(['Documents', 'Pictures', 'Music', 'Videos', 'Downloads']) }}"
+
+# Syncthing GUI address for REST API calls
+git_repo_scanner_syncthing_gui: "{{ syncthing_gui_address | default('127.0.0.1:8384') }}"

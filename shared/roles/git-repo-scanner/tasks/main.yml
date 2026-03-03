@@ -1,0 +1,41 @@
+---
+# git-repo-scanner — detect git repos in Syncthing-managed folders and
+# enforce sync boundaries via .stglobalignore. See ADR-006.
+
+- name: Include platform-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
+  when: git_repo_scanner_enabled
+
+- name: Deploy git-repo-scanner script
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../scripts/git-repo-scanner"
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/git-repo-scanner"
+    mode: "0755"
+  when: git_repo_scanner_enabled
+
+- name: Create wsync config directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/wsync"
+    state: directory
+    mode: "0755"
+  when: git_repo_scanner_enabled
+
+- name: Write scanner environment config
+  ansible.builtin.copy:
+    content: |
+      # git-repo-scanner configuration (managed by Ansible)
+      SCANNER_USER_FOLDERS="{{ git_repo_scanner_folders | join(' ') }}"
+      SCANNER_SYNCTHING_GUI="{{ git_repo_scanner_syncthing_gui }}"
+    dest: "{{ ansible_facts.env.HOME }}/.config/wsync/scanner.conf"
+    mode: "0644"
+  when: git_repo_scanner_enabled
+
+- name: Run initial scan
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts.env.HOME }}/.local/bin/git-repo-scanner"
+  changed_when: true
+  when: git_repo_scanner_enabled
+
+- name: Set up timer/service
+  ansible.builtin.include_tasks: service.yml
+  when: git_repo_scanner_enabled

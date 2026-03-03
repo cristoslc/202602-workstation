@@ -11,6 +11,7 @@
 #   git-repo-scanner                    # scan all configured folders
 #   git-repo-scanner --dry-run          # report unprotected repos, don't write
 #   git-repo-scanner --watch            # run fswatch daemon (foreground)
+#   git-repo-scanner --scan-and-watch   # scan all, then enter watch mode
 #   git-repo-scanner --folder <path>    # scan a single folder
 #   git-repo-scanner --rescan           # force Syncthing rescan (after .stglobalignore update)
 #   git-repo-scanner --help             # show help
@@ -410,6 +411,7 @@ Commands:
   git-repo-scanner                 Scan all configured folders
   git-repo-scanner --dry-run       Report unprotected repos, don't write
   git-repo-scanner --watch         Run fswatch daemon (foreground)
+  git-repo-scanner --scan-and-watch  Scan all, then enter watch mode
   git-repo-scanner --folder <dir>  Scan a single folder name (e.g., Documents)
   git-repo-scanner --rescan        Force Syncthing rescan of all folders
   git-repo-scanner --help          Show this help message
@@ -445,6 +447,10 @@ scanner_main() {
       scanner_scan_all
       ;;
     --watch)
+      scanner_watch
+      ;;
+    --scan-and-watch)
+      scanner_scan_all
       scanner_watch
       ;;
     --folder)

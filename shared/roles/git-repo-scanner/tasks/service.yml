@@ -1,0 +1,66 @@
+---
+# Deploy and enable git-repo-scanner services (systemd or launchd).
+
+# ---------- Linux (systemd user services) ----------
+
+- name: Deploy git-repo-scanner boot scan service (Linux)
+  when: ansible_facts.os_family != 'Darwin'
+  block:
+    - name: Create systemd user service directory
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Deploy git-repo-scanner oneshot service
+      ansible.builtin.copy:
+        src: git-repo-scanner.service
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/git-repo-scanner.service"
+        mode: "0644"
+      notify: Restart git-repo-scanner-watch (Linux)
+
+    - name: Deploy git-repo-scanner-watch service
+      ansible.builtin.copy:
+        src: git-repo-scanner-watch.service
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/git-repo-scanner-watch.service"
+        mode: "0644"
+      notify: Restart git-repo-scanner-watch (Linux)
+
+    - name: Enable git-repo-scanner boot scan
+      ansible.builtin.systemd:
+        name: git-repo-scanner
+        enabled: true
+        scope: user
+        daemon_reload: true
+
+    - name: Enable and start git-repo-scanner-watch
+      ansible.builtin.systemd:
+        name: git-repo-scanner-watch
+        enabled: true
+        state: started
+        scope: user
+        daemon_reload: true
+
+# ---------- macOS (launchd agent) ----------
+
+- name: Deploy git-repo-scanner launchd agent (macOS)
+  when: ansible_facts.os_family == 'Darwin'
+  block:
+    - name: Create LaunchAgents directory
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+        state: directory
+        mode: "0755"
+
+    - name: Deploy git-repo-scanner plist
+      ansible.builtin.copy:
+        src: com.workstation.git-repo-scanner.plist
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.workstation.git-repo-scanner.plist"
+        mode: "0644"
+      notify: Restart git-repo-scanner (macOS)
+
+    - name: Load git-repo-scanner launchd agent
+      ansible.builtin.command:
+        cmd: launchctl load -w ~/Library/LaunchAgents/com.workstation.git-repo-scanner.plist
+      changed_when: true
+      failed_when: false

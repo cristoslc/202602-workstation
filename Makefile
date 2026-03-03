@@ -32,7 +32,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         log-send log-receive export-iterm2 export-ice export-raycast export-streamdeck export-openin \
         snippets-convert export-all \
         backup-status backup-browse \
-        data-pull data-pull-dry
+        data-pull data-pull-dry verify-sync-boundary
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -57,7 +57,7 @@ shellcheck: ## Run shellcheck on all shell scripts
 	shellcheck --severity=warning \
 		setup.sh bootstrap.sh first-run.sh \
 		linux/bootstrap.sh macos/bootstrap.sh \
-		shared/lib/wizard.sh scripts/*.sh scripts/wsync
+		shared/lib/wizard.sh scripts/*.sh scripts/wsync scripts/git-repo-scanner
 
 ansible-lint: ## Run ansible-lint on all playbooks (SOPS disabled)
 	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/linux/ansible.cfg ansible-lint linux/site.yml
@@ -103,6 +103,9 @@ status: ## Show workstation verification dashboard (Textual TUI)
 
 verify: ## Verify all installed apps (headless, exit 1 on failures)
 	@uv run --with pyyaml scripts/workstation-status.py --verify
+
+verify-sync-boundary: ## Check for unprotected git repos in Syncthing folders
+	@./scripts/git-repo-scanner --dry-run
 
 verify-role: ## Verify a single role: make verify-role ROLE=git
 ifndef ROLE

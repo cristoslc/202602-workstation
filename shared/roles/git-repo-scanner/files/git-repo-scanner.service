@@ -1,0 +1,16 @@
+[Unit]
+Description=git-repo-scanner — detect git repos in Syncthing folders (boot scan)
+# Run before Syncthing starts so .stglobalignore is written first.
+Before=syncthing@%i.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/git-repo-scanner
+Environment=HOME=%h
+StandardOutput=journal
+StandardError=journal
+RemainAfterExit=no
+
+[Install]
+WantedBy=default.target

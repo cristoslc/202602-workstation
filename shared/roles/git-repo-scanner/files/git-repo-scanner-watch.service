@@ -1,0 +1,16 @@
+[Unit]
+Description=git-repo-scanner — fswatch daemon for real-time git repo detection
+After=git-repo-scanner.service
+Wants=git-repo-scanner.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/git-repo-scanner --watch
+Environment=HOME=%h
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

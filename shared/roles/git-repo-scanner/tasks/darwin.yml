@@ -1,0 +1,7 @@
+---
+# Install fswatch on macOS via Homebrew for real-time .git/ detection.
+
+- name: Install fswatch via Homebrew
+  community.general.homebrew:
+    name: fswatch
+    state: present
