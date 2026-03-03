@@ -1,7 +1,7 @@
 ---
 title: "SPIKE-008: Sync Boundary Enforcement"
 artifact: SPIKE-008
-status: Active
+status: Complete
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -153,7 +153,169 @@ This spike's findings may require EPIC-002 to regress from Testing if the chosen
 
 ## Findings
 
-_To be populated during Active phase._
+### Critical discovery: the working tree problem is active, not theoretical
+
+The current `.stignore` contains `.git`, which excludes `.git/` directories from Syncthing sync. **But it does NOT exclude the parent directory or working tree files.** This means for any git repo inside a Syncthing-managed folder (e.g., `~/Documents/HouseOps/`), all working tree files are actively being synced right now. If two machines are on different branches, Syncthing is silently garbling the working tree.
+
+Compounding this: **Syncthing never deletes already-synced files when a new ignore pattern is added.** Files that were already synced are left on disk. This means any future protection mechanism must either:
+1. Prevent damage before the first sync (pre-emptive), or
+2. Include a cleanup/recovery procedure for repos that were already damaged
+
+### Research area: Syncthing `.stignore` behavior
+
+All questions answered favorably for programmatic management:
+
+| Question | Answer | Source |
+|----------|--------|--------|
+| `.stignore` local-only? | **Yes.** Hardcoded into Syncthing; never synced between devices. | Syncthing docs |
+| Already-synced files when ignored? | **Left in place.** Syncthing stops tracking but does not delete. | Jakob Borg (lead dev) confirmation |
+| Safe to regenerate? | **Yes.** No system patterns embedded. Can overwrite entirely. REST API `POST /rest/db/ignores` replaces contents atomically. | Syncthing REST docs |
+| Restart needed after changes? | **No.** Changes detected before next scan. REST API triggers immediate rescan. | Syncthing forum |
+| Events API for directory detection? | **Yes.** `LocalChangeDetected` / `RemoteChangeDetected` events fire with `type: "dir"`. Available via `/rest/events/disk` long-polling endpoint. | Syncthing events docs |
+| Programmatic ignore management? | **Yes.** `GET/POST /rest/db/ignores?folder=<id>` reads/writes ignore patterns per folder. | Syncthing REST docs |
+
+**Key implication:** The Syncthing REST API (`POST /rest/db/ignores`) is the right integration point for a scanner. It replaces `.stignore` content atomically and triggers an immediate rescan, eliminating the delay of waiting for the next filesystem scan cycle.
+
+### Research area: Unison scalability for user data
+
+Unison is **not viable as a Syncthing replacement** for user data sync:
+
+| Dimension | Finding | Verdict |
+|-----------|---------|---------|
+| 100GB / 100K files | Initial scan: ~30 minutes. Subsequent scans: seconds with `fastcheck` + warm cache. | Marginal |
+| Memory usage | ~600MB RAM for large archives (loaded entirely into memory) | Concerning |
+| Filesystem watching | `-repeat watch` + `unison-fsmonitor` works, but macOS requires a third-party adapter (not bundled). Known issues with cache update noise triggering spurious re-syncs. | Fragile |
+| Continuous sync | Not a daemon; `-repeat watch` is a foreground loop. No process management, PID files, or service integration. | Poor |
+| Topology | Strictly pairwise (2 roots per profile). Multi-machine requires star topology with separate profiles per pair. | Inferior to Syncthing |
+| Large binary files | rsync-like block transfer over network, but full file rewrite on disk (no `--inplace`). Poor for files modified in-place. Fine for write-once media. | Acceptable for media |
+| Conflict versioning | `-copyonconflict` places copies inline (not in a separate directory). No retention policy. Naming uses colons (breaks macOS). | Inferior to Syncthing |
+| NAT traversal | None. Requires direct SSH access or VPN (Tailscale). | Inferior to Syncthing |
+
+**Conclusion:** Approach C (Unison for everything) is eliminated. Syncthing is the right tool for user data: native continuous watching, staggered versioning with retention, NAT traversal, multi-device mesh capability. Unison excels at branch-aware code sync but cannot replace Syncthing for the user data use case.
+
+### Research area: wsync multi-directory support
+
+The current `wsync` implementation (319-line bash script) has three limitations relevant to this spike:
+
+1. **Single root directory:** `WSYNC_CODE_DIR` defaults to `~/code`. No support for additional directories. SPIKE-006 design docs mention an optional `CODE_DIRS` array, but it was never implemented.
+
+2. **One-level discovery:** `wsync_discover_repos()` scans `$CODE_DIR/*/` only — cannot find nested repos like `~/code/org/repo/`.
+
+3. **Static profile:** Uses a single `code-sync.prf` Unison profile. Dynamic `-root` args are passed at invocation time. Profiles are plain `.prf` text files and can be generated programmatically.
+
+**Extending wsync is straightforward:**
+- `wsync_discover_repos()` can accept multiple directories (loop over an array)
+- Each directory is scanned the same way (check for `.git/` in children)
+- Unison profiles support multiple `path` directives within a single profile, or separate profiles per directory pair
+- Hub server directory structure (`/srv/code-sync/<repo>/<branch>/`) needs no changes — repo names are already derived from directory basenames
+
+**Estimated effort:** Small. Add `WSYNC_EXTRA_DIRS` env var or config file, loop over directories in the discover function, handle potential repo name collisions (e.g., `~/code/myrepo` vs `~/Documents/myrepo`).
+
+### Research area: existing art
+
+**No existing tool combines detection + exclusion + routing.** This is novel work.
+
+| Tool / Pattern | What it does | Gap for SPIKE-008 |
+|---------------|-------------|-------------------|
+| Syncthing Tray | GUI for manual `.stignore` editing | No auto-detection |
+| Facebook Watchman | Detects project roots by marker files (`.git`, `.watchmanconfig`) | Different purpose; good architectural pattern |
+| fswatch | Cross-platform filesystem watcher (FSEvents on macOS, inotify on Linux) | Detection layer only; no Syncthing integration |
+| reposcan / git-scan | CLI tools that find and report on git repos | Scanner only; no exclusion or routing |
+| unison-gitignore | Translates `.gitignore` to Unison ignore flags | Different problem (ignore patterns, not repo detection) |
+| chezmoi | Opt-in file management with `.chezmoiignore` | Inverted model (opt-in vs opt-out) |
+| git-annex assistant | Watches filesystem + auto-syncs via git-annex | Closest architectural analogue but different purpose |
+
+**Syncthing maintainers explicitly rejected auto-ignore for VCS directories** (GitHub issue #7215). Any solution must be external to Syncthing.
+
+**Filesystem watching is viable on both platforms:**
+- **macOS FSEvents:** Single recursive stream per root directory. Efficient; well within the 4096-stream limit.
+- **Linux inotify:** One watch per directory. Modern kernels (5.11+) auto-adjust up to 1M watches. Each watch costs ~1KB kernel memory.
+- **fswatch** abstracts both backends and is available via Homebrew and apt.
+
+### Approach evaluation matrix
+
+| Criterion | A (Pre-scan) | B (Event hook) | C (Unison all) | D (Hybrid) | E (Convention) |
+|-----------|:---:|:---:|:---:|:---:|:---:|
+| **Detection** (automatic) | PASS | PASS | N/A | PASS | FAIL |
+| **Protection** (before damage) | PARTIAL | PARTIAL | PASS | PARTIAL | FAIL |
+| **Coverage** (repos outside ~/code/) | PASS | PASS | PASS | PASS | FAIL |
+| **UX** (no sync tool knowledge) | PASS | PASS | PASS | PASS | FAIL |
+| **Feasibility** | High | Medium | Low | High | High |
+| **Complexity** | Low | High | Very High | Medium | Very Low |
+
+**Why Protection is PARTIAL for A/B/D:** Both `LocalChangeDetected` and `RemoteChangeDetected` events fire *after* the sync operation. The first sync of a new repo's working tree files will already have happened before any detection fires. The race window for Approach A is the scan interval (5 minutes); for Approach B it is the time between filesystem event and ignore update (seconds, but first sync still lands).
+
+**Why C is eliminated:** Unison's 30-minute initial scan time for 100K files, 600MB memory footprint, lack of native continuous watching on macOS, and absence of conflict versioning make it unsuitable as a Syncthing replacement for user data.
+
+**Why E is eliminated:** Fails three of four go/no-go criteria. Warnings don't prevent damage.
+
+### Recommendation: Approach D (Hybrid) with phased rollout
+
+**Approach D is recommended** — keep the two-tool architecture, add a scanner service, and expand wsync. Each tool stays in its sweet spot.
+
+#### Phase 1: Scanner + .stignore exclusion (Protection)
+
+A lightweight scanner script (`git-repo-scanner` or integrated into wsync):
+
+```
+For each Syncthing folder (Documents, Pictures, Music, Videos, Downloads):
+  find <folder> -name .git -type d -prune
+  For each .git/ found:
+    Compute relative path of parent directory
+    Add to .stignore via POST /rest/db/ignores (REST API)
+    Log detection
+```
+
+- Runs on boot/login (catches existing repos immediately)
+- Runs every 5 minutes via the existing wsync timer (piggyback, no new timer)
+- Uses Syncthing REST API for atomic `.stignore` updates with immediate rescan
+- Preserves existing `.stignore` patterns (read current, append new, write back)
+- Marks auto-generated entries with a comment prefix for identification:
+  ```
+  // Auto-detected git repos (do not edit below this line)
+  HouseOps
+  projects/some-experiment
+  ```
+
+**Race window mitigation:** The 5-minute window is acceptable because:
+1. Boot/login scan catches all existing repos with zero window
+2. New `git init` in a Syncthing folder is rare (most repos are cloned into `~/code/`)
+3. Even if Syncthing syncs working tree files during the window, the damage is limited to the files that differ between branches — recoverable with `git checkout .`
+
+#### Phase 2: wsync multi-directory support (Coverage)
+
+Extend wsync to discover and sync repos found by the scanner:
+
+1. Scanner writes detected repo paths to a config file (e.g., `~/.config/wsync/extra-repos`)
+2. `wsync_discover_repos()` reads this file in addition to scanning `$WSYNC_CODE_DIR`
+3. Repos outside `~/code/` get the same branch-aware Unison sync treatment
+4. Handle name collisions by using a qualified name (e.g., `documents--HouseOps` on the hub)
+
+#### Phase 3 (optional): fswatch enhancement
+
+If the 5-minute race window proves problematic in practice, add a persistent filesystem watcher:
+
+1. `fswatch` monitors Syncthing-managed folders for `.git` directory creation
+2. On detection, immediately calls the scanner's exclusion logic
+3. Race window drops from 5 minutes to sub-second
+
+This is optional because Phase 1's boot scan + 5-minute interval covers the common case.
+
+#### Safety net: `make verify` (from Approach E)
+
+Regardless of the chosen approach, add a `make verify` target that warns about git repos in Syncthing folders. This provides a manual check for situations where the scanner isn't running (e.g., first install before the timer is set up).
+
+### Impact assessment
+
+**EPIC-002 (Sync User Folders):** Will need to regress from Testing to Active when implementation begins. The scanner service and wsync expansion are new capabilities within EPIC-002's scope.
+
+**JOURNEY-003 (Machine Migration):** Update step 4 (migrate code repos) to note that repos outside `~/code/` are auto-detected and handled.
+
+**JOURNEY-004 (Daily Multi-Machine Workflow):** Recommended as a new journey to document the steady-state experience: "Put files anywhere. The system detects git repos and routes them to the right sync tool." This journey would cover the scanner's behavior, `wsync status` output, and what happens when a new repo is created in `~/Documents/`.
+
+### Go / No-Go verdict
+
+**GO** — Approach D satisfies Detection, Coverage, and UX criteria fully. Protection is partial (5-minute race window for new repos) but acceptable given the mitigations. The two-tool architecture is validated; the boundary just needs active enforcement rather than passive convention.
 
 ## Lifecycle
 
