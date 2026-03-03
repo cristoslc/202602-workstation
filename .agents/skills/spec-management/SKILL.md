@@ -95,6 +95,16 @@ Run `specgraph.sh next` for a quick "what should I work on?" view — shows read
 
 Both are read-only operations. They do not modify any files.
 
+### Combined "what's next?" flow
+
+When asked "what's next?" or "what should I work on?", combine **both** layers:
+
+1. **Spec layer** — run `specgraph.sh next` to find which artifacts are ready at the planning level (all dependencies resolved).
+2. **Task layer** — invoke the **execution-tracking** skill and run `bd ready --json` to find concrete unblocked tasks in the execution backend.
+3. **Present both together:** spec-level ready items (with what they'd unblock) and task-level ready items (claimable work). If bd is not initialized or has no tasks, note that and show only the spec layer.
+
+This ensures "what's next?" answers both "which specs can move forward?" and "which concrete tasks can I pick up right now?"
+
 ## Creating artifacts
 
 ### Workflow
