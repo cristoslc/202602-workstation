@@ -117,4 +117,4 @@ Add `unison_extra_dirs: []` to `shared/roles/unison/defaults/main.yml`. When set
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | 871b26c | Initial creation |
-| Implemented | 2026-03-03 | 932c1c9 | Implementation complete |
+| Implemented | 2026-03-03 | 44c5887 | Implementation complete |

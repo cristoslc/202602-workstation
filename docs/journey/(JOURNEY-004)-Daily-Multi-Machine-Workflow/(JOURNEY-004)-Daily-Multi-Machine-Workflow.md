@@ -100,4 +100,4 @@ When a new repo is detected on Machine A, the `.stglobalignore` must sync to Mac
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | 871b26c | Initial creation |
-| Validated | 2026-03-03 | c2989ed | All acceptance criteria validated |
+| Validated | 2026-03-03 | 82e0982 | All acceptance criteria validated |

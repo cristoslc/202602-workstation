@@ -49,7 +49,7 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 - Unison code sync: `shared/roles/unison/` + `scripts/wsync` with branch isolation
 - Wake triggers: systemd-sleep hook + launchd polling
 
-### Active
+### Implemented
 
 - [SPEC-002](../../spec/(SPEC-002)-Git-Repo-Detection-and-Sync-Boundary-Enforcement/(SPEC-002)-Git-Repo-Detection-and-Sync-Boundary-Enforcement.md) — Git Repo Detection and Sync Boundary Enforcement
 - [SPEC-003](../../spec/(SPEC-003)-wsync-Multi-Directory-Support/(SPEC-003)-wsync-Multi-Directory-Support.md) — wsync Multi-Directory Support (depends on SPEC-002)
@@ -87,4 +87,4 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 | Active | 2026-03-03 | 42cf76d | SPIKE-006 Complete; beginning implementation |
 | Testing | 2026-03-03 | 14f3b10 | All implementation tasks complete; pending bootstrap validation |
 | Active | 2026-03-03 | 871b26c | Regressed from Testing; SPEC-002/003 created for sync boundary enforcement (ADR-006) |
-| Testing | 2026-03-03 | e5eb1b1 | SPEC-002/003 implemented; pending bootstrap validation |
+| Testing | 2026-03-03 | 2c5b013 | SPEC-002/003 implemented; pending bootstrap validation |

@@ -149,4 +149,4 @@ Add a Makefile target that runs the scanner in dry-run mode, reporting any git r
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | 871b26c | Initial creation |
-| Implemented | 2026-03-03 | f621f26 | Implementation complete |
+| Implemented | 2026-03-03 | d18c058 | Implementation complete |
