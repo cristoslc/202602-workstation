@@ -176,4 +176,4 @@ Have the scanner write exclusion patterns directly to `.stignore` on the local m
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Adopted | 2026-03-03 | c950e4b | Decision from SPIKE-008 research; skip Draft/Proposed |
+| Adopted | 2026-03-03 | 52ee0c6 | Decision from SPIKE-008 research; skip Draft/Proposed |
