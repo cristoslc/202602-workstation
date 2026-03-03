@@ -1,7 +1,7 @@
 ---
 title: "SPEC-002: Git Repo Detection and Sync Boundary Enforcement"
 artifact: SPEC-002
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -149,3 +149,4 @@ Add a Makefile target that runs the scanner in dry-run mode, reporting any git r
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | 871b26c | Initial creation |
+| Implemented | 2026-03-03 | f621f26 | Implementation complete |
