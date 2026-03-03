@@ -70,6 +70,16 @@
   loop: "{{ syncthing_hub_user_folders }}"
   become: true
 
+- name: Deploy .stignore to each hub folder
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../syncthing/files/stignore"
+    dest: "{{ syncthing_hub_data_dir }}/{{ item }}/.stignore"
+    owner: "{{ syncthing_hub_user }}"
+    group: "{{ syncthing_hub_user }}"
+    mode: "0644"
+  loop: "{{ syncthing_hub_user_folders }}"
+  become: true
+
 - name: Enable and start Syncthing service for hub user
   ansible.builtin.systemd:
     name: "syncthing@{{ syncthing_hub_user }}"

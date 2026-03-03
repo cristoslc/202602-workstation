@@ -33,3 +33,10 @@ __pycache__
 // Syncthing's own versioning directory
 .stversions
 .stfolder
+
+// Auto-detected git repos (synced between devices via .stglobalignore).
+// The git-repo-scanner writes exclusion patterns to .stglobalignore in
+// each synced folder. Because .stglobalignore is a regular file (not
+// .stignore), Syncthing syncs it to all devices, propagating repo
+// exclusions fleet-wide. See ADR-006.
+#include .stglobalignore
