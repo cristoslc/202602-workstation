@@ -59,9 +59,9 @@ Phases are **available waypoints**, not mandatory gates. Artifacts may skip inte
 |------|------|--------|--------|
 | Product Vision | `docs/vision/` | Folder containing titled `.md` + supporting docs (architecture overview, roadmap, competitive analysis, etc.) | Draft → Active → Sunset · Abandoned |
 | User Journey | `docs/journey/` | Folder containing titled `.md` with embedded Mermaid journey diagram + supporting docs | Draft → Validated · Archived · Abandoned |
-| Epics | `docs/epic/` | Folder containing titled `.md` + supporting docs | Proposed → Active → Complete · Abandoned |
+| Epics | `docs/epic/` | Folder containing titled `.md` + supporting docs | Proposed → Active → Testing → Complete · Abandoned |
 | User Story | `docs/story/` | Markdown file per story | Draft → Ready → Implemented · Abandoned |
-| Agent Specs | `docs/spec/` | Folder containing titled `.md` + supporting docs | Draft → Review → Approved → Implemented → Deprecated · Abandoned |
+| Agent Specs | `docs/spec/` | Folder containing titled `.md` + supporting docs | Draft → Review → Approved → Testing → Implemented → Deprecated · Abandoned |
 | Research / Spikes | `docs/research/` | Folder containing titled `.md` (not `README.md`) | Planned → Active → Complete · Abandoned |
 | ADRs | `docs/adr/` | Markdown file in `<Phase>/` subdirectory (e.g., `docs/adr/Adopted/(ADR-001)-Title.md`) | Draft → Proposed → Adopted → Retired · Superseded · Abandoned |
 | Personas | `docs/persona/` | Folder containing titled `.md` + supporting docs (interview notes, research data) | Draft → Validated → Archived · Abandoned |

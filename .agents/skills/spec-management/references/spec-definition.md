@@ -7,12 +7,14 @@ stateDiagram-v2
     [*] --> Draft
     Draft --> Review
     Review --> Approved
-    Approved --> Implemented
+    Approved --> Testing
+    Testing --> Implemented
     Implemented --> Deprecated
     Deprecated --> [*]
     Draft --> Abandoned
     Review --> Abandoned
     Approved --> Abandoned
+    Testing --> Abandoned
     Implemented --> Abandoned
     Abandoned --> [*]
 ```

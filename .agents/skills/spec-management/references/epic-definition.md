@@ -6,10 +6,12 @@
 stateDiagram-v2
     [*] --> Proposed
     Proposed --> Active
-    Active --> Complete
+    Active --> Testing
+    Testing --> Complete
     Complete --> [*]
     Proposed --> Abandoned
     Active --> Abandoned
+    Testing --> Abandoned
     Abandoned --> [*]
 ```
 
