@@ -1,7 +1,7 @@
 ---
 title: "EPIC-002: Sync User Folders"
 artifact: EPIC-002
-status: Active
+status: Testing
 author: cristos
 created: 2026-03-01
 last-updated: 2026-03-03
@@ -42,11 +42,11 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 
 ## Child Specs
 
-_To be created. Likely decomposition:_
-- Data migration pipeline (rsync pull)
-- Syncthing hub-and-spoke configuration
-- Unison code sync with branch isolation
-- wsync wrapper and scheduled triggers
+Implementation completed directly at epic level (no child specs needed):
+- Data migration: `scripts/data-pull.sh` + `make data-pull`
+- Syncthing hub-spoke: `shared/roles/syncthing/` (spoke) + `shared/roles/syncthing-hub/` (hub) with REST API automation
+- Unison code sync: `shared/roles/unison/` + `scripts/wsync` with branch isolation
+- Wake triggers: systemd-sleep hook + launchd polling
 
 ## Key Dependencies
 
