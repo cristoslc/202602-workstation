@@ -75,3 +75,4 @@ _To be created. Likely decomposition:_
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-03-01 | 028b2ad | Migrated from PRD-003 |
+| Active | 2026-03-03 | 42cf76d | SPIKE-006 Complete; beginning implementation |

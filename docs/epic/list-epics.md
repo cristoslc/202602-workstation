@@ -2,15 +2,14 @@
 
 ## Proposed
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| EPIC-002 | [Sync User Folders](./(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | 2026-03-01 | 028b2ad | Migrated from PRD-003 |
+_None._
 
 ## Active
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | EPIC-001 | [Restic Backup Stack](./(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | 2026-03-03 | 007be42 | Implementation exists; pending bootstrap validation |
+| EPIC-002 | [Sync User Folders](./(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | 2026-03-03 | 42cf76d | SPIKE-006 Complete; beginning implementation |
 
 ## Testing
 
