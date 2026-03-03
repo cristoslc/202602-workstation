@@ -11,7 +11,7 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| ADR-003 | [Cross-Platform Action Bindings](./Proposed/(ADR-003)-Cross-Platform-Action-Bindings.md) | 2026-02-25 | 16b92e3 | Hammerspoon + dconf |
+| ADR-003 | [Cross-Platform Action Bindings](./Proposed/(ADR-003)-Cross-Platform-Action-Bindings.md) | 2026-03-02 | 9a669fa | Hammerspoon + dconf; SPIKE-004 complete |
 | ADR-004 | [Sync App Settings](./Proposed/(ADR-004)-Sync-App-Settings.md) | 2026-02-25 | 85c953e | Expanded Stow + Ansible |
 
 ## Draft

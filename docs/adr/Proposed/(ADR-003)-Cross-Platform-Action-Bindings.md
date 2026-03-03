@@ -4,7 +4,7 @@ artifact: ADR-003
 status: Proposed
 author: cristos
 created: 2026-02-25
-last-updated: 2026-02-25
+last-updated: 2026-03-02
 linked-research:
   - SPIKE-004
 ---
@@ -95,7 +95,7 @@ The canonical action list with current keybindings lives in `shared/roles/keyboa
 
 ## Alternatives Considered
 
-See [research doc](../../research/Active/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md#alternatives-considered) for detailed evaluation of:
+See [research doc](../../research/Complete/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md#alternatives-considered) for detailed evaluation of:
 - Karabiner-Elements Hyper key pattern (unnecessary complexity — a well-chosen modifier avoids conflicts without a second tool)
 - Karabiner only (too limited for rich action dispatch and window management)
 - sxhkd on Linux (conflicts with Cinnamon, not integrated)
@@ -107,3 +107,4 @@ See [research doc](../../research/Active/(SPIKE-004)-Cross-Platform-Action-Bindi
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-02-25 | 16b92e3 | Initial creation |
+| Proposed | 2026-03-02 | 9a669fa | SPIKE-004 complete — Hammerspoon confirmed on macOS, dconf untested on Mint |
