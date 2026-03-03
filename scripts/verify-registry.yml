@@ -797,3 +797,31 @@ roles:
         platforms: [macos, linux]
         check: {path: "~/.unison/code-sync.prf"}
         tags: [unison]
+
+  git-repo-scanner:
+    phase: sync
+    apps:
+      - name: fswatch
+        platforms: [macos, linux]
+        check: {command: fswatch}
+        tags: [git-repo-scanner]
+      - name: git-repo-scanner
+        platforms: [macos, linux]
+        check: {path: "~/.local/bin/git-repo-scanner"}
+        tags: [git-repo-scanner]
+
+  sync-monitor:
+    phase: sync
+    apps:
+      - name: sync-health-check
+        platforms: [macos, linux]
+        check: {path: "~/.local/bin/sync-health-check"}
+        tags: [sync-monitor]
+
+  syncthing-hub:
+    phase: sync
+    apps:
+      - name: Syncthing (hub)
+        platforms: [linux]
+        check: {command: syncthing}
+        tags: [syncthing-hub]
