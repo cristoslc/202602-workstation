@@ -1,10 +1,11 @@
 ---
 title: "ADR-003: Cross-Platform Action Bindings via Hammerspoon + dconf"
 artifact: ADR-003
-status: Proposed
+status: Adopted
 author: cristos
 created: 2026-02-25
 last-updated: 2026-03-02
+decision-date: 2026-03-02
 linked-research:
   - SPIKE-004
 ---
@@ -108,3 +109,4 @@ See [research doc](../../research/Complete/(SPIKE-004)-Cross-Platform-Action-Bin
 |-------|------|--------|-------|
 | Proposed | 2026-02-25 | 16b92e3 | Initial creation |
 | Proposed | 2026-03-02 | 9a669fa | SPIKE-004 complete — Hammerspoon confirmed on macOS, dconf untested on Mint |
+| Adopted | 2026-03-02 | 411986d | Adopted; SPIKE-004 validates approach |

@@ -1,10 +1,10 @@
 ---
 title: "SPIKE-003: Backup Solution Evaluation"
 artifact: SPIKE-003
-status: Active
+status: Complete
 author: cristos
 created: 2026-02-26
-last-updated: 2026-02-26
+last-updated: 2026-03-02
 ---
 
 # SPIKE-003: Backup Solution Evaluation
@@ -586,3 +586,4 @@ for the implementation Epic.
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Active | 2026-02-26 | e7a258a | Initial creation |
+| Complete | 2026-03-02 | 411986d | Research complete; Restic selected. Findings feed EPIC-001 |

@@ -1,10 +1,11 @@
 ---
 title: "ADR-004: Sync App Settings via Expanded Stow + Ansible"
 artifact: ADR-004
-status: Proposed
+status: Adopted
 author: cristos
 created: 2026-02-25
-last-updated: 2026-02-25
+last-updated: 2026-03-02
+decision-date: 2026-03-02
 linked-research:
   - SPIKE-005
 ---
@@ -101,3 +102,4 @@ See [research doc](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-00
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-02-25 | 85c953e | Initial creation |
+| Adopted | 2026-03-02 | 411986d | Adopted; SPIKE-005 coverage audit validates approach |

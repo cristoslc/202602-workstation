@@ -48,7 +48,7 @@ _To be created. Likely decomposition:_
 
 ## Key Dependencies
 
-- [SPIKE-003](../../research/Active/(SPIKE-003)-Backup-Solution-Evaluation/(SPIKE-003)-Backup-Solution-Evaluation.md) — Backup Solution Evaluation (Active)
+- [SPIKE-003](../../research/Complete/(SPIKE-003)-Backup-Solution-Evaluation/(SPIKE-003)-Backup-Solution-Evaluation.md) — Backup Solution Evaluation (Complete)
 - [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) — Encryption at Rest (secrets storage pattern)
 - Backblaze B2 Terraform infrastructure (`infra/b2-backup/`)
 
@@ -65,7 +65,7 @@ _To be created. Likely decomposition:_
 | Type | ID | Title |
 |------|----|-------|
 | Vision | [VISION-001](../../vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code |
-| Spike | [SPIKE-003](../../research/Active/(SPIKE-003)-Backup-Solution-Evaluation/(SPIKE-003)-Backup-Solution-Evaluation.md) | Backup Solution Evaluation |
+| Spike | [SPIKE-003](../../research/Complete/(SPIKE-003)-Backup-Solution-Evaluation/(SPIKE-003)-Backup-Solution-Evaluation.md) | Backup Solution Evaluation |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest |
 | Legacy | [PRD-002](../../prd/Abandoned/(PRD-002)-Restic-Backup-Stack/(PRD-002)-Restic-Backup-Stack.md) | Restic Backup Stack (migrated from PRD) |
 
