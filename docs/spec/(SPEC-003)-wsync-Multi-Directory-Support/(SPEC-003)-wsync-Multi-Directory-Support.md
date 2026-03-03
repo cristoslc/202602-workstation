@@ -1,7 +1,7 @@
 ---
 title: "SPEC-003: wsync Multi-Directory Support"
 artifact: SPEC-003
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -117,3 +117,4 @@ Add `unison_extra_dirs: []` to `shared/roles/unison/defaults/main.yml`. When set
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | 871b26c | Initial creation |
+| Implemented | 2026-03-03 | 932c1c9 | Implementation complete |
