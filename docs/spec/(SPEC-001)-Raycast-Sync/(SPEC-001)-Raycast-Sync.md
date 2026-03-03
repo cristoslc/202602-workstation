@@ -1,10 +1,10 @@
 ---
 title: "SPEC-001: Raycast Sync"
 artifact: SPEC-001
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-01
-last-updated: 2026-03-02
+last-updated: 2026-03-03
 parent-epic: EPIC-003
 linked-research:
   - SPIKE-001
@@ -77,7 +77,7 @@ Raycast is installed by the `launchers` role but all configuration is left manua
 | Type | ID | Title |
 |------|----|-------|
 | Spike | [SPIKE-001](../../research/Complete/(SPIKE-001)-Raycast-Settings-Export/(SPIKE-001)-Raycast-Settings-Export.md) | Raycast Settings Export |
-| ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
+| ADR | [ADR-004](../../adr/Adopted/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
 | Legacy | [PRD-001](../../prd/Abandoned/(PRD-001)-Raycast-Sync/(PRD-001)-Raycast-Sync.md) | Raycast Sync (migrated from PRD) |
 
 ### Lifecycle
