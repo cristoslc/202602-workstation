@@ -1,0 +1,94 @@
+---
+# Ice menu bar organizer: behavioral preferences.
+# The full menubar layout (MenuBarAppearanceConfigurationV2) is stored in the
+# age-encrypted plist at macos/files/ice/ice.plist.age and restored via
+# `defaults import` during setup. These tasks capture the simple settings that
+# are safe to apply idempotently.
+
+- name: "Ice: Auto-rehide hidden section"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: AutoRehide
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Rehide interval (seconds)"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: RehideInterval
+    type: int
+    value: 15
+    state: present
+
+- name: "Ice: Hide application menus"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: HideApplicationMenus
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Show on click"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowOnClick
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Show on hover"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowOnHover
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Show on hover delay"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowOnHoverDelay
+    type: string
+    value: "0.2"
+    state: present
+
+- name: "Ice: Show on scroll"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowOnScroll
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Show all sections on user drag"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowAllSectionsOnUserDrag
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Show Ice icon in menu bar"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowIceIcon
+    type: bool
+    value: true
+    state: present
+
+- name: "Ice: Hide section dividers"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: ShowSectionDividers
+    type: bool
+    value: false
+    state: present
+
+- name: "Ice: Disable Ice Bar"
+  community.general.osx_defaults:
+    domain: com.jordanbaird.Ice
+    key: UseIceBar
+    type: bool
+    value: false
+    state: present

@@ -29,3 +29,7 @@
 - name: Include iTerm2 defaults
   ansible.builtin.include_tasks: iterm2.yml
   tags: [macos-defaults, iterm2]
+
+- name: Include Ice defaults
+  ansible.builtin.include_tasks: ice.yml
+  tags: [macos-defaults, ice]

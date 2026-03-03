@@ -29,7 +29,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         decrypt clean-secrets status verify verify-role template-export \
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
-        log-send log-receive export-iterm2 export-raycast export-streamdeck export-openin \
+        log-send log-receive export-iterm2 export-ice export-raycast export-streamdeck export-openin \
         snippets-convert export-all \
         backup-status backup-browse \
         data-pull data-pull-dry
@@ -161,7 +161,7 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
 
-export-all: export-iterm2 export-streamdeck export-raycast export-openin ## Export all settings (macOS only)
+export-all: export-iterm2 export-ice export-streamdeck export-raycast export-openin ## Export all settings (macOS only)
 
 export-iterm2: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
@@ -170,6 +170,15 @@ export-iterm2: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only
 	mkdir -p macos/files/iterm2; \
 	age -r "$$AGE_PUBKEY" -o macos/files/iterm2/iterm2.plist.age macos/dotfiles/iterm2/.config/iterm2/com.googlecode.iterm2.plist; \
 	echo "iTerm2 plist exported and encrypted. Review with: git diff --stat macos/files/iterm2/"
+
+export-ice: ## Re-export Ice plist, age-encrypted for the repo (macOS only)
+	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
+	@AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
+	defaults export com.jordanbaird.Ice - | plutil -convert xml1 -o /tmp/ice-export.plist -; \
+	mkdir -p macos/files/ice; \
+	age -r "$$AGE_PUBKEY" -o macos/files/ice/ice.plist.age /tmp/ice-export.plist; \
+	rm -f /tmp/ice-export.plist; \
+	echo "Ice plist exported and encrypted. Review with: git diff --stat macos/files/ice/"
 
 export-raycast: ## Export Raycast settings and age-encrypt for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
