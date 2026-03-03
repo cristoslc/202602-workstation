@@ -99,4 +99,4 @@ When a new repo is detected on Machine A, the `.stglobalignore` must sync to Mac
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-03-03 | _pending_ | Initial creation |
+| Draft | 2026-03-03 | 871b26c | Initial creation |

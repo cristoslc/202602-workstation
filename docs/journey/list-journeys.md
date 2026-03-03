@@ -10,7 +10,9 @@
 
 ## Draft
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| JOURNEY-004 | [Daily Multi-Machine Workflow](./(JOURNEY-004)-Daily-Multi-Machine-Workflow/(JOURNEY-004)-Daily-Multi-Machine-Workflow.md) | 2026-03-03 | 871b26c | Steady-state multi-machine UX with auto repo detection |
 
 ## Archived
 
