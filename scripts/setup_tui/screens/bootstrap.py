@@ -246,39 +246,53 @@ class BootstrapPasswordScreen(Screen):
         manifest: PlaybookManifest,
         *,
         skip_tags: list[str] | None = None,
+        role_apply: str | None = None,
     ) -> None:
         super().__init__()
         self.mode = mode
         self.phases = phases
         self.manifest = manifest
         self.skip_tags = skip_tags or []
+        self.role_apply = role_apply
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="main-content"):
-            mode_labels = {
-                "fresh": "Fresh install",
-                "new_account": "New user account",
-                "existing_account": "Existing user account",
-            }
-            phase_names = ", ".join(
-                phase.display_name if (phase := self.manifest.phase_by_id(p)) else p
-                for p in self.phases
-            )
-            skip_text = ""
-            if self.skip_tags:
-                skip_text = (
-                    f"\n[dim]Skipping:[/dim] {', '.join(self.skip_tags)}"
+            if self.role_apply:
+                # Single-role apply mode.
+                summary = (
+                    f"[bold]Apply Role — Password[/bold]\n\n"
+                    f"[dim]Role:[/dim] {self.role_apply}"
                 )
+                button_label = "Apply"
+            else:
+                mode_labels = {
+                    "fresh": "Fresh install",
+                    "new_account": "New user account",
+                    "existing_account": "Existing user account",
+                }
+                phase_names = ", ".join(
+                    phase.display_name if (phase := self.manifest.phase_by_id(p)) else p
+                    for p in self.phases
+                )
+                skip_text = ""
+                if self.skip_tags:
+                    skip_text = (
+                        f"\n[dim]Skipping:[/dim] {', '.join(self.skip_tags)}"
+                    )
+                summary = (
+                    f"[bold]Bootstrap — Password[/bold]\n\n"
+                    f"[dim]Mode:[/dim]   {mode_labels.get(self.mode, self.mode)}\n"
+                    f"[dim]Phases:[/dim] {phase_names}"
+                    f"{skip_text}"
+                )
+                button_label = "Run Bootstrap"
             yield Static(
-                "[bold]Bootstrap — Password[/bold]\n\n"
-                f"[dim]Mode:[/dim]   {mode_labels.get(self.mode, self.mode)}\n"
-                f"[dim]Phases:[/dim] {phase_names}"
-                f"{skip_text}\n\n"
+                f"{summary}\n\n"
                 "Enter your sudo password for Ansible privilege escalation.\n"
                 "[dim]This is passed to ansible-playbook via environment variable "
                 "and is never written to disk.[/dim]\n"
-                "[dim]Enter to submit, or Tab to reach Run Bootstrap[/dim]"
+                f"[dim]Enter to submit, or Tab to reach {button_label}[/dim]"
             )
             yield Input(
                 placeholder="sudo password",
@@ -286,7 +300,7 @@ class BootstrapPasswordScreen(Screen):
                 id="sudo-password",
             )
             yield Static("", id="password-error")
-            yield Button("Run Bootstrap", id="run", variant="primary")
+            yield Button(button_label, id="run", variant="primary")
         yield Footer()
 
     def action_go_back(self) -> None:
@@ -361,6 +375,7 @@ class BootstrapPasswordScreen(Screen):
             BootstrapRunScreen(
                 self.mode, self.phases, password,
                 skip_tags=self.skip_tags,
+                role_apply=self.role_apply,
             ),
         )
 
@@ -387,12 +402,14 @@ class BootstrapRunScreen(Screen):
         become_pass: str,
         *,
         skip_tags: list[str] | None = None,
+        role_apply: str | None = None,
     ) -> None:
         super().__init__()
         self.mode = mode
         self.phases = phases
         self.become_pass = become_pass
         self.skip_tags = skip_tags or []
+        self.role_apply = role_apply
         self._procs: list[subprocess.Popen] = []
         self._finished = False
         self._success = False
@@ -712,9 +729,15 @@ class BootstrapRunScreen(Screen):
             )
             return
 
-        entries = filter_entries(
-            entries, platform=platform, phases=self.phases
-        )
+        if self.role_apply:
+            # Single-role apply: filter by role name, not phase.
+            entries = filter_entries(
+                entries, platform=platform, roles=[self.role_apply]
+            )
+        else:
+            entries = filter_entries(
+                entries, platform=platform, phases=self.phases
+            )
         if not entries:
             self.app.call_from_thread(
                 self._log, "  [dim]No entries to verify for selected phases.[/dim]"

@@ -99,6 +99,7 @@ class WelcomeScreen(Screen):
             )
             options = [
                 Option("Bootstrap This Machine", id="bootstrap"),
+                Option("Apply Role", id="apply-role"),
                 Option("Verify Installations", id="verify"),
                 Option("Migrate Data", id="migrate-data"),
                 Option("Edit Defaults", id="edit-defaults"),
@@ -135,6 +136,9 @@ class WelcomeScreen(Screen):
         elif option_id == "bootstrap":
             from .bootstrap import BootstrapModeScreen
             self.app.push_screen(BootstrapModeScreen())
+        elif option_id == "apply-role":
+            from .apply_role import ApplyRoleScreen
+            self.app.push_screen(ApplyRoleScreen())
         elif option_id == "first-run":
             if self._state and self._state.is_personalized:
                 from .secrets import SecretsScreen
