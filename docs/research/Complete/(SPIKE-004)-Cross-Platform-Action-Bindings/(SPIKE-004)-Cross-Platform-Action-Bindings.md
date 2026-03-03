@@ -1,10 +1,10 @@
 ---
 title: "SPIKE-004: Cross-Platform Action Bindings"
 artifact: SPIKE-004
-status: Active
+status: Complete
 author: cristos
 created: 2026-02-25
-last-updated: 2026-02-25
+last-updated: 2026-03-02
 ---
 
 # SPIKE-004: Cross-Platform Action Bindings
@@ -431,3 +431,4 @@ Skip Hammerspoon entirely — have Karabiner's `shell_command` call scripts dire
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Active | 2026-02-25 | 16b92e3 | Initial creation |
+| Complete | 2026-03-02 | 39f786f | Hammerspoon confirmed working on macOS; dconf untested on Mint but architecture validated |
