@@ -30,7 +30,7 @@ DRIFT_SCRIPT="$SCRIPT_DIR/drift.sh"
 # --- Configuration ---
 # Default: fetch from this repo's own origin
 REPO_URL="${1:-$(git remote get-url origin 2>/dev/null || echo "https://github.com/cristoslc/LLM-personal-agent-patterns")}"
-SKILL_PATH="L3-agents-standalone/.agents/skills/spec-management"
+SKILL_PATH="L3-agents-core/.agents/skills/spec-management"
 SKILL_NAME="spec-management"
 
 # --- Test workspace ---

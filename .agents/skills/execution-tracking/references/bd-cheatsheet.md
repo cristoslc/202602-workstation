@@ -26,8 +26,10 @@ Issues use **hash-based IDs**: `bd-a1b2`, `bd-f3e9`. Children use dot notation: 
 
 ```bash
 bd init                # Standard init (creates .beads/)
-bd init --stealth      # Invisible to git collaborators
+bd init --stealth      # (NOT RECOMMENDED) Invisible to git collaborators
 ```
+
+> **Note:** `--stealth` adds `.beads/` to `.git/info/exclude`, making issue data invisible to version control. This causes problems for downstream consumers — `.beads/README.md` (which contains ephemeral-file remediation instructions) is never committed, and hooks/config are lost on clone. Use plain `bd init` instead. If you already used `--stealth`, see AGENTS-SETUP.md section 5 for remediation steps.
 
 If `.beads/` already exists, bd is already initialized — do not re-init.
 

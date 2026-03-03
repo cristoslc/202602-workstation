@@ -1,6 +1,6 @@
 ---
 name: update-agents-core
-description: Pull the latest agents-standalone scaffolding from upstream into the current project. Use when the user wants to update their .agents/ directory, AGENTS.md, or other scaffolding files from the shared upstream repository.
+description: Pull the latest agents-core scaffolding from upstream into the current project. Use when the user wants to update their .agents/ directory, AGENTS.md, or other scaffolding files from the shared upstream repository.
 license: UNLICENSED
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
@@ -11,7 +11,7 @@ metadata:
 
 # Update Agents Core
 
-Pull the latest agents-standalone scaffolding from the upstream repository into the current project.
+Pull the latest agents-core scaffolding from the upstream repository into the current project.
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ command -v npx >/dev/null 2>&1
 If available, run:
 
 ```bash
-npx skills add https://github.com/cristoslc/LLM-personal-agent-patterns@l3-standalone --yes
+npx skills add https://github.com/cristoslc/LLM-personal-agent-patterns@l3-agents-core --yes
 ```
 
 Track the outcome:
@@ -66,7 +66,7 @@ Then ask them to re-invoke the skill after adding it.
 Use a shallow fetch — only the tip commit is needed because the merge always squashes (no merge base is recorded between the two histories):
 
 ```bash
-git fetch --depth=1 agents-upstream l3-standalone
+git fetch --depth=1 agents-upstream l3-agents-core
 ```
 
 #### 3c. Check for changes
@@ -77,11 +77,11 @@ The diff scope depends on whether npx already updated the skills:
 
 - **If npx succeeded** — narrow scope (only non-skill scaffolding):
   ```bash
-  git diff HEAD..agents-upstream/l3-standalone --stat -- AGENTS.md .agents/README.md .agents/AGENTS-SETUP.md import-agents-standalone.sh
+  git diff HEAD..agents-upstream/l3-agents-core --stat -- AGENTS.md .agents/README.md .agents/AGENTS-SETUP.md import-agents-standalone.sh
   ```
 - **If npx failed or was unavailable** — full scope:
   ```bash
-  git diff HEAD..agents-upstream/l3-standalone --stat -- .agents/ AGENTS.md
+  git diff HEAD..agents-upstream/l3-agents-core --stat -- .agents/ AGENTS.md
   ```
 
 If the diff is empty, tell the user they are already up to date and stop.
@@ -89,7 +89,7 @@ If the diff is empty, tell the user they are already up to date and stop.
 #### 3d. Merge
 
 ```bash
-git merge agents-upstream/l3-standalone --allow-unrelated-histories --squash
+git merge agents-upstream/l3-agents-core --allow-unrelated-histories --squash
 ```
 
 The `--allow-unrelated-histories` flag is always required because the initial import used `--squash`, which does not record a merge base.
