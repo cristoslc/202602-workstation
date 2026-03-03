@@ -24,3 +24,16 @@
     src: "{{ playbook_dir }}/../../scripts/wsync"
     dest: "{{ ansible_facts.env.HOME }}/.local/bin/wsync"
     mode: "0755"
+
+- name: Ensure wsync config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/wsync"
+    state: directory
+    mode: "0755"
+
+- name: Write extra-dirs config
+  ansible.builtin.copy:
+    content: "{{ unison_extra_dirs | join('\n') }}\n"
+    dest: "{{ ansible_facts.env.HOME }}/.config/wsync/extra-dirs"
+    mode: "0644"
+  when: unison_extra_dirs | length > 0

@@ -21,6 +21,12 @@ unison_code_dir: "{{ ansible_facts.env.HOME }}/code"
 # Empty means wsync will auto-discover git repos.
 unison_repos: []
 
+# Additional directories to scan for git repos (list of absolute paths).
+# These are written to ~/.config/wsync/extra-dirs on deploy.
+# Repos in Syncthing-managed folders are detected automatically via
+# git-repo-scanner (SPEC-002) and don't need to be listed here.
+unison_extra_dirs: []
+
 # Unison conflict resolution: prefer newer file
 unison_prefer: newer
 
