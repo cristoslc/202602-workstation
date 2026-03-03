@@ -31,7 +31,7 @@ The question is how to systematically extend these primitives to cover all roles
 
 | Role | App(s) | Mechanism | Files/Settings |
 |------|--------|-----------|----------------|
-| **claude-code** | Claude Code | Stow | `shared/dotfiles/claude-code/.claude/settings.json` |
+| **claude-code** | Claude Code | Stow | `shared/dotfiles/claude-code/.claude/settings.json`, `CLAUDE.md`, `plugins/blocklist.json` |
 | **git** | git, gh, lazygit, delta | Stow + `git_config` | `.gitconfig`, `.gitignore_global`, platform git configs, user.name/email/signingkey via Ansible |
 | **shell** | zsh | Stow | `.zshrc`, `.zshenv`, aliases, completion, functions, prompt, platform-specific `.zsh`, encrypted `secrets.zsh` |
 | **shell** | direnv | Stow | `.config/direnv/direnvrc` |
