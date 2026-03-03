@@ -1,0 +1,6 @@
+---
+- name: Restart Syncthing hub
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_hub_user }}"
+    state: restarted
+  become: true

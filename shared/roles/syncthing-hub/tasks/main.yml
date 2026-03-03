@@ -1,0 +1,12 @@
+---
+# Syncthing hub server provisioning.
+# Installs Syncthing headlessly, starts the systemd service,
+# and extracts the device ID for spoke configuration.
+
+- name: Install Syncthing via apt
+  ansible.builtin.include_tasks: install.yml
+  tags: [syncthing-hub]
+
+- name: Configure hub server
+  ansible.builtin.include_tasks: configure.yml
+  tags: [syncthing-hub, syncthing-hub-configure]

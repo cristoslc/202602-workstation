@@ -13,3 +13,8 @@
   ansible.builtin.include_tasks: timer.yml
   when: unison_enabled
   tags: [unison, wsync-timer]
+
+- name: Provision Unison hub directory (hub server only)
+  ansible.builtin.include_tasks: hub.yml
+  when: unison_is_hub | default(false)
+  tags: [unison, unison-hub]

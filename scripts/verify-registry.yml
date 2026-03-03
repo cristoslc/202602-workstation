@@ -769,6 +769,18 @@ roles:
         platforms: [macos, linux]
         check: {command: syncthing}
         tags: [syncthing]
+      - name: Syncthing config
+        platforms: [macos]
+        check: {path: "~/Library/Application Support/Syncthing/config.xml"}
+        tags: [syncthing]
+      - name: Syncthing config
+        platforms: [linux]
+        check: {path: "~/.local/state/syncthing/config.xml"}
+        tags: [syncthing]
+      - name: Syncthing .stignore (Documents)
+        platforms: [macos, linux]
+        check: {path: "~/Documents/.stignore"}
+        tags: [syncthing]
 
   unison:
     phase: sync
@@ -781,3 +793,7 @@ roles:
         platforms: [macos, linux]
         check: {path: "~/.local/bin/wsync"}
         tags: [wsync]
+      - name: Unison code-sync profile
+        platforms: [macos, linux]
+        check: {path: "~/.unison/code-sync.prf"}
+        tags: [unison]

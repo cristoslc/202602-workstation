@@ -1,0 +1,30 @@
+---
+# Syncthing hub server role defaults
+
+# Port for Syncthing protocol (TCP)
+syncthing_hub_listen_port: 22000
+
+# GUI address (localhost:8384 by default, for admin access)
+syncthing_hub_gui_address: "127.0.0.1:8384"
+
+# Base directory for synced user data
+syncthing_hub_data_dir: "/srv/syncthing"
+
+# Syncthing system user
+syncthing_hub_user: syncthing
+
+# User data folders to pre-create on hub (mirrors spoke defaults)
+syncthing_hub_user_folders:
+  - Documents
+  - Pictures
+  - Music
+  - Videos
+  - Downloads
+
+# Auto-accept folders from paired devices
+syncthing_hub_auto_accept_folders: true
+
+# Enable staggered versioning on hub
+syncthing_hub_versioning_type: staggered
+syncthing_hub_versioning_max_age: "2592000"  # 30 days
+syncthing_hub_versioning_clean_interval: "3600"  # 1 hour

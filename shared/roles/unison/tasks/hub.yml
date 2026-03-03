@@ -1,0 +1,21 @@
+---
+# Provision Unison hub directory structure on the hub server.
+# This task file is included when the role runs on the hub server.
+# It creates the base directory for code-sync working trees.
+
+- name: Create Unison code-sync base directory
+  ansible.builtin.file:
+    path: "{{ unison_hub_base_path }}"
+    state: directory
+    owner: "{{ ansible_user_id }}"
+    mode: "0755"
+  become: true
+
+- name: Display Unison hub setup info
+  ansible.builtin.debug:
+    msg: |
+      Unison hub directory created at {{ unison_hub_base_path }}.
+      wsync will create per-repo/per-branch subdirectories automatically.
+
+      Ensure this host is reachable via SSH from all workstations.
+      Set unison_hub_host in group_vars to this machine's hostname or Tailscale IP.

@@ -1,9 +1,8 @@
 ---
-# Configure Syncthing: deploy .stignore files to each user data folder.
-# Full hub-spoke topology configuration (device pairing, folder sharing)
-# requires the Syncthing REST API and is done interactively or via the
-# Syncthing GUI after first start. This task file handles the file-level
-# configuration that Ansible can manage declaratively.
+# Configure Syncthing: deploy .stignore files, then automate hub-spoke
+# topology setup (device pairing + folder sharing) via the REST API.
+# Manual GUI steps are no longer required when syncthing_hub_device_id
+# is set.
 
 - name: Ensure user data folders exist
   ansible.builtin.file:
@@ -31,18 +30,121 @@
              ansible_facts.env.HOME ~ '/.local/state/syncthing')
       }}
 
-- name: Display post-install instructions
-  ansible.builtin.debug:
-    msg: |
-      Syncthing is installed and running with a GUI.
-      - macOS: menu bar icon (Syncthing app). Click to open the web GUI.
-      - Linux: Syncthing Tray in the system tray. Launch it from the app menu
-        if it isn't running; it connects to the existing Syncthing daemon.
+## ── REST API automation ─────────────────────────────────────────────
+# Everything below runs only when the hub device ID has been configured.
+# On a fresh bootstrap (hub ID still blank) the block is skipped and
+# Syncthing starts in an unconfigured but functional state.
 
-      Next steps (manual, one-time):
-      1. Open the Syncthing GUI (via tray icon or {{ syncthing_gui_address }})
-      2. Add the hub server as a remote device (ID: {{ syncthing_hub_device_id | default('set in group_vars') }})
-      3. Share each user folder (Documents, Pictures, Music, Videos, Downloads) with the hub
-      4. On the hub, accept the device and folder share requests
-      5. Set folder type to "Send & Receive" on both sides
-      6. Enable Staggered file versioning on the hub for each folder
+- name: Extract local API key from config.xml
+  ansible.builtin.shell:
+    cmd: >-
+      sed -n 's/.*<apikey>\([^<]*\)<\/apikey>.*/\1/p'
+      "{{ _syncthing_config_dir }}/config.xml"
+    executable: /bin/bash
+  vars:
+    _syncthing_config_dir: >-
+      {{ (ansible_facts.os_family == 'Darwin')
+         | ternary(
+             ansible_facts.env.HOME ~ '/Library/Application Support/Syncthing',
+             ansible_facts.env.HOME ~ '/.local/state/syncthing')
+      }}
+  register: _syncthing_apikey_result
+  changed_when: false
+
+- name: Automate hub-spoke topology via REST API
+  when: syncthing_hub_device_id | length > 0
+  vars:
+    _syncthing_api_key: "{{ _syncthing_apikey_result.stdout | trim }}"
+    _syncthing_api_base: "http://{{ syncthing_gui_address }}"
+    _syncthing_config_dir: >-
+      {{ (ansible_facts.os_family == 'Darwin')
+         | ternary(
+             ansible_facts.env.HOME ~ '/Library/Application Support/Syncthing',
+             ansible_facts.env.HOME ~ '/.local/state/syncthing')
+      }}
+  block:
+    - name: Wait for Syncthing REST API to become available
+      ansible.builtin.uri:
+        url: "{{ _syncthing_api_base }}/rest/system/status"
+        headers:
+          X-API-Key: "{{ _syncthing_api_key }}"
+        method: GET
+        return_content: false
+        status_code: 200
+      register: _syncthing_api_check
+      until: _syncthing_api_check.status == 200
+      retries: 15
+      delay: 2
+
+    - name: Fetch local device ID
+      ansible.builtin.uri:
+        url: "{{ _syncthing_api_base }}/rest/system/status"
+        headers:
+          X-API-Key: "{{ _syncthing_api_key }}"
+        method: GET
+        return_content: true
+      register: _syncthing_status
+
+    - name: Add hub device to local Syncthing config
+      ansible.builtin.uri:
+        url: "{{ _syncthing_api_base }}/rest/config/devices/{{ syncthing_hub_device_id }}"
+        headers:
+          X-API-Key: "{{ _syncthing_api_key }}"
+          Content-Type: application/json
+        method: PUT
+        body_format: json
+        body:
+          deviceID: "{{ syncthing_hub_device_id }}"
+          name: "hub"
+          addresses: >-
+            {{ (syncthing_hub_address | length > 0)
+               | ternary(
+                   ['tcp://' ~ syncthing_hub_address ~ ':22000'],
+                   ['dynamic'])
+            }}
+          autoAcceptFolders: false
+          compression: metadata
+        status_code: [200]
+
+    - name: Configure synced folders via REST API
+      ansible.builtin.uri:
+        url: "{{ _syncthing_api_base }}/rest/config/folders/{{ item | lower }}"
+        headers:
+          X-API-Key: "{{ _syncthing_api_key }}"
+          Content-Type: application/json
+        method: PUT
+        body_format: json
+        body:
+          id: "{{ item | lower }}"
+          label: "{{ item }}"
+          path: "{{ ansible_facts.env.HOME }}/{{ item }}"
+          type: sendreceive
+          devices:
+            - deviceID: "{{ _syncthing_status.json.myID }}"
+            - deviceID: "{{ syncthing_hub_device_id }}"
+          versioning:
+            type: "{{ syncthing_versioning_type }}"
+            params: "{{ syncthing_versioning_params }}"
+            cleanupIntervalS: "{{ syncthing_versioning_params.cleanInterval | int }}"
+          caseSensitiveFS: "{{ syncthing_case_sensitive_fs | bool }}"
+          fsWatcherEnabled: true
+          rescanIntervalS: 3600
+        status_code: [200]
+      loop: "{{ syncthing_user_folders }}"
+
+    - name: Confirm REST API configuration succeeded
+      ansible.builtin.debug:
+        msg: >-
+          Syncthing hub-spoke topology configured via REST API.
+          Hub device {{ syncthing_hub_device_id }} added with
+          {{ syncthing_user_folders | length }} shared folder(s):
+          {{ syncthing_user_folders | join(', ') }}.
+          The hub must still accept this device and approve the folder shares.
+
+- name: Display bootstrap notice (no hub configured)
+  when: syncthing_hub_device_id | length == 0
+  ansible.builtin.debug:
+    msg: >-
+      Syncthing is installed and running but no hub device ID is set.
+      Set syncthing_hub_device_id in group_vars or host_vars and re-run
+      the syncthing-configure tag to automate device pairing and folder sharing.

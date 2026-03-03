@@ -32,3 +32,6 @@ wsync_interval_minutes: 5
 
 # GitHub releases URL for Unison binary (Linux)
 unison_github_release_url: "https://github.com/bcpierce00/unison/releases/download/v{{ unison_version }}"
+
+# Set to true on the hub server to create the code-sync directory
+unison_is_hub: false

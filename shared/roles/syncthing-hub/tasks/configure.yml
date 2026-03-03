@@ -1,0 +1,77 @@
+---
+# Configure the Syncthing hub server via REST API.
+# Waits for Syncthing to start and generate config, then extracts
+# the device ID and configures auto-accept for trusted devices.
+
+- name: Determine Syncthing config directory
+  ansible.builtin.set_fact:
+    _syncthing_hub_config_dir: "/home/{{ syncthing_hub_user }}/.local/state/syncthing"
+
+- name: Wait for Syncthing to generate config
+  ansible.builtin.wait_for:
+    path: "{{ _syncthing_hub_config_dir }}/config.xml"
+    timeout: 30
+  become: true
+  become_user: "{{ syncthing_hub_user }}"
+
+- name: Read Syncthing API key from config.xml
+  ansible.builtin.shell:
+    cmd: grep -oP '(?<=<apikey>)[^<]+' "{{ _syncthing_hub_config_dir }}/config.xml"
+    executable: /bin/bash
+  register: _syncthing_hub_api_key
+  changed_when: false
+  become: true
+  become_user: "{{ syncthing_hub_user }}"
+
+- name: Read hub device ID
+  ansible.builtin.command:
+    cmd: syncthing --device-id
+  register: _syncthing_hub_device_id
+  changed_when: false
+  become: true
+  become_user: "{{ syncthing_hub_user }}"
+
+- name: Display hub device ID
+  ansible.builtin.debug:
+    msg: |
+      Syncthing hub device ID: {{ _syncthing_hub_device_id.stdout }}
+
+      Save this ID in your workstation repo's group_vars as:
+        syncthing_hub_device_id: "{{ _syncthing_hub_device_id.stdout }}"
+
+- name: Set hub device ID as fact for downstream roles
+  ansible.builtin.set_fact:
+    syncthing_hub_device_id_value: "{{ _syncthing_hub_device_id.stdout }}"
+
+- name: Wait for Syncthing REST API to become available
+  ansible.builtin.uri:
+    url: "http://{{ syncthing_hub_gui_address }}/rest/system/status"
+    method: GET
+    headers:
+      X-API-Key: "{{ _syncthing_hub_api_key.stdout }}"
+    status_code: 200
+  register: _syncthing_api_check
+  retries: 10
+  delay: 3
+  until: _syncthing_api_check.status == 200
+
+- name: Get current Syncthing config
+  ansible.builtin.uri:
+    url: "http://{{ syncthing_hub_gui_address }}/rest/config"
+    method: GET
+    headers:
+      X-API-Key: "{{ _syncthing_hub_api_key.stdout }}"
+    return_content: true
+  register: _syncthing_hub_config
+
+- name: Configure hub defaults (auto-accept, listen address)
+  ansible.builtin.uri:
+    url: "http://{{ syncthing_hub_gui_address }}/rest/config/options"
+    method: PATCH
+    headers:
+      X-API-Key: "{{ _syncthing_hub_api_key.stdout }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      autoAcceptFolders: "{{ syncthing_hub_auto_accept_folders }}"
+    status_code: [200, 204]

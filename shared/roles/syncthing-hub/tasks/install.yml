@@ -1,5 +1,5 @@
 ---
-# Install Syncthing on Debian/Ubuntu/Mint via official apt repository.
+# Install Syncthing on the hub server (Debian/Ubuntu).
 
 - name: Check if Syncthing GPG keyring exists
   ansible.builtin.stat:
@@ -30,7 +30,7 @@
 
 - name: Add Syncthing apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing {{ syncthing_release_channel }}"
+    repo: "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable"
     filename: syncthing
     state: present
   become: true
@@ -42,23 +42,38 @@
     update_cache: true
   become: true
 
-- name: Enable and start Syncthing user service
+- name: Create Syncthing system user
+  ansible.builtin.user:
+    name: "{{ syncthing_hub_user }}"
+    system: true
+    home: "/home/{{ syncthing_hub_user }}"
+    shell: /usr/sbin/nologin
+    create_home: true
+  become: true
+
+- name: Create hub data directory
+  ansible.builtin.file:
+    path: "{{ syncthing_hub_data_dir }}"
+    state: directory
+    owner: "{{ syncthing_hub_user }}"
+    group: "{{ syncthing_hub_user }}"
+    mode: "0755"
+  become: true
+
+- name: Create user data subdirectories on hub
+  ansible.builtin.file:
+    path: "{{ syncthing_hub_data_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ syncthing_hub_user }}"
+    group: "{{ syncthing_hub_user }}"
+    mode: "0755"
+  loop: "{{ syncthing_hub_user_folders }}"
+  become: true
+
+- name: Enable and start Syncthing service for hub user
   ansible.builtin.systemd:
-    name: "syncthing@{{ ansible_user_id }}"
+    name: "syncthing@{{ syncthing_hub_user }}"
     enabled: true
     state: started
     daemon_reload: true
-  become: true
-
-- name: Install Syncthing Tray (system tray GUI)
-  ansible.builtin.apt:
-    name: syncthingtray
-    state: present
-  become: true
-
-- name: Deploy Syncthing resume-from-suspend hook
-  ansible.builtin.copy:
-    src: syncthing-resume.sh
-    dest: /usr/lib/systemd/system-sleep/syncthing-resume.sh
-    mode: "0755"
   become: true
