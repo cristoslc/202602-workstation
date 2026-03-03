@@ -93,6 +93,7 @@ Product Vision (VISION-NNN) — one per product or product area
 - Runbooks are cross-cutting: they link to validated artifacts via `validates:` but are not owned by any single one. An optional `parent-epic:` provides hierarchy when applicable.
 - An artifact may only have one parent in the hierarchy but may reference siblings or cousins via `related` links.
 - Blocking dependencies are declared via `depends-on:` in frontmatter (list of bare TYPE-NNN IDs). Parent fields (`parent-vision:`, `parent-epic:`) encode hierarchy. Informational links (`linked-epics:`, `related:`, etc.) are cross-references and do not imply blocking.
+- Epics, Stories, and Agent Specs may reference journey pain points via `addresses:` in frontmatter (list of `JOURNEY-NNN.PP-NN` IDs). This is an informational traceability link, not a blocking dependency.
 
 For detailed procedures, see the **spec-management** skill (referenced in Skill routing above).
 
