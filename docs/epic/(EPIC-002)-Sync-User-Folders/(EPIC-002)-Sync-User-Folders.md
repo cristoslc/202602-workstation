@@ -1,7 +1,7 @@
 ---
 title: "EPIC-002: Sync User Folders"
 artifact: EPIC-002
-status: Active
+status: Testing
 author: cristos
 created: 2026-03-01
 last-updated: 2026-03-03
@@ -87,3 +87,4 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 | Active | 2026-03-03 | 42cf76d | SPIKE-006 Complete; beginning implementation |
 | Testing | 2026-03-03 | 14f3b10 | All implementation tasks complete; pending bootstrap validation |
 | Active | 2026-03-03 | 871b26c | Regressed from Testing; SPEC-002/003 created for sync boundary enforcement (ADR-006) |
+| Testing | 2026-03-03 | e5eb1b1 | SPEC-002/003 implemented; pending bootstrap validation |
