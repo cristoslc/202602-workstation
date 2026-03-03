@@ -45,3 +45,7 @@ __pycache__/
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Beads runtime state
+.beads/dolt-monitor.pid
+.beads/dolt-server.activity
