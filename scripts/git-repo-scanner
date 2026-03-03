@@ -1,0 +1,481 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# git-repo-scanner — Detect git repos in Syncthing-managed folders and
+# enforce sync boundaries.
+#
+# Scans directories for .git/ repositories, writes exclusion patterns to
+# .stglobalignore (synced fleet-wide by Syncthing), and records detected
+# repos in a journal for wsync consumption. See ADR-006.
+#
+# Usage:
+#   git-repo-scanner                    # scan all configured folders
+#   git-repo-scanner --dry-run          # report unprotected repos, don't write
+#   git-repo-scanner --watch            # run fswatch daemon (foreground)
+#   git-repo-scanner --folder <path>    # scan a single folder
+#   git-repo-scanner --rescan           # force Syncthing rescan (after .stglobalignore update)
+#   git-repo-scanner --help             # show help
+#
+# Configuration (environment or ~/.config/wsync/config):
+#   SCANNER_USER_FOLDERS  — space-separated folder names (default: Documents Pictures Music Videos Downloads)
+#   SCANNER_SYNCTHING_GUI — Syncthing GUI address (default: 127.0.0.1:8384)
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Source guard for testability
+# ---------------------------------------------------------------------------
+_SCANNER_SOURCED=1
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  _SCANNER_SOURCED=0
+fi
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+SCANNER_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/wsync"
+SCANNER_JOURNAL="${SCANNER_CONFIG_DIR}/detected-repos"
+SCANNER_LOG_DIR="${HOME}/.local/log"
+SCANNER_LOG_FILE="${SCANNER_LOG_DIR}/git-repo-scanner.log"
+
+# Load wsync config if it exists (shared config file)
+# shellcheck source=/dev/null
+[[ -f "${SCANNER_CONFIG_DIR}/config" ]] && source "${SCANNER_CONFIG_DIR}/config"
+
+# Folders to scan (relative to $HOME, matches syncthing_user_folders)
+SCANNER_USER_FOLDERS="${SCANNER_USER_FOLDERS:-Documents Pictures Music Videos Downloads}"
+
+# Syncthing REST API
+SCANNER_SYNCTHING_GUI="${SCANNER_SYNCTHING_GUI:-127.0.0.1:8384}"
+
+# Mode flags
+SCANNER_DRY_RUN=0
+SCANNER_VERBOSE=0
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+scanner_log() {
+  local level="$1"
+  shift
+  local timestamp
+  timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+  local msg="[$timestamp] [$level] $*"
+  if [[ "$SCANNER_VERBOSE" -eq 1 ]] || [[ "$level" != "DEBUG" ]]; then
+    echo "$msg" >&2
+  fi
+  if [[ -d "$SCANNER_LOG_DIR" ]]; then
+    echo "$msg" >> "$SCANNER_LOG_FILE"
+  fi
+}
+
+scanner_info()  { scanner_log INFO  "$@"; }
+scanner_warn()  { scanner_log WARN  "$@"; }
+scanner_error() { scanner_log ERROR "$@"; }
+scanner_debug() { scanner_log DEBUG "$@"; }
+
+# ---------------------------------------------------------------------------
+# Platform helpers
+# ---------------------------------------------------------------------------
+scanner_get_syncthing_config_dir() {
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "$HOME/Library/Application Support/Syncthing"
+  else
+    echo "${HOME}/.local/state/syncthing"
+  fi
+}
+
+scanner_get_api_key() {
+  local config_dir
+  config_dir="$(scanner_get_syncthing_config_dir)"
+  local config_file="${config_dir}/config.xml"
+
+  if [[ ! -f "$config_file" ]]; then
+    scanner_warn "Syncthing config not found: $config_file"
+    return 1
+  fi
+
+  sed -n 's/.*<apikey>\([^<]*\)<\/apikey>.*/\1/p' "$config_file" | head -1
+}
+
+# ---------------------------------------------------------------------------
+# Core scanning
+# ---------------------------------------------------------------------------
+
+# Find all git repos in a directory (one level deep, matching wsync convention).
+# Output: one absolute path per line (the repo root, not the .git/ dir).
+scanner_find_repos() {
+  local dir="$1"
+
+  if [[ ! -d "$dir" ]]; then
+    return
+  fi
+
+  # Use find for .git directories, then emit the parent.
+  # -maxdepth 3 catches repos like ~/Documents/projects/foo/.git
+  # but avoids descending into node_modules or deep vendor trees.
+  find "$dir" -maxdepth 3 -name .git -type d 2>/dev/null | while IFS= read -r gitdir; do
+    dirname "$gitdir"
+  done
+}
+
+# Compute the relative path of a repo within its Syncthing folder.
+# e.g., /home/user/Documents/HouseOps -> HouseOps
+#        /home/user/Documents/projects/foo -> projects/foo
+scanner_get_relative_path() {
+  local repo_path="$1"
+  local folder_path="$2"
+
+  # Strip the folder path prefix and leading slash
+  local rel="${repo_path#"$folder_path"}"
+  rel="${rel#/}"
+  echo "$rel"
+}
+
+# Merge new entries into a .stglobalignore file (append-only, preserve existing).
+# This is merge-safe: entries from other machines are preserved.
+scanner_merge_stglobalignore() {
+  local ignore_file="$1"
+  shift
+  local new_entries=("$@")
+
+  if [[ ${#new_entries[@]} -eq 0 ]]; then
+    return
+  fi
+
+  # Determine which entries are new (grep against existing file)
+  local added=0
+  local to_add=()
+  for entry in "${new_entries[@]}"; do
+    if [[ ! -f "$ignore_file" ]] || ! grep -qxF "$entry" "$ignore_file"; then
+      to_add+=("$entry")
+      ((added++))
+    fi
+  done
+
+  if [[ ${#to_add[@]} -eq 0 ]]; then
+    scanner_debug "No new entries for $ignore_file"
+    return
+  fi
+
+  if [[ "$SCANNER_DRY_RUN" -eq 1 ]]; then
+    for entry in "${to_add[@]}"; do
+      echo "  [dry-run] Would add to $ignore_file: $entry" >&2
+    done
+    return
+  fi
+
+  # Append new entries atomically: write to temp, then append
+  local tmpfile
+  tmpfile="$(mktemp "${ignore_file}.XXXXXX")"
+
+  # Copy existing content
+  if [[ -f "$ignore_file" ]]; then
+    cat "$ignore_file" > "$tmpfile"
+  fi
+
+  # Append new entries
+  for entry in "${to_add[@]}"; do
+    echo "$entry" >> "$tmpfile"
+  done
+
+  # Atomic rename
+  mv -f "$tmpfile" "$ignore_file"
+
+  scanner_info "Added $added entries to $ignore_file"
+}
+
+# Write or update the detection journal.
+# Format: absolute_path<TAB>timestamp<TAB>hostname
+scanner_write_journal() {
+  local repos=("$@")
+
+  if [[ ${#repos[@]} -eq 0 ]]; then
+    return
+  fi
+
+  if [[ "$SCANNER_DRY_RUN" -eq 1 ]]; then
+    return
+  fi
+
+  mkdir -p "$SCANNER_CONFIG_DIR"
+
+  # Append new entries (grep to check for duplicates)
+  local timestamp hostname added=0
+  timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  hostname="$(hostname -s)"
+
+  for repo in "${repos[@]}"; do
+    if [[ ! -f "$SCANNER_JOURNAL" ]] || ! grep -q "^${repo}	" "$SCANNER_JOURNAL"; then
+      printf '%s\t%s\t%s\n' "$repo" "$timestamp" "$hostname" >> "$SCANNER_JOURNAL"
+      ((added++))
+    fi
+  done
+
+  # Remove journal entries for repos that no longer exist
+  if [[ -f "$SCANNER_JOURNAL" ]]; then
+    local tmpfile
+    tmpfile="$(mktemp "${SCANNER_JOURNAL}.XXXXXX")"
+    while IFS= read -r line; do
+      local path
+      path="$(echo "$line" | cut -f1)"
+      if [[ "$path" == \#* ]] || [[ -d "${path}/.git" ]]; then
+        echo "$line" >> "$tmpfile"
+      else
+        scanner_info "Removed stale journal entry: $path"
+      fi
+    done < "$SCANNER_JOURNAL"
+    mv -f "$tmpfile" "$SCANNER_JOURNAL"
+  fi
+
+  if [[ "$added" -gt 0 ]]; then
+    scanner_info "Added $added entries to journal"
+  fi
+}
+
+# Force Syncthing to rescan a folder (re-reads .stglobalignore via #include).
+scanner_notify_syncthing() {
+  local folder_id="$1"
+
+  local api_key
+  api_key="$(scanner_get_api_key 2>/dev/null)" || return 0
+
+  if [[ -z "$api_key" ]]; then
+    scanner_debug "No Syncthing API key available, skipping rescan notification"
+    return 0
+  fi
+
+  local url="http://${SCANNER_SYNCTHING_GUI}/rest/db/scan?folder=${folder_id}"
+
+  if curl -sf -X POST \
+    -H "X-API-Key: ${api_key}" \
+    "$url" 2>/dev/null; then
+    scanner_debug "Triggered rescan for folder: $folder_id"
+  else
+    scanner_warn "Failed to trigger Syncthing rescan for folder: $folder_id (Syncthing may not be running)"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Scan orchestration
+# ---------------------------------------------------------------------------
+
+# Scan a single Syncthing folder for git repos.
+# Returns the number of repos found.
+scanner_scan_folder() {
+  local folder_name="$1"
+  local folder_path="${HOME}/${folder_name}"
+
+  if [[ ! -d "$folder_path" ]]; then
+    scanner_debug "Folder does not exist: $folder_path"
+    return 0
+  fi
+
+  scanner_debug "Scanning $folder_path"
+
+  # Find all git repos
+  local repos=()
+  while IFS= read -r repo; do
+    repos+=("$repo")
+  done < <(scanner_find_repos "$folder_path")
+
+  if [[ ${#repos[@]} -eq 0 ]]; then
+    scanner_debug "No git repos in $folder_path"
+    echo 0
+    return 0
+  fi
+
+  scanner_info "Found ${#repos[@]} git repo(s) in $folder_path"
+
+  # Compute relative paths for .stglobalignore
+  local rel_paths=()
+  for repo in "${repos[@]}"; do
+    local rel
+    rel="$(scanner_get_relative_path "$repo" "$folder_path")"
+    rel_paths+=("$rel")
+    if [[ "$SCANNER_DRY_RUN" -eq 1 ]]; then
+      echo "  [detected] ${folder_name}/${rel}" >&2
+    else
+      scanner_info "  Detected: ${folder_name}/${rel}"
+    fi
+  done
+
+  # Update .stglobalignore for this folder
+  local ignore_file="${folder_path}/.stglobalignore"
+  scanner_merge_stglobalignore "$ignore_file" "${rel_paths[@]}"
+
+  # Update journal with absolute paths
+  scanner_write_journal "${repos[@]}"
+
+  # Notify Syncthing to rescan (picks up new .stglobalignore entries)
+  if [[ "$SCANNER_DRY_RUN" -eq 0 ]]; then
+    scanner_notify_syncthing "$(echo "$folder_name" | tr '[:upper:]' '[:lower:]')"
+  fi
+
+  echo "${#repos[@]}"
+}
+
+# Scan all configured Syncthing folders.
+scanner_scan_all() {
+  local total=0
+
+  scanner_info "=== git-repo-scanner started ==="
+
+  for folder in $SCANNER_USER_FOLDERS; do
+    local count
+    count="$(scanner_scan_folder "$folder")"
+    total=$((total + count))
+  done
+
+  if [[ "$total" -gt 0 ]]; then
+    scanner_info "Total: $total git repo(s) detected across all folders"
+  else
+    scanner_info "No git repos found in Syncthing-managed folders"
+  fi
+
+  scanner_info "=== git-repo-scanner finished ==="
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# fswatch daemon mode
+# ---------------------------------------------------------------------------
+scanner_watch() {
+  if ! command -v fswatch &>/dev/null; then
+    scanner_error "fswatch not found. Install via: brew install fswatch (macOS) or apt install fswatch (Linux)"
+    exit 1
+  fi
+
+  # Build list of paths to watch
+  local watch_paths=()
+  for folder in $SCANNER_USER_FOLDERS; do
+    local folder_path="${HOME}/${folder}"
+    [[ -d "$folder_path" ]] && watch_paths+=("$folder_path")
+  done
+
+  if [[ ${#watch_paths[@]} -eq 0 ]]; then
+    scanner_error "No Syncthing-managed folders found to watch"
+    exit 1
+  fi
+
+  scanner_info "Starting fswatch daemon on: ${watch_paths[*]}"
+
+  # Watch for:
+  # 1. .git/ directory creation (new repo detected)
+  # 2. .stglobalignore modification (incoming exclusion from another machine)
+  fswatch --recursive \
+    --include '\.git$' \
+    --include '\.stglobalignore$' \
+    --exclude '.*' \
+    --event Created --event Updated --event MovedTo \
+    "${watch_paths[@]}" | while IFS= read -r event_path; do
+
+    if [[ "$event_path" == */.git ]]; then
+      # New .git directory detected — run scanner for the parent folder
+      scanner_info "Detected new .git/ at: $event_path"
+      local repo_dir
+      repo_dir="$(dirname "$event_path")"
+
+      # Determine which Syncthing folder this belongs to
+      for folder in $SCANNER_USER_FOLDERS; do
+        local folder_path="${HOME}/${folder}"
+        if [[ "$repo_dir" == "${folder_path}"* ]]; then
+          scanner_scan_folder "$folder"
+          break
+        fi
+      done
+
+    elif [[ "$event_path" == */.stglobalignore ]]; then
+      # .stglobalignore was modified (likely by Syncthing sync from another machine)
+      scanner_info "Detected .stglobalignore change: $event_path"
+      local folder_dir
+      folder_dir="$(dirname "$event_path")"
+      local folder_name
+      folder_name="$(basename "$folder_dir")"
+
+      # Force Syncthing to rescan so it picks up the new patterns
+      scanner_notify_syncthing "$(echo "$folder_name" | tr '[:upper:]' '[:lower:]')"
+    fi
+  done
+}
+
+# ---------------------------------------------------------------------------
+# Usage
+# ---------------------------------------------------------------------------
+scanner_usage() {
+  cat <<'EOF'
+Usage: git-repo-scanner [OPTIONS]
+
+Detect git repos in Syncthing-managed folders and enforce sync boundaries.
+
+Commands:
+  git-repo-scanner                 Scan all configured folders
+  git-repo-scanner --dry-run       Report unprotected repos, don't write
+  git-repo-scanner --watch         Run fswatch daemon (foreground)
+  git-repo-scanner --folder <dir>  Scan a single folder name (e.g., Documents)
+  git-repo-scanner --rescan        Force Syncthing rescan of all folders
+  git-repo-scanner --help          Show this help message
+
+Environment:
+  SCANNER_USER_FOLDERS     Space-separated folder names (default: Documents Pictures Music Videos Downloads)
+  SCANNER_SYNCTHING_GUI    Syncthing GUI address (default: 127.0.0.1:8384)
+
+Files:
+  ~/.config/wsync/detected-repos   Detection journal (consumed by wsync)
+  ~/<folder>/.stglobalignore       Per-folder exclusion patterns (synced fleet-wide)
+
+See ADR-006 for architecture details.
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+scanner_main() {
+  mkdir -p "$SCANNER_LOG_DIR" "$SCANNER_CONFIG_DIR"
+
+  case "${1:-}" in
+    --help|-h)
+      scanner_usage
+      exit 0
+      ;;
+    --dry-run)
+      SCANNER_DRY_RUN=1
+      echo "git-repo-scanner: dry-run mode"
+      echo "=============================="
+      echo ""
+      scanner_scan_all
+      ;;
+    --watch)
+      scanner_watch
+      ;;
+    --folder)
+      if [[ -z "${2:-}" ]]; then
+        scanner_error "--folder requires a folder name (e.g., Documents)"
+        exit 1
+      fi
+      scanner_scan_folder "$2" > /dev/null
+      ;;
+    --rescan)
+      scanner_info "Forcing Syncthing rescan on all folders"
+      for folder in $SCANNER_USER_FOLDERS; do
+        scanner_notify_syncthing "$(echo "$folder" | tr '[:upper:]' '[:lower:]')"
+      done
+      ;;
+    --verbose|-v)
+      SCANNER_VERBOSE=1
+      shift
+      scanner_main "$@"
+      ;;
+    "")
+      scanner_scan_all
+      ;;
+    *)
+      scanner_error "Unknown option: $1"
+      scanner_usage
+      exit 1
+      ;;
+  esac
+}
+
+if [[ "$_SCANNER_SOURCED" -eq 0 ]]; then
+  scanner_main "$@"
+fi
