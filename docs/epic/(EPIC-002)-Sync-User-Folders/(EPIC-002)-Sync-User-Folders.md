@@ -50,7 +50,7 @@ _To be created. Likely decomposition:_
 
 ## Key Dependencies
 
-- [SPIKE-006](../../research/Active/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) — Sync User Folders research (Active)
+- [SPIKE-006](../../research/Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) — Sync User Folders research (Complete)
 - Hub server availability (Syncthing relay, Unison rendezvous)
 
 ## Risks
@@ -67,7 +67,7 @@ _To be created. Likely decomposition:_
 | Type | ID | Title |
 |------|----|-------|
 | Vision | [VISION-001](../../vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code |
-| Spike | [SPIKE-006](../../research/Active/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) | Sync User Folders |
+| Spike | [SPIKE-006](../../research/Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) | Sync User Folders |
 | Legacy | [PRD-003](../../prd/Abandoned/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md) | Sync User Folders (migrated from PRD) |
 
 ### Lifecycle
