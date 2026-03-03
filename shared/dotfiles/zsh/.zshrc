@@ -15,3 +15,4 @@ done
 if command -v fzf &>/dev/null; then
   eval "$(fzf --zsh 2>/dev/null)" || source <(fzf --zsh) 2>/dev/null || true
 fi
+export ENABLE_LSP_TOOL=1
