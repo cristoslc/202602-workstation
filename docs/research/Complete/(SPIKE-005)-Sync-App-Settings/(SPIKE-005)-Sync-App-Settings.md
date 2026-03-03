@@ -1,10 +1,10 @@
 ---
 title: "SPIKE-005: App Settings Sync Across Machines"
 artifact: SPIKE-005
-status: Active
+status: Complete
 author: cristos
 created: 2026-02-25
-last-updated: 2026-02-25
+last-updated: 2026-03-03
 ---
 
 # SPIKE-005: App Settings Sync Across Machines
@@ -265,3 +265,4 @@ This keeps the architecture simple, the source of truth in git, and the deployme
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Active | 2026-02-25 | 85c953e | Initial creation |
+| Complete | 2026-03-03 | 29e9c08 | Research concluded; findings feed EPIC-003 |
