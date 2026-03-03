@@ -5,7 +5,7 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 
-| SPIKE-008 | [Sync Boundary Enforcement](./Active/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | 2026-03-03 | 2ec5cad | Git repo detection and sync boundary enforcement for EPIC-002 |
+_None._
 
 ## Complete
 
@@ -17,6 +17,7 @@
 | SPIKE-004 | [Cross-Platform Action Bindings](./Complete/(SPIKE-004)-Cross-Platform-Action-Bindings/(SPIKE-004)-Cross-Platform-Action-Bindings.md) | 2026-03-02 | 39f786f | Hammerspoon on macOS confirmed; dconf on Mint untested |
 | SPIKE-005 | [Sync App Settings](./Complete/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md) | 2026-03-03 | f95ecc5 | Research concluded; findings feed EPIC-003 |
 | SPIKE-006 | [Sync User Folders](./Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) | 2026-03-03 | fda9b50 | Research concluded; findings feed EPIC-002 |
+| SPIKE-008 | [Sync Boundary Enforcement](./Complete/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | 2026-03-03 | b9e6d47 | Research concluded; recommends Approach D (Hybrid scanner + wsync expansion) |
 
 ## Planned
 
