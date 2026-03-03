@@ -22,7 +22,7 @@ _None._
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| SPIKE-007 | [Hub Server Failover and Migration](./Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | 2026-03-03 | _pending_ | Hub outage recovery and migration procedures for EPIC-002 |
+| SPIKE-007 | [Hub Server Failover and Migration](./Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | 2026-03-03 | 3dccece | Hub outage recovery and migration procedures for EPIC-002 |
 
 ## Abandoned
 
