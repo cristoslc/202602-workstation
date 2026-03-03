@@ -120,4 +120,4 @@ Make Syncthing timer-based instead of continuous, with the scanner guaranteed to
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Adopted | 2026-03-03 | _pending_ | Decision from SPIKE-008 research; skip Draft/Proposed |
+| Adopted | 2026-03-03 | c950e4b | Decision from SPIKE-008 research; skip Draft/Proposed |
