@@ -5,7 +5,7 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 
-_None._
+| SPIKE-008 | [Sync Boundary Enforcement](./Active/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | 2026-03-03 | 2ec5cad | Git repo detection and sync boundary enforcement for EPIC-002 |
 
 ## Complete
 
@@ -23,7 +23,6 @@ _None._
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | SPIKE-007 | [Hub Server Failover and Migration](./Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | 2026-03-03 | 3dccece | Hub outage recovery and migration procedures for EPIC-002 |
-| SPIKE-008 | [Sync Boundary Enforcement](./Planned/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | 2026-03-03 | 7de6f50 | Git repo detection and sync boundary enforcement for EPIC-002 |
 
 ## Abandoned
 

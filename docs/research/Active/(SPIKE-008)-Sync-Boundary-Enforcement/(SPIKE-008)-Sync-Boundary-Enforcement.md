@@ -160,3 +160,4 @@ _To be populated during Active phase._
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Planned | 2026-03-03 | 7de6f50 | Initial creation |
+| Active  | 2026-03-03 | 2ec5cad | Transitioned to Active for research |
