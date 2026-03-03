@@ -1,7 +1,7 @@
 ---
 title: "JOURNEY-004: Daily Multi-Machine Workflow"
 artifact: JOURNEY-004
-status: Draft
+status: Validated
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -100,3 +100,4 @@ When a new repo is detected on Machine A, the `.stglobalignore` must sync to Mac
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | 871b26c | Initial creation |
+| Validated | 2026-03-03 | c2989ed | All acceptance criteria validated |
