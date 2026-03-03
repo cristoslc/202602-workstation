@@ -11,13 +11,9 @@ risks-addressed:
 {%- for risk in risks_addressed | default([]) %}
   - {{ risk }}
 {%- endfor %}
-dependencies:
-{%- for dep in dependencies | default([]) %}
+depends-on:
+{%- for dep in depends_on | default([]) %}
   - {{ dep }}
-{%- endfor %}
-blocks:
-{%- for block in blocks | default([]) %}
-  - {{ block }}
 {%- endfor %}
 ---
 

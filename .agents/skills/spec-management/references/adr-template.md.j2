@@ -13,6 +13,10 @@ linked-specs:
 {%- for spec in linked_specs | default([]) %}
   - SPEC-{{ spec }}
 {%- endfor %}
+depends-on:
+{%- for dep in depends_on | default([]) %}
+  - {{ dep }}
+{%- endfor %}
 ---
 
 # {{ title }}

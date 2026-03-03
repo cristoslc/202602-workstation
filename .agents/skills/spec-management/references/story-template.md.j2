@@ -12,6 +12,10 @@ related:
   - JOURNEY-{{ journey }}
 {%- endfor %}
 {%- endif %}
+depends-on:
+{%- for dep in depends_on | default([]) %}
+  - {{ dep }}
+{%- endfor %}
 ---
 
 # {{ title }}

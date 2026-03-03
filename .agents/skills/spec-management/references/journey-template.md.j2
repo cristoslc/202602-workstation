@@ -10,6 +10,10 @@ linked-personas:
 {%- for persona in linked_personas %}
   - PERSONA-{{ persona }}
 {%- endfor %}
+depends-on:
+{%- for dep in depends_on | default([]) %}
+  - {{ dep }}
+{%- endfor %}
 ---
 
 # {{ title }}

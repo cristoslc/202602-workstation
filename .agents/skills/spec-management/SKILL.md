@@ -13,6 +13,36 @@ metadata:
 
 Create, transition, and validate documentation artifacts defined in AGENTS.md. The authoritative list of artifact types, phases, and hierarchy lives in AGENTS.md — this skill provides the operational procedures.
 
+## Dependency graph
+
+The `specgraph.sh` script builds and queries the artifact dependency graph from frontmatter. It caches a JSON graph in `/tmp/` and auto-rebuilds when any `docs/*.md` file changes.
+
+**Script location:** `scripts/specgraph.sh` (relative to this skill)
+
+**Subcommands:**
+
+| Command | What it does |
+|---------|-------------|
+| `build` | Force-rebuild graph from frontmatter |
+| `blocks <ID>` | What does this artifact depend on? (direct dependencies) |
+| `blocked-by <ID>` | What depends on this artifact? (inverse lookup) |
+| `tree <ID>` | Transitive dependency tree (all ancestors) |
+| `ready` | Active/Planned artifacts with all deps resolved |
+| `next` | What to work on next (ready items + what they unblock, blocked items + what they need) |
+| `mermaid` | Mermaid diagram to stdout |
+| `status` | Summary table by type and phase |
+
+**When to use:**
+- Before transitioning an artifact to a new phase, run `blocks <ID>` to verify dependencies are resolved.
+- To find unblocked work, run `ready` — it lists active/planned artifacts whose dependencies are all in resolved statuses.
+- To understand the full dependency chain, run `tree <ID>` for transitive closure.
+- To generate a visual overview, pipe `mermaid` output into a `.md` file or render it directly.
+
+**Edge types:**
+- `depends-on` — explicit blocking dependency (from `depends-on:` frontmatter)
+- `parent-vision` — hierarchy edge (from `parent-vision:` frontmatter)
+- `parent-epic` — hierarchy edge (from `parent-epic:` frontmatter)
+
 ## Lifecycle table format
 
 Every artifact embeds a lifecycle table tracking phase transitions:
@@ -26,7 +56,7 @@ Every artifact embeds a lifecycle table tracking phase transitions:
 | Active  | 2026-02-25 | def5678 | Dependency X satisfied |
 ```
 
-Commit hashes reference the repo state at the time of the transition, not the commit that writes the hash stamp itself. Commit first, then stamp the hash and amend — the pre-amend hash is the correct value.
+Commit hashes reference the repo state at the time of the transition, not the commit that writes the hash stamp itself. Commit the transition first, then stamp the resulting hash into the lifecycle table and index in a second commit. This keeps the stamped hash reachable in git history.
 
 ## Index maintenance
 
@@ -59,16 +89,11 @@ Always include a 1-2 sentence summary of an artifact, not just its title, in tab
 
 ## Status overview
 
-Produce a project-wide progress snapshot. Scan all artifact directories under `docs/`, read frontmatter from each artifact, and report:
+Run `specgraph.sh status` for a project-wide progress snapshot — one table per artifact type, listing every artifact with its ID, current phase, and title.
 
-1. **Dashboard table** — one table per artifact type, listing every artifact with its ID, title (1-2 sentence summary), current phase, parent ref, and date of last lifecycle entry. Group rows by phase within each table.
-2. **Actionable items** — flag artifacts that may need attention:
-   - *Stale* — in an active phase but last lifecycle entry is older than 30 days (or a user-specified threshold).
-   - *Blocked* — parent artifact has not reached the prerequisite phase for this artifact's current state (e.g., a Story marked "Ready" under an Epic still in "Proposed").
-   - *Orphaned* — declared parent reference points to a non-existent artifact.
-3. **Summary** — total artifact count and breakdown by phase category (in-progress, completed, end-of-life).
+Run `specgraph.sh next` for a quick "what should I work on?" view — shows ready items (unblocked, in-progress or not-yet-started) with what completing each would unblock, plus any blocked items and what they're waiting on.
 
-This is a read-only operation. It does not modify any files.
+Both are read-only operations. They do not modify any files.
 
 ## Creating artifacts
 

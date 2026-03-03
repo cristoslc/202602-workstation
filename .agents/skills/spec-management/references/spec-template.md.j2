@@ -14,6 +14,10 @@ linked-adrs:
 {%- for adr in linked_adrs | default([]) %}
   - {{ adr }}
 {%- endfor %}
+depends-on:
+{%- for dep in depends_on | default([]) %}
+  - {{ dep }}
+{%- endfor %}
 ---
 
 # {{ title }}

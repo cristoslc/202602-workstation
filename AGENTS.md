@@ -89,5 +89,6 @@ Product Vision (VISION-NNN) — one per product or product area
 - ADRs are cross-cutting: they link to all affected Epics/Agent Specs but are not owned by any single one.
 - Personas are cross-cutting: they link to all Journeys, Stories, and other artifacts that reference them but are not owned by any single one.
 - An artifact may only have one parent in the hierarchy but may reference siblings or cousins via `related` links.
+- Blocking dependencies are declared via `depends-on:` in frontmatter (list of bare TYPE-NNN IDs). Parent fields (`parent-vision:`, `parent-epic:`) encode hierarchy. Informational links (`linked-epics:`, `related:`, etc.) are cross-references and do not imply blocking.
 
 For detailed procedures, see the **spec-management** skill (referenced in Skill routing above).

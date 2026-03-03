@@ -13,6 +13,10 @@ linked-stories:
 {%- for story in linked_stories | default([]) %}
   - STORY-{{ story }}
 {%- endfor %}
+depends-on:
+{%- for dep in depends_on | default([]) %}
+  - {{ dep }}
+{%- endfor %}
 ---
 
 # {{ name | default(title) }}
