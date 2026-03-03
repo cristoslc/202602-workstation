@@ -32,7 +32,9 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         log-send log-receive export-iterm2 export-ice export-raycast export-streamdeck export-openin \
         snippets-convert export-all \
         backup-status backup-browse \
-        data-pull data-pull-dry verify-sync-boundary
+        data-pull data-pull-dry verify-sync-boundary \
+        hub-migrate hub-migrate-dry hub-provision hub-restore \
+        hub-backup-keys
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -245,6 +247,39 @@ ifndef SOURCE
 endif
 	./scripts/data-pull.sh $(SOURCE) --dry-run
 
+hub-migrate: ## Migrate hub to new server: make hub-migrate SOURCE=<old-hub> DEST=<new-hub>
+ifndef SOURCE
+	$(error SOURCE is required. Usage: make hub-migrate SOURCE=old-hub DEST=new-hub)
+endif
+ifndef DEST
+	$(error DEST is required. Usage: make hub-migrate SOURCE=old-hub DEST=new-hub)
+endif
+	./scripts/hub-migrate.sh $(SOURCE) $(DEST)
+
+hub-migrate-dry: ## Preview hub migration: make hub-migrate-dry SOURCE=<old-hub> DEST=<new-hub>
+ifndef SOURCE
+	$(error SOURCE is required)
+endif
+ifndef DEST
+	$(error DEST is required)
+endif
+	./scripts/hub-migrate.sh $(SOURCE) $(DEST) --dry-run
+
+hub-provision: ## Provision hub from scratch: make hub-provision HUB_HOST=<ip>
+ifndef HUB_HOST
+	$(error HUB_HOST is required. Usage: make hub-provision HUB_HOST=100.x.y.z)
+endif
+	cd infra/hub && ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook hub.yml -e "hub_host=$(HUB_HOST)"
+
+hub-restore: ## Restore hub with existing keys: make hub-restore HUB_HOST=<ip> KEY_DIR=<path>
+ifndef HUB_HOST
+	$(error HUB_HOST is required)
+endif
+ifndef KEY_DIR
+	$(error KEY_DIR is required. Path to directory containing cert.pem + key.pem)
+endif
+	cd infra/hub && ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook hub.yml -e "hub_host=$(HUB_HOST)" -e "syncthing_hub_inject_keys=true" -e "syncthing_hub_key_source=$(KEY_DIR)"
+
 template-export: ## Export clean template repo (no personal data, fresh history)
 	./scripts/templatize.sh
 
@@ -272,3 +307,9 @@ endif
 
 backup-browse: ## Open Backrest web UI at localhost:9898
 	$(if $(filter darwin,$(PLATFORM)),open,xdg-open) http://localhost:9898
+
+hub-backup-keys: ## Backup hub Syncthing identity keys (age-encrypted)
+ifndef HUB_HOST
+	$(error HUB_HOST is required. Usage: make hub-backup-keys HUB_HOST=100.x.y.z)
+endif
+	./scripts/hub-backup-keys.sh $(HUB_HOST)

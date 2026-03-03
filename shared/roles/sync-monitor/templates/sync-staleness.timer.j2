@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic sync hub health check
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec={{ sync_monitor_interval_minutes }}min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

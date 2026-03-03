@@ -13,3 +13,7 @@
 
     - role: unison
       tags: [unison, wsync, sync]
+
+    - role: sync-monitor
+      when: sync_monitor_hub_address | default('') | length > 0
+      tags: [sync-monitor, sync]

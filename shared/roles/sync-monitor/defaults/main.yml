@@ -1,0 +1,14 @@
+---
+# Sync hub health monitor defaults.
+#
+# Reuses the backup role's Shoutrrr URL if set; override with
+# sync_monitor_shoutrrr_url in host/group vars if you want a separate channel.
+
+sync_monitor_hub_address: "{{ syncthing_hub_address | default('') }}"
+sync_monitor_hub_ssh: "{{ unison_hub_host | default('') }}"
+sync_monitor_syncthing_port: 22000
+sync_monitor_interval_minutes: 10
+sync_monitor_interval_seconds: 600
+sync_monitor_failure_threshold: 3
+sync_monitor_heartbeat_file: "{{ ansible_facts.env.HOME }}/.local/log/sync-heartbeat.log"
+sync_monitor_shoutrrr_url: "{{ restic_shoutrrr_url | default('') }}"

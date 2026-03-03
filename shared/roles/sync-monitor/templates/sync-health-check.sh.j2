@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# Sync hub health checker — probes Syncthing TCP and SSH connectivity,
+# alerts after consecutive failures exceed threshold.
+# Deployed by Ansible sync-monitor role — do not edit manually.
+
+set -euo pipefail
+
+HUB_ADDRESS="{{ sync_monitor_hub_address }}"
+HUB_SSH="{{ sync_monitor_hub_ssh }}"
+SYNCTHING_PORT="{{ sync_monitor_syncthing_port }}"
+FAILURE_THRESHOLD="{{ sync_monitor_failure_threshold }}"
+HEARTBEAT="{{ sync_monitor_heartbeat_file }}"
+SHOUTRRR_URL="{{ sync_monitor_shoutrrr_url }}"
+
+STATE_DIR="${HOME}/.local/state/sync-monitor"
+FAILURE_FILE="${STATE_DIR}/failures"
+
+mkdir -p "$STATE_DIR"
+mkdir -p "$(dirname "$HEARTBEAT")"
+
+# ── helpers ─────────────────────────────────────────────────────────
+
+alert() {
+  local msg="$1"
+
+  # Desktop notification
+  if command -v notify-send &>/dev/null; then
+    notify-send -u critical "Sync Hub Unreachable" "$msg"
+  elif command -v osascript &>/dev/null; then
+    osascript -e "display notification \"$msg\" with title \"Sync Hub Unreachable\""
+  fi
+
+  # Shoutrrr (optional)
+  if [[ -n "$SHOUTRRR_URL" ]] && command -v shoutrrr &>/dev/null; then
+    shoutrrr send --url "$SHOUTRRR_URL" --message "$(hostname): $msg" || true
+  fi
+}
+
+get_failures() {
+  if [[ -f "$FAILURE_FILE" ]]; then
+    cat "$FAILURE_FILE"
+  else
+    echo 0
+  fi
+}
+
+set_failures() {
+  echo "$1" > "$FAILURE_FILE"
+}
+
+# ── connectivity probes ─────────────────────────────────────────────
+
+ERRORS=()
+
+# Syncthing TCP probe
+if [[ -n "$HUB_ADDRESS" ]]; then
+  if ! timeout 5 bash -c "echo > /dev/tcp/$HUB_ADDRESS/$SYNCTHING_PORT" 2>/dev/null; then
+    ERRORS+=("Syncthing TCP ${HUB_ADDRESS}:${SYNCTHING_PORT} unreachable")
+  fi
+fi
+
+# SSH probe (for Unison)
+if [[ -n "$HUB_SSH" ]]; then
+  if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$HUB_SSH" true 2>/dev/null; then
+    ERRORS+=("SSH to ${HUB_SSH} failed")
+  fi
+fi
+
+# ── evaluate results ────────────────────────────────────────────────
+
+if [[ ${#ERRORS[@]} -gt 0 ]]; then
+  CURRENT=$(get_failures)
+  CURRENT=$((CURRENT + 1))
+  set_failures "$CURRENT"
+
+  if [[ "$CURRENT" -ge "$FAILURE_THRESHOLD" ]]; then
+    alert "${ERRORS[*]} (${CURRENT} consecutive failures)"
+  fi
+else
+  # All checks passed — reset counter and write heartbeat
+  set_failures 0
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) OK" >> "$HEARTBEAT"
+fi

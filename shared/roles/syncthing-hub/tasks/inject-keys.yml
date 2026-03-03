@@ -1,0 +1,36 @@
+---
+# Inject pre-existing Syncthing identity keys for same-ID migration.
+# Called with -e syncthing_hub_inject_keys=true -e syncthing_hub_key_source=/path/to/keys/
+
+- name: Validate key source directory
+  ansible.builtin.stat:
+    path: "{{ syncthing_hub_key_source }}/cert.pem"
+  delegate_to: localhost
+  become: false
+  register: _key_source_check
+
+- name: Fail if key source not found
+  ansible.builtin.fail:
+    msg: "Key source not found: {{ syncthing_hub_key_source }}/cert.pem"
+  when: not _key_source_check.stat.exists
+
+- name: Stop Syncthing before key injection
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_hub_user }}"
+    state: stopped
+
+- name: Copy identity keys to hub
+  ansible.builtin.copy:
+    src: "{{ syncthing_hub_key_source }}/{{ item }}"
+    dest: "{{ _syncthing_hub_config_dir }}/{{ item }}"
+    owner: "{{ syncthing_hub_user }}"
+    group: "{{ syncthing_hub_user }}"
+    mode: "0600"
+  loop:
+    - cert.pem
+    - key.pem
+
+- name: Start Syncthing with injected keys
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_hub_user }}"
+    state: started

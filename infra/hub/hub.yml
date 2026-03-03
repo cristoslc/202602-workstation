@@ -1,0 +1,26 @@
+---
+- name: Provision or restore Syncthing + Unison hub
+  hosts: hub
+  become: true
+
+  vars:
+    syncthing_hub_inject_keys: false
+    syncthing_hub_key_source: ""
+
+  roles:
+    - role: syncthing-hub
+      tags: [syncthing-hub]
+
+  tasks:
+    - name: Create Unison code-sync directory
+      ansible.builtin.file:
+        path: /srv/code-sync
+        state: directory
+        owner: "{{ ansible_user_id }}"
+        mode: "0755"
+      tags: [unison-hub]
+
+    - name: Inject existing Syncthing identity keys (same-ID migration)
+      ansible.builtin.include_tasks: ../../shared/roles/syncthing-hub/tasks/inject-keys.yml
+      when: syncthing_hub_inject_keys | bool
+      tags: [syncthing-hub, inject-keys]
