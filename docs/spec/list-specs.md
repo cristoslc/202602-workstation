@@ -4,7 +4,7 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| SPEC-001 | [Raycast Sync](./(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | 2026-03-01 | 028b2ad | Migrated from PRD-001 |
+| SPEC-001 | [Raycast Sync](./(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | 2026-03-02 | f99e8fa | Re-parented under EPIC-003 |
 
 ## Review
 

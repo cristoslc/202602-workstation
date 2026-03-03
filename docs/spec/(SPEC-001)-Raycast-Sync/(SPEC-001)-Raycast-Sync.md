@@ -4,8 +4,8 @@ artifact: SPEC-001
 status: Draft
 author: cristos
 created: 2026-03-01
-last-updated: 2026-03-01
-parent-epic: _none (orphan — no matching Epic for app settings sync yet)_
+last-updated: 2026-03-02
+parent-epic: EPIC-003
 linked-research:
   - SPIKE-001
 linked-adrs:
