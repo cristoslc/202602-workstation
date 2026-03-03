@@ -57,6 +57,19 @@ Use an agent to audit all spec artifacts in docs/ for lifecycle compliance — c
 
 Always include a 1-2 sentence summary of an artifact, not just its title, in tables.
 
+## Status overview
+
+Produce a project-wide progress snapshot. Scan all artifact directories under `docs/`, read frontmatter from each artifact, and report:
+
+1. **Dashboard table** — one table per artifact type, listing every artifact with its ID, title (1-2 sentence summary), current phase, parent ref, and date of last lifecycle entry. Group rows by phase within each table.
+2. **Actionable items** — flag artifacts that may need attention:
+   - *Stale* — in an active phase but last lifecycle entry is older than 30 days (or a user-specified threshold).
+   - *Blocked* — parent artifact has not reached the prerequisite phase for this artifact's current state (e.g., a Story marked "Ready" under an Epic still in "Proposed").
+   - *Orphaned* — declared parent reference points to a non-existent artifact.
+3. **Summary** — total artifact count and breakdown by phase category (in-progress, completed, end-of-life).
+
+This is a read-only operation. It does not modify any files.
+
 ## Creating artifacts
 
 ### Workflow
