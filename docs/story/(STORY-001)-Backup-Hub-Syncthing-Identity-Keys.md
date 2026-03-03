@@ -31,4 +31,4 @@ SPIKE-007 identified hub key backup as the highest-priority gap. Without preserv
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | 52cf8b1 | Created from SPIKE-007 recommendations; skipped Draft (criteria defined during research) |
-| Implemented | 2026-03-03 | 0452fe1 | hub-backup-keys.sh, .gitignore, Makefile target. Initial backup (task .4) deferred — requires hub server access. |
+| Implemented | 2026-03-03 | 3301fe2 | hub-backup-keys.sh, .gitignore, Makefile target. Initial backup (task .4) deferred — requires hub server access. |
