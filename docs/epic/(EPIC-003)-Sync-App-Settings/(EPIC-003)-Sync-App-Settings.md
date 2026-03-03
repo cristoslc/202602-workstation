@@ -1,7 +1,7 @@
 ---
 title: "EPIC-003: Sync App Settings"
 artifact: EPIC-003
-status: Active
+status: Testing
 author: cristos
 created: 2026-03-02
 last-updated: 2026-03-03
@@ -45,14 +45,9 @@ Systematically extend the existing Stow + Ansible primitives so that every role 
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync | Draft | Export/import workflow with age encryption |
+| [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync | Implemented | Export/import workflow with age encryption |
 
-_Planned (to be created from SPIKE-005 gap list):_
-- VS Code keybindings + snippets capture
-- iTerm2 plist export and Stow integration
-- npm/uv/Docker config Stow packages
-- VLC preferences (cross-platform)
-- Keka preferences (macOS defaults)
+_Gap items from SPIKE-005 resolved directly as implementation tasks (tracked in bd). VS Code syncs independently; .npmrc, uv.toml, VLC, Keka deferred (configs not yet initialized on active machines)._
 
 ## Key Dependencies
 
