@@ -2,7 +2,9 @@
 
 ## Draft
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| SPEC-004 | [Apply Role Search Filter](./(SPEC-004)-Apply-Role-Search-Filter/(SPEC-004)-Apply-Role-Search-Filter.md) | 2026-03-03 | fb7ea84 | Initial creation |
 
 ## Review
 
