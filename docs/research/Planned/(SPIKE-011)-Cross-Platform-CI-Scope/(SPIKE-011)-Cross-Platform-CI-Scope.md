@@ -50,4 +50,4 @@ _Pending investigation._
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Planned | 2026-03-04 | _pending_ | Unblocks STORY-011 design; attached to EPIC-004 |
+| Planned | 2026-03-04 | ea363f7 | Unblocks STORY-011 design; attached to EPIC-004 |
