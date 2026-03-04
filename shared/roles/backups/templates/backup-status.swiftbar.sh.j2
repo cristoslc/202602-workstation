@@ -23,9 +23,11 @@ fi
 LAST_LINE="$(tail -1 "$HEARTBEAT")"
 LAST_TS="$(echo "$LAST_LINE" | cut -d' ' -f1)"
 
-if LAST_EPOCH="$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s 2>/dev/null)"; then
+if LAST_EPOCH="$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s 2>/dev/null)"; then
   NOW_EPOCH="$(date +%s)"
-  AGE_HOURS="$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))"
+  AGE_SECS="$(( NOW_EPOCH - LAST_EPOCH ))"
+  AGE_HOURS="$(( AGE_SECS / 3600 ))"
+  AGE_MINS="$(( AGE_SECS / 60 ))"
 else
   echo "🔴💾"
   echo "---"
@@ -36,18 +38,24 @@ fi
 
 HALF_THRESHOLD="$(( THRESHOLD_HOURS / 2 ))"
 
+if [[ "$AGE_HOURS" -ge 1 ]]; then
+  AGE_LABEL="${AGE_HOURS}h ago"
+else
+  AGE_LABEL="${AGE_MINS}m ago"
+fi
+
 if [[ "$AGE_HOURS" -gt "$THRESHOLD_HOURS" ]]; then
   echo "🔴💾"
   echo "---"
-  echo "Stale: last backup ${AGE_HOURS}h ago (threshold: ${THRESHOLD_HOURS}h) | color=red"
+  echo "Stale: last backup ${AGE_LABEL} (threshold: ${THRESHOLD_HOURS}h) | color=red"
 elif [[ "$AGE_HOURS" -gt "$HALF_THRESHOLD" ]]; then
   echo "🟡💾"
   echo "---"
-  echo "Aging: last backup ${AGE_HOURS}h ago | color=orange"
+  echo "Aging: last backup ${AGE_LABEL} | color=orange"
 else
   echo "🟢💾"
   echo "---"
-  echo "OK: last backup ${AGE_HOURS}h ago | color=green"
+  echo "OK: last backup ${AGE_LABEL} | color=green"
 fi
 
 echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
