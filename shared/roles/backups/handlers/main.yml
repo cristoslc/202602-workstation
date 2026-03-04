@@ -1,7 +1,16 @@
 ---
-- name: restart backrest
+- name: restart backrest (Linux)
+  listen: restart backrest
   when: ansible_facts.os_family == "Debian"
   ansible.builtin.systemd:
     name: backrest
     state: restarted
     scope: user
+
+- name: restart backrest (macOS)
+  listen: restart backrest
+  when: ansible_facts.os_family == "Darwin"
+  ansible.builtin.command:
+    cmd: brew services restart backrest
+  register: _backrest_restart
+  changed_when: "'Successfully' in _backrest_restart.stdout"

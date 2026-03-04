@@ -33,7 +33,7 @@
     _b2_provision_date: >-
       {{ (_provision_date_content.content | b64decode | trim)
          if _provision_date_file.stat.exists
-         else ansible_date_time.date }}
+         else ansible_facts.date_time.date }}
 
 - name: Write provision date (first run only)
   when: not _provision_date_file.stat.exists
@@ -79,6 +79,11 @@
   failed_when: false
   no_log: true
 
+- name: Show Terraform apply error
+  when: _tf_apply.rc != 0
+  ansible.builtin.debug:
+    msg: "{{ _tf_apply.stderr_lines }}"
+
 # If bucket creation failed because it already exists, switch to data source and retry
 - name: Handle existing bucket
   when:
@@ -106,10 +111,19 @@
       changed_when: "'Apply complete' in _tf_apply_retry.stdout"
       no_log: true
 
-- name: Fail if Terraform apply failed
+  rescue:
+    - name: Show Terraform retry error
+      ansible.builtin.debug:
+        msg: "{{ _tf_apply_retry.stderr_lines | default(['Retry task did not run — block failed before terraform apply']) }}"
+
+    - name: Fail after showing error
+      ansible.builtin.fail:
+        msg: "Terraform apply failed (retry with create_bucket=false). See error above."
+
+- name: Fail if Terraform apply failed (no retry attempted)
   when:
     - _tf_apply.rc != 0
-    - not (b2_create_bucket | bool) or (_tf_apply_retry is defined and _tf_apply_retry.rc != 0)
+    - not (b2_create_bucket | bool)
   ansible.builtin.fail:
     msg: "Terraform apply failed. Check B2 credentials and bucket name."
 
@@ -148,7 +162,7 @@
 
 - name: Check if restic repository is initialized
   ansible.builtin.command:
-    cmd: restic -r "b2:{{ restic_b2_bucket }}:/" cat config
+    cmd: restic -r "b2:{{ restic_b2_bucket }}:/" cat config --json
   environment:
     B2_ACCOUNT_ID: "{{ restic_b2_account_id }}"
     B2_ACCOUNT_KEY: "{{ restic_b2_account_key }}"
@@ -156,7 +170,6 @@
   register: _restic_repo_check
   changed_when: false
   failed_when: false
-  no_log: true
 
 - name: Initialize restic repository
   when: _restic_repo_check.rc != 0
@@ -167,3 +180,19 @@
     B2_ACCOUNT_KEY: "{{ restic_b2_account_key }}"
     RESTIC_PASSWORD: "{{ restic_repo_password }}"
   no_log: true
+
+- name: Read repo config after init
+  when: _restic_repo_check.rc != 0
+  ansible.builtin.command:
+    cmd: restic -r "b2:{{ restic_b2_bucket }}:/" cat config --json
+  environment:
+    B2_ACCOUNT_ID: "{{ restic_b2_account_id }}"
+    B2_ACCOUNT_KEY: "{{ restic_b2_account_key }}"
+    RESTIC_PASSWORD: "{{ restic_repo_password }}"
+  register: _restic_repo_config_after_init
+  changed_when: false
+
+- name: Set restic repo GUID
+  ansible.builtin.set_fact:
+    restic_repo_guid: >-
+      {{ ((_restic_repo_config_after_init.stdout | default(_restic_repo_check.stdout)) | from_json).id }}

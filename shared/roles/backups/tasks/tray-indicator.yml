@@ -48,12 +48,24 @@
 
     - name: Ensure SwiftBar plugin directory exists
       ansible.builtin.file:
-        path: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins"
+        path: "{{ swiftbar_plugin_dir }}"
         state: directory
         mode: "0755"
+
+    - name: Configure SwiftBar plugin directory
+      community.general.osx_defaults:
+        domain: com.ameba.SwiftBar
+        key: PluginDirectory
+        type: string
+        value: "{{ swiftbar_plugin_dir }}"
+
+    - name: Remove plugin from old default location
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins/backup-status.5m.sh"
+        state: absent
 
     - name: Template SwiftBar backup status plugin
       ansible.builtin.template:
         src: backup-status.swiftbar.sh.j2
-        dest: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins/backup-status.5m.sh"
+        dest: "{{ swiftbar_plugin_dir }}/backup-status.5m.sh"
         mode: "0755"

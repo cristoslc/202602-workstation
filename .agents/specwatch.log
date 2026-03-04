@@ -1,3 +1,118 @@
-# Specwatch log — repo: L3-agents-core
-# Scanned: 2026-03-03T20:25:44Z
+# Specwatch log — repo: 202602-workstation
+# Scanned: 2026-03-04T02:45:33Z
+
+STALE docs/research/Complete/(SPIKE-006)-Sync-User-Folders/megasync-evaluation.md:6
+  broken: README.md
+  found: NONE
+  artifact: UNKNOWN
+
+STALE docs/research/Complete/(SPIKE-006)-Sync-User-Folders/syncthing-hub-spoke.md:10
+  broken: README.md
+  found: NONE
+  artifact: UNKNOWN
+
+STALE docs/research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md:93
+  broken: ../../runbooks/hub-replacement.md
+  found: NONE
+  artifact: UNKNOWN
+
+STALE docs/adr/Adopted/(ADR-004)-Sync-App-Settings.md:98
+  broken: ../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md#alternatives-considered
+  found: ../../research/Complete/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md
+  artifact: SPIKE-005
+
+STALE docs/runbooks/hub-replacement.md:5
+  broken: ../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md
+  found: ../research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md
+  artifact: SPIKE-007
+
+STALE docs/vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md:107
+  broken: ../../adr/Proposed/(ADR-003)-Cross-Platform-Action-Bindings.md
+  found: ../../adr/Adopted/(ADR-003)-Cross-Platform-Action-Bindings.md
+  artifact: ADR-003
+
+STALE docs/vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md:108
+  broken: ../../adr/Proposed/(ADR-004)-Sync-App-Settings.md
+  found: ../../adr/Adopted/(ADR-004)-Sync-App-Settings.md
+  artifact: ADR-004
+
+STALE docs/vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md:109
+  broken: ../../adr/Adopted/(ADR-005)-@tui-Annotation-Based-Secrets-Autodiscovery.md
+  found: ../../adr/Adopted/(ADR-005)-TUI-Annotation-Secrets-Autodiscovery.md
+  artifact: ADR-005
+
+STALE docs/vision/(VISION-001)-Workstation-as-Code/architecture-overview.md:3
+  broken: ./\(VISION-001\)-Workstation-as-Code.md
+  found: (VISION-001)-Workstation-as-Code.md
+  artifact: VISION-001
+
+STALE docs/epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md:69
+  broken: ../../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md
+  found: ../../research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md
+  artifact: SPIKE-007
+
+STALE docs/epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md:77
+  broken: ../../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md
+  found: ../../research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md
+  artifact: SPIKE-007
+
+STALE docs/prd/Abandoned/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md:32
+  broken: ../../../research/Active/(SPIKE-006)-Sync-User-Folders/syncthing-git-repos.md
+  found: ../../../research/Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md
+  artifact: SPIKE-006
+
+STALE docs/story/list-stories.md:7
+  broken: ./\(STORY-006\)-Headless-Settings-Import.md
+  found: (STORY-006)-Headless-Settings-Import.md
+  artifact: STORY-006
+
+STALE docs/story/list-stories.md:8
+  broken: ./\(STORY-007\)-1Password-Age-Key-Retrieval.md
+  found: (STORY-007)-1Password-Age-Key-Retrieval.md
+  artifact: STORY-007
+
+STALE docs/story/list-stories.md:9
+  broken: ./\(STORY-010\)-Auto-Propagation-on-Login.md
+  found: (STORY-010)-Auto-Propagation-on-Login.md
+  artifact: STORY-010
+
+STALE docs/story/list-stories.md:10
+  broken: ./\(STORY-011\)-Cross-Platform-CI.md
+  found: (STORY-011)-Cross-Platform-CI.md
+  artifact: STORY-011
+
+STALE docs/story/list-stories.md:16
+  broken: ./\(STORY-004\)-Resumable-Data-Pull.md
+  found: (STORY-004)-Resumable-Data-Pull.md
+  artifact: STORY-004
+
+STALE docs/story/list-stories.md:17
+  broken: ./\(STORY-005\)-Code-Repo-Migration-Tool.md
+  found: (STORY-005)-Code-Repo-Migration-Tool.md
+  artifact: STORY-005
+
+STALE docs/story/list-stories.md:18
+  broken: ./\(STORY-008\)-Ansible-Failure-Summary-Panel.md
+  found: (STORY-008)-Ansible-Failure-Summary-Panel.md
+  artifact: STORY-008
+
+STALE docs/story/list-stories.md:19
+  broken: ./\(STORY-009\)-Role-Scaffolding-Generator.md
+  found: (STORY-009)-Role-Scaffolding-Generator.md
+  artifact: STORY-009
+
+STALE docs/story/list-stories.md:25
+  broken: ./\(STORY-001\)-Backup-Hub-Syncthing-Identity-Keys.md
+  found: (STORY-001)-Backup-Hub-Syncthing-Identity-Keys.md
+  artifact: STORY-001
+
+STALE docs/story/list-stories.md:26
+  broken: ./\(STORY-002\)-Hub-Sync-Monitor.md
+  found: (STORY-002)-Hub-Sync-Monitor.md
+  artifact: STORY-002
+
+STALE docs/story/list-stories.md:27
+  broken: ./\(STORY-003\)-Hub-Migration-Automation.md
+  found: (STORY-003)-Hub-Migration-Automation.md
+  artifact: STORY-003
 

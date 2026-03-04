@@ -82,6 +82,16 @@
     state: directory
     mode: "0755"
 
+- name: Filter backup paths to those that exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ restic_backup_paths + restic_extra_paths }}"
+  register: _backup_path_stats
+
+- name: Build verified backup paths list
+  ansible.builtin.set_fact:
+    _restic_verified_paths: "{{ _backup_path_stats.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+
 - name: Template Backrest config
   ansible.builtin.template:
     src: backrest-config.json.j2

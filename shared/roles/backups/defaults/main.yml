@@ -38,6 +38,9 @@ b2_create_bucket: true
 # ── Backrest ────────────────────────────────────────────────────────
 backrest_port: "127.0.0.1:9898"
 
+# ── SwiftBar (macOS menu bar) ─────────────────────────────────────
+swiftbar_plugin_dir: "{{ ansible_facts.env.HOME }}/Documents/dotfiles/SwiftBar"
+
 # ── Retention ───────────────────────────────────────────────────────
 restic_keep_daily: 365
 restic_keep_weekly: 52
@@ -60,7 +63,37 @@ restic_stale_threshold_hours: 8
 restic_stale_check_interval: "2h"
 restic_stale_check_interval_seconds: 7200
 
-# ── Excludes ────────────────────────────────────────────────────────
+# ── Backup paths (positive inclusion) ─────────────────────────────
+# Only these directories are backed up. Everything else is ignored.
+# Non-existent paths are filtered out at template time (see backrest.yml).
+restic_backup_paths:
+  - "{{ ansible_facts.env.HOME }}/Documents"
+  - "{{ ansible_facts.env.HOME }}/Desktop"
+  - "{{ ansible_facts.env.HOME }}/Downloads"
+  - "{{ ansible_facts.env.HOME }}/Pictures"
+  - "{{ ansible_facts.env.HOME }}/Music"
+  - "{{ ansible_facts.env.HOME }}/Movies"
+  - "{{ ansible_facts.env.HOME }}/Screenshots"
+  - "{{ ansible_facts.env.HOME }}/.config"
+  - "{{ ansible_facts.env.HOME }}/.local/bin"
+  - "{{ ansible_facts.env.HOME }}/.ssh"
+  - "{{ ansible_facts.env.HOME }}/.gnupg"
+  - "{{ ansible_facts.env.HOME }}/.local/share/keyrings"
+
+# Extra paths to include (per-host override)
+restic_extra_paths: []
+
+# ── Excludes (applied within included paths) ─────────────────────
+restic_excludes:
+  - ".DS_Store"
+  - "Thumbs.db"
+  - "**/__pycache__"
+  - "**/*.pyc"
+  - "**/node_modules"
+  - "**/.venv"
+  - "**/venv"
+  - "**/.git/objects"
+
 restic_extra_excludes: []
 
 # ── Version check ───────────────────────────────────────────────────
