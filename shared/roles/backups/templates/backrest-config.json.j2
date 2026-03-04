@@ -56,7 +56,7 @@
         {
           "conditions": ["CONDITION_SNAPSHOT_END"],
           "actionCommand": {
-            "command": "/bin/bash -c 'mkdir -p \"$(dirname {{ restic_heartbeat_file }})\" && echo \"$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ) {{ ansible_facts.hostname }} snapshot_end\" >> {{ restic_heartbeat_file }}'"
+            "command": "/bin/bash -c 'mkdir -p \"$(dirname {{ restic_heartbeat_file }})\" && echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) {{ ansible_facts.hostname }} snapshot_end\" >> {{ restic_heartbeat_file }}'"
           }
         },
         {
