@@ -42,6 +42,7 @@ backrest_port: "127.0.0.1:9898"
 swiftbar_plugin_dir: "{{ ansible_facts.env.HOME }}/Documents/dotfiles/SwiftBar"
 
 # ── Retention ───────────────────────────────────────────────────────
+restic_keep_last: 16
 restic_keep_hourly: 48
 restic_keep_daily: 365
 restic_keep_weekly: 52
