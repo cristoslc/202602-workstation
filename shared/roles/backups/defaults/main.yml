@@ -48,7 +48,7 @@ restic_keep_monthly: 24
 restic_keep_yearly: 5
 
 # ── Schedule (cron syntax — Backrest format) ────────────────────────
-restic_backup_schedule: "0 */4 * * *"
+restic_backup_schedule: "*/15 * * * *"
 restic_prune_schedule: "0 3 * * 0"
 
 # ── Bandwidth (0 = unlimited; KiB/s) ───────────────────────────────
@@ -59,7 +59,7 @@ restic_download_limit: 0
 # @tui secret optional label="Shoutrrr notification URL" placeholder="discord://token@id"
 restic_shoutrrr_url: ""
 restic_heartbeat_file: "{{ ansible_facts.env.HOME }}/.local/log/restic-heartbeat.log"
-restic_stale_threshold_hours: 8
+restic_stale_threshold_hours: 2
 restic_stale_check_interval: "2h"
 restic_stale_check_interval_seconds: 7200
 
