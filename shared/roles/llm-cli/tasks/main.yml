@@ -1,0 +1,23 @@
+---
+# llm-cli — Simon Willison's CLI for interacting with LLMs
+# https://github.com/simonw/llm
+# Installed via uv tool (user-level, no sudo)
+
+- name: Install llm via uv
+  ansible.builtin.command: uv tool install llm
+  register: _llm_install
+  changed_when: "'Installed' in _llm_install.stdout"
+  failed_when:
+    - _llm_install.rc != 0
+    - "'already installed' not in _llm_install.stderr"
+
+- name: Install llm plugins
+  ansible.builtin.command: "uv tool run --from llm llm install {{ item }}"
+  loop:
+    - llm-openrouter
+    - llm-tools-mcp
+  register: _llm_plugin_install
+  changed_when: "'Successfully installed' in _llm_plugin_install.stdout"
+  failed_when:
+    - _llm_plugin_install.rc != 0
+    - "'already satisfied' not in (_llm_plugin_install.stdout | lower)"

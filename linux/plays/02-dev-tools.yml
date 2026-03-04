@@ -35,6 +35,9 @@
     - role: gemini-cli
       tags: [gemini-cli, dev-tools]
 
+    - role: llm-cli
+      tags: [llm-cli, dev-tools]
+
     - role: fonts
       tags: [fonts, dev-tools]
 

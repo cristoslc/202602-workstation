@@ -188,6 +188,14 @@ roles:
         optional: true
         note: "Install via npm: npm i -g @anthropic-ai/gemini-cli"
 
+  llm-cli:
+    phase: dev-tools
+    apps:
+      - name: llm
+        platforms: [macos, linux]
+        check: {command: llm}
+        tags: [llm-cli]
+
   fonts:
     phase: dev-tools
     apps:
