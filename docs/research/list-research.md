@@ -24,6 +24,9 @@ _None._
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
+| SPIKE-009 | [1Password Bootstrap Timing](./Planned/(SPIKE-009)-1Password-Bootstrap-Timing/(SPIKE-009)-1Password-Bootstrap-Timing.md) | 2026-03-04 | _pending_ | Unblocks STORY-007; attached to EPIC-004 |
+| SPIKE-010 | [Login-Hook Propagation Mechanism](./Planned/(SPIKE-010)-Login-Hook-Propagation-Mechanism/(SPIKE-010)-Login-Hook-Propagation-Mechanism.md) | 2026-03-04 | _pending_ | Unblocks STORY-010; attached to EPIC-004 |
+| SPIKE-011 | [Cross-Platform CI Scope](./Planned/(SPIKE-011)-Cross-Platform-CI-Scope/(SPIKE-011)-Cross-Platform-CI-Scope.md) | 2026-03-04 | _pending_ | Unblocks STORY-011; attached to EPIC-004 |
 
 ## Abandoned
 
