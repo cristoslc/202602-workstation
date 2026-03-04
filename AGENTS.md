@@ -2,7 +2,7 @@
 
 ## Skill routing
 
-When the user wants to create, plan, write, update, transition, or review any documentation artifact (Vision, Journey, Epic, Story, Agent Spec, Spike, ADR, Persona, Runbook) or their supporting docs (architecture overviews, competitive analyses, journey maps), **always invoke the spec-management skill**. This includes requests like "write a spec", "let's plan the next feature", "create an ADR for this decision", "move the spike to Active", "add a user story", "create a runbook", or "update the architecture overview." The skill contains the procedures, formats, and validation rules — do not improvise artifact creation from the reference tables below.
+When the user wants to create, plan, write, update, transition, or review any documentation artifact (Vision, Journey, Epic, Story, Agent Spec, Spike, ADR, Persona, Runbook, Bug) or their supporting docs (architecture overviews, competitive analyses, journey maps), **always invoke the spec-management skill**. This includes requests like "write a spec", "let's plan the next feature", "create an ADR for this decision", "move the spike to Active", "add a user story", "create a runbook", "file a bug", or "update the architecture overview." The skill contains the procedures, formats, and validation rules — do not improvise artifact creation from the reference tables below.
 
 **For all task tracking and execution progress**, use the **execution-tracking** skill instead of any built-in todo or task system. This applies whether tasks originate from spec-management (implementation plans) or from standalone work. The execution-tracking skill bootstraps and operates the external task backend — it will install the CLI if missing, manage fallback if installation fails, and translate abstract operations (create plan, add task, set dependency) into concrete commands. Do not use built-in agent todos when this skill is available.
 
@@ -59,6 +59,7 @@ Phases are **available waypoints**, not mandatory gates. Artifacts may skip inte
 | ADRs | `docs/adr/` | Markdown file in `<Phase>/` subdirectory (e.g., `docs/adr/Adopted/(ADR-001)-Title.md`) | Draft → Proposed → Adopted → Retired · Superseded · Abandoned |
 | Personas | `docs/persona/` | Folder containing titled `.md` + supporting docs (interview notes, research data) | Draft → Validated → Archived · Abandoned |
 | Runbook | `docs/runbook/` | Folder containing titled `.md` + supporting files (fixtures, expected screenshots, seed data) | Draft → Active → Archived · Abandoned |
+| Bug | `docs/bug/` | Markdown file per bug | Reported → Active → Fixed → Verified · Declined · Abandoned |
 
 ### Artifact hierarchy
 
@@ -72,7 +73,8 @@ Product Vision (VISION-NNN) — one per product or product area
   │     └── ADR (ADR-NNN) — architectural decision (cross-cutting)
   ├── Persona (PERSONA-NNN) — user archetype (cross-cutting)
   ├── Runbook (RUNBOOK-NNN) — executable validation procedure (cross-cutting)
-  └── Research Spike (SPIKE-NNN) — can attach to any artifact ↑
+  ├── Bug (BUG-NNN) — structured defect report (independent)
+  └── Research Spike (SPIKE-NNN) — attaches to Epic, Spec, ADR, or Bug
 ```
 
 **Relationship rules:**
@@ -80,10 +82,11 @@ Product Vision (VISION-NNN) — one per product or product area
 - Every User Journey MUST reference a parent Vision.
 - Every User Story MUST reference a parent Epic.
 - Every Agent Spec MUST reference a parent Epic.
-- Spikes can belong to any artifact type (Vision, Journey, Epic, Story, Agent Spec, ADR, Persona). The owning artifact controls all spike tables.
+- Spikes can belong to Epic, Agent Spec, ADR, or Bug. Journeys, Stories, and Personas are not technical enough to warrant a Spike. The owning artifact controls all spike tables.
 - ADRs are cross-cutting: they link to all affected Epics/Agent Specs but are not owned by any single one.
 - Personas are cross-cutting: they link to all Journeys, Stories, and other artifacts that reference them but are not owned by any single one.
 - Runbooks are cross-cutting: they link to validated artifacts via `validates:` but are not owned by any single one. An optional `parent-epic:` provides hierarchy when applicable.
+- Bugs are independent: they reference affected artifacts via `affected-artifacts` but are not owned by any single one. They bridge spec-management (problem description) and execution-tracking (fix tracking) via `fix-ref`.
 - An artifact may only have one parent in the hierarchy but may reference siblings or cousins via `related` links.
 - Blocking dependencies are declared via `depends-on:` in frontmatter (list of bare TYPE-NNN IDs). Parent fields (`parent-vision:`, `parent-epic:`) encode hierarchy. Informational links (`linked-epics:`, `related:`, etc.) are cross-references and do not imply blocking.
 - Epics, Stories, and Agent Specs may reference journey pain points via `addresses:` in frontmatter (list of `JOURNEY-NNN.PP-NN` IDs). This is an informational traceability link, not a blocking dependency.
@@ -106,7 +109,7 @@ This project uses **bd (beads)** for all issue tracking. Do NOT use markdown TOD
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
+   bd dolt push
    git push
    git status  # MUST show "up to date with origin"
    ```
