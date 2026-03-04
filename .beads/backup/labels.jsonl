@@ -34,6 +34,14 @@
 {"issue_id":"bd_202602-workstation-5dz.5","label":"spec:SPIKE-007"}
 {"issue_id":"bd_202602-workstation-5dz.6","label":"spec:SPIKE-007"}
 {"issue_id":"bd_202602-workstation-5dz.7","label":"spec:SPIKE-007"}
+{"issue_id":"bd_202602-workstation-5vk.1","label":"spec:STORY-001"}
+{"issue_id":"bd_202602-workstation-5vk.2","label":"spec:STORY-001"}
+{"issue_id":"bd_202602-workstation-5vk.3","label":"spec:STORY-001"}
+{"issue_id":"bd_202602-workstation-5vk.4","label":"spec:STORY-001"}
+{"issue_id":"bd_202602-workstation-bns.1","label":"spec:STORY-002"}
+{"issue_id":"bd_202602-workstation-bns.2","label":"spec:STORY-002"}
+{"issue_id":"bd_202602-workstation-bns.3","label":"spec:STORY-002"}
+{"issue_id":"bd_202602-workstation-bns.4","label":"spec:STORY-002"}
 {"issue_id":"bd_202602-workstation-bys","label":"spec:SPEC-002"}
 {"issue_id":"bd_202602-workstation-bys.1","label":"spec:SPEC-002"}
 {"issue_id":"bd_202602-workstation-bys.2","label":"spec:SPEC-002"}
@@ -52,3 +60,7 @@
 {"issue_id":"bd_202602-workstation-fqg.4","label":"spec:EPIC-002"}
 {"issue_id":"bd_202602-workstation-fqg.5","label":"spec:EPIC-002"}
 {"issue_id":"bd_202602-workstation-fqg.6","label":"spec:EPIC-002"}
+{"issue_id":"bd_202602-workstation-sfw.1","label":"spec:STORY-003"}
+{"issue_id":"bd_202602-workstation-sfw.2","label":"spec:STORY-003"}
+{"issue_id":"bd_202602-workstation-sfw.3","label":"spec:STORY-003"}
+{"issue_id":"bd_202602-workstation-sfw.4","label":"spec:STORY-003"}
