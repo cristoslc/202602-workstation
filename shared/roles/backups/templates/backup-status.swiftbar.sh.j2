@@ -9,7 +9,8 @@
 # <swiftbar.hideDisablePlugin>true</swiftbar.hideDisablePlugin>
 
 HEARTBEAT="{{ restic_heartbeat_file }}"
-THRESHOLD_HOURS="{{ restic_stale_threshold_hours }}"
+STALE_MINS=60
+AGING_MINS=30
 BACKREST_PORT="{{ backrest_port.split(':')[-1] }}"
 
 if [[ ! -f "$HEARTBEAT" ]]; then
@@ -36,19 +37,17 @@ else
   exit 0
 fi
 
-HALF_THRESHOLD="$(( THRESHOLD_HOURS / 2 ))"
-
 if [[ "$AGE_HOURS" -ge 1 ]]; then
   AGE_LABEL="${AGE_HOURS}h ago"
 else
   AGE_LABEL="${AGE_MINS}m ago"
 fi
 
-if [[ "$AGE_HOURS" -gt "$THRESHOLD_HOURS" ]]; then
+if [[ "$AGE_MINS" -gt "$STALE_MINS" ]]; then
   echo "🔴💾"
   echo "---"
-  echo "Stale: last backup ${AGE_LABEL} (threshold: ${THRESHOLD_HOURS}h) | color=red"
-elif [[ "$AGE_HOURS" -gt "$HALF_THRESHOLD" ]]; then
+  echo "Stale: last backup ${AGE_LABEL} | color=red"
+elif [[ "$AGE_MINS" -gt "$AGING_MINS" ]]; then
   echo "🟡💾"
   echo "---"
   echo "Aging: last backup ${AGE_LABEL} | color=orange"
