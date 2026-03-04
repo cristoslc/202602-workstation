@@ -140,6 +140,10 @@ Screen {
     padding: 0 0 1 0;
 }
 
+#role-search {
+    margin: 0 0 1 0;
+}
+
 #phase-list, #role-list {
     height: 1fr;
 }

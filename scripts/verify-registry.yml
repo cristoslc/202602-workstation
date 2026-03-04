@@ -444,10 +444,6 @@ roles:
   backups:
     phase: desktop
     apps:
-      - name: Backblaze
-        platforms: [macos]
-        check: {app_paths: ["/Applications/Backblaze.app"]}
-        tags: [backblaze]
       - name: restic
         platforms: [macos, linux]
         check: {command: restic}

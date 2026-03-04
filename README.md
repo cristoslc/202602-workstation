@@ -96,7 +96,7 @@ make check-collisions           # Verify no stow filename conflicts
 │   │   ├── communication/    Slack + Signal
 │   │   ├── media/            Spotify + VLC + Downie (Setapp)
 │   │   ├── vpn/              Tailscale + Surfshark
-│   │   ├── backups/          Backblaze (macOS) / Timeshift (Linux)
+│   │   ├── backups/          Restic + Backrest / Timeshift (Linux)
 │   │   ├── screenshots/      CleanShot X (Setapp) / placeholder (Linux)
 │   │   ├── link-handler/     OpenIn (Setapp) / xdg-mime (Linux)
 │   │   ├── stream-deck/      Elgato (macOS) / OpenDeck (Linux)
@@ -212,7 +212,7 @@ See [docs/secrets.md](docs/secrets.md) for setup, key distribution, and rotation
 `git`: git, gh, lazygit, delta · `shell`: zsh, direnv · `python`: uv · `node`: fnm · `docker`: Docker Engine/Desktop · `editor`: VS Code + settings · `claude-code`: Claude Code CLI · `fonts`: JetBrains Mono, Fira Code, Meslo (Nerd Fonts) · `terminal`: tmux, iTerm2
 
 ### Phase 3 — Desktop
-`browsers`: Firefox, Brave, Chrome · `launchers`: Raycast / Vicinae · `text-expansion`: Espanso · `calendar`: Dato, BusyCal (Setapp) · `communication`: Slack, Signal · `media`: Spotify, VLC, Downie (Setapp) · `screenshots`: CleanShot X (Setapp) · `link-handler`: OpenIn (Setapp) / xdg-mime · `stream-deck`: Elgato / OpenDeck · `vpn`: Tailscale, Surfshark · `backups`: Backblaze / Timeshift · `utilities`: Keka / p7zip · `file-transfer`: Cyberduck / Filezilla
+`browsers`: Firefox, Brave, Chrome · `launchers`: Raycast / Vicinae · `text-expansion`: Espanso · `calendar`: Dato, BusyCal (Setapp) · `communication`: Slack, Signal · `media`: Spotify, VLC, Downie (Setapp) · `screenshots`: CleanShot X (Setapp) · `link-handler`: OpenIn (Setapp) / xdg-mime · `stream-deck`: Elgato / OpenDeck · `vpn`: Tailscale, Surfshark · `backups`: Restic + Backrest / Timeshift · `utilities`: Keka / p7zip · `file-transfer`: Cyberduck / Filezilla
 
 ### Platform-only
 **Linux**: `base` (build-essential, ripgrep, fd, bat, fzf, dust, duf, ...) · `system` (X11 check, release pin) · `desktop-env` (Cinnamon keybindings) · `dev` (gcc, pkg-config, headers)

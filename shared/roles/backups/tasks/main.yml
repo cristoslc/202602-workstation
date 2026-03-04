@@ -1,9 +1,5 @@
 ---
-# Backups role: Backblaze (macOS) + Timeshift (Linux) + Restic/Backrest (both)
-
-- name: Install Backblaze
-  ansible.builtin.include_tasks: backblaze.yml
-  tags: [backblaze]
+# Backups role: Timeshift (Linux) + Restic/Backrest (both)
 
 - name: Install Timeshift
   ansible.builtin.include_tasks: timeshift.yml

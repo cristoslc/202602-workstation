@@ -35,7 +35,7 @@
       tags: [remote-desktop, rustdesk, desktop]
 
     - role: backups
-      tags: [backups, backblaze, restic, backrest, desktop]
+      tags: [backups, restic, backrest, desktop]
 
     - role: screenshots
       tags: [screenshots, cleanshot, desktop]

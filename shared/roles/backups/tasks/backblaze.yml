@@ -1,7 +1,0 @@
----
-# Backblaze sub-task (macOS only)
-- name: Install Backblaze (macOS)
-  when: ansible_facts.os_family == "Darwin"
-  community.general.homebrew_cask:
-    name: backblaze
-    state: present

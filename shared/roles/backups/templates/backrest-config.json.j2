@@ -46,6 +46,7 @@
       },
       "retention": {
         "policyTimeBucketed": {
+          "hourly": {{ restic_keep_hourly }},
           "daily": {{ restic_keep_daily }},
           "weekly": {{ restic_keep_weekly }},
           "monthly": {{ restic_keep_monthly }},

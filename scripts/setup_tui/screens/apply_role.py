@@ -7,10 +7,10 @@ import logging
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.screen import Screen
-from textual.widgets import Footer, Header, OptionList, Static
+from textual.widgets import Footer, Header, Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from ..lib.discovery import PlaybookManifest, discover_playbook
+from ..lib.discovery import discover_playbook
 
 logger = logging.getLogger("setup")
 
@@ -18,7 +18,7 @@ logger = logging.getLogger("setup")
 class ApplyRoleScreen(Screen):
     """Select a single role to apply (equivalent to ``make apply ROLE=x``)."""
 
-    BINDINGS = [("escape", "go_back", "Back")]
+    BINDINGS = [("escape", "go_back", "Back"), ("slash", "focus_search", "Search")]
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -26,25 +26,41 @@ class ApplyRoleScreen(Screen):
             yield Static(
                 "[bold]Apply Role[/bold]\n\n"
                 "Select a role to apply.\n"
-                "[dim]Arrow keys to browse, Enter to select[/dim]"
+                "[dim]/ to search, Arrow keys to browse, Enter to select[/dim]"
             )
+            yield Input(placeholder="Filter roles...", id="role-search")
             yield OptionList(id="role-list")
         yield Footer()
 
     def on_mount(self) -> None:
         manifest = discover_playbook(self.app.platform)
         self._manifest = manifest
-        role_list = self.query_one("#role-list", OptionList)
+        self._rebuild_list("")
+        self.query_one("#role-search", Input).focus()
 
-        for i, phase in enumerate(manifest.phases):
-            # Phase header (disabled — arrow keys skip over it).
+    def _rebuild_list(self, filter_text: str) -> None:
+        """Rebuild the option list, showing only roles matching the filter."""
+        role_list = self.query_one("#role-list", OptionList)
+        role_list.clear_options()
+        needle = filter_text.strip().lower()
+
+        for phase in self._manifest.phases:
+            matching_roles = []
+            for role in phase.roles:
+                if needle and not self._role_matches(role, needle):
+                    continue
+                matching_roles.append(role)
+
+            if not matching_roles:
+                continue
+
             role_list.add_option(
                 Option(
                     f"[bold dim]{phase.display_name}[/bold dim]",
                     disabled=True,
                 )
             )
-            for role in phase.roles:
+            for role in matching_roles:
                 desc = (
                     f"  [dim]{role.description}[/dim]"
                     if role.description
@@ -54,10 +70,26 @@ class ApplyRoleScreen(Screen):
                     Option(f"{role.name}{desc}", id=f"role-{role.name}")
                 )
 
-        role_list.focus()
+    @staticmethod
+    def _role_matches(role, needle: str) -> bool:
+        """Check if a role matches the search needle by name, tags, or description."""
+        if needle in role.name.lower():
+            return True
+        if any(needle in tag.lower() for tag in role.tags):
+            return True
+        if role.description and needle in role.description.lower():
+            return True
+        return False
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "role-search":
+            self._rebuild_list(event.value)
 
     def action_go_back(self) -> None:
         self.app.pop_screen()
+
+    def action_focus_search(self) -> None:
+        self.query_one("#role-search", Input).focus()
 
     def on_option_list_option_selected(
         self, event: OptionList.OptionSelected
