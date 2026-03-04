@@ -13,7 +13,7 @@ THRESHOLD_HOURS="{{ restic_stale_threshold_hours }}"
 BACKREST_PORT="{{ backrest_port.split(':')[-1] }}"
 
 if [[ ! -f "$HEARTBEAT" ]]; then
-  echo "🔴 Backup | color=red"
+  echo "🔴💾"
   echo "---"
   echo "No heartbeat file — backup never ran | color=red"
   echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
@@ -27,7 +27,7 @@ if LAST_EPOCH="$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s 2>/dev/null)"; t
   NOW_EPOCH="$(date +%s)"
   AGE_HOURS="$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))"
 else
-  echo "🔴 Backup | color=red"
+  echo "🔴💾"
   echo "---"
   echo "Cannot parse heartbeat timestamp | color=red"
   echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
@@ -37,15 +37,15 @@ fi
 HALF_THRESHOLD="$(( THRESHOLD_HOURS / 2 ))"
 
 if [[ "$AGE_HOURS" -gt "$THRESHOLD_HOURS" ]]; then
-  echo "🔴 Backup | color=red"
+  echo "🔴💾"
   echo "---"
   echo "Stale: last backup ${AGE_HOURS}h ago (threshold: ${THRESHOLD_HOURS}h) | color=red"
 elif [[ "$AGE_HOURS" -gt "$HALF_THRESHOLD" ]]; then
-  echo "🟡 Backup | color=orange"
+  echo "🟡💾"
   echo "---"
   echo "Aging: last backup ${AGE_HOURS}h ago | color=orange"
 else
-  echo "🟢 Backup | color=green"
+  echo "🟢💾"
   echo "---"
   echo "OK: last backup ${AGE_HOURS}h ago | color=green"
 fi
