@@ -50,9 +50,9 @@ Eliminate the highest-friction pain points identified across JOURNEY-001 (Fresh 
 
 | ID | Title | Question | Unblocks |
 |----|-------|----------|----------|
-| SPIKE-009 | [1Password Bootstrap Timing](../../research/Planned/(SPIKE-009)-1Password-Bootstrap-Timing/(SPIKE-009)-1Password-Bootstrap-Timing.md) | Can `op` retrieve the age key before SOPS decryption? | STORY-007 |
-| SPIKE-010 | [Login-Hook Propagation Mechanism](../../research/Planned/(SPIKE-010)-Login-Hook-Propagation-Mechanism/(SPIKE-010)-Login-Hook-Propagation-Mechanism.md) | launchd vs shell hook vs systemd timer? | STORY-010 |
-| SPIKE-011 | [Cross-Platform CI Scope](../../research/Planned/(SPIKE-011)-Cross-Platform-CI-Scope/(SPIKE-011)-Cross-Platform-CI-Scope.md) | Which checks work without secrets? macOS runner cost? | STORY-011 |
+| SPIKE-009 | [1Password Bootstrap Timing](../../research/Complete/(SPIKE-009)-1Password-Bootstrap-Timing/(SPIKE-009)-1Password-Bootstrap-Timing.md) | Can `op` retrieve the age key before SOPS decryption? | STORY-007 |
+| SPIKE-010 | [Login-Hook Propagation Mechanism](../../research/Complete/(SPIKE-010)-Login-Hook-Propagation-Mechanism/(SPIKE-010)-Login-Hook-Propagation-Mechanism.md) | launchd vs shell hook vs systemd timer? | STORY-010 |
+| SPIKE-011 | [Cross-Platform CI Scope](../../research/Complete/(SPIKE-011)-Cross-Platform-CI-Scope/(SPIKE-011)-Cross-Platform-CI-Scope.md) | Which checks work without secrets? macOS runner cost? | STORY-011 |
 
 ## Key Dependencies
 
