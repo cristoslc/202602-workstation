@@ -1,10 +1,10 @@
 ---
 title: "STORY-008: Ansible Failure Summary Panel"
 artifact: STORY-008
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-03
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-epic: EPIC-004
 related:
   - JOURNEY-001
@@ -31,3 +31,4 @@ JOURNEY-001 documents "Ansible error messages are hard to parse in the TUI" as a
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-001 pain point; scope is well-defined TUI enhancement |
+| Implemented | 2026-03-05 | _pending_ | All ACs met by existing AnsibleOutputParser + _render_ansible_summary() + retry button |

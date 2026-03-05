@@ -1,10 +1,10 @@
 ---
 title: "STORY-009: Role Scaffolding Generator"
 artifact: STORY-009
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-03
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-epic: EPIC-004
 related:
   - JOURNEY-002
@@ -31,3 +31,4 @@ JOURNEY-002 documents "cross-platform authoring requires knowing both platforms'
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-002 pain point; well-defined scope |
+| Implemented | 2026-03-05 | _pending_ | scripts/new-role.sh + Makefile target; all 4 ACs verified |
