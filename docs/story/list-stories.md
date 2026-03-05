@@ -20,7 +20,7 @@
 | STORY-007 | [1Password Age Key Retrieval]((STORY-007)-1Password-Age-Key-Retrieval.md) | 2026-03-05 | a17a7d2 | 1Password CLI retrieval with biometric auth + error handling (EPIC-004) |
 | STORY-008 | [Ansible Failure Summary Panel]((STORY-008)-Ansible-Failure-Summary-Panel.md) | 2026-03-05 | 19c087c | All ACs met by existing TUI parser + summary + retry (EPIC-004) |
 | STORY-009 | [Role Scaffolding Generator]((STORY-009)-Role-Scaffolding-Generator.md) | 2026-03-05 | 19c087c | scripts/new-role.sh + Makefile target (EPIC-004) |
-| STORY-010 | [Auto-Propagation on Login]((STORY-010)-Auto-Propagation-on-Login.md) | 2026-03-05 | — | launchd + systemd auto-pull with desktop notifications (EPIC-004) |
+| STORY-010 | [Auto-Propagation on Login]((STORY-010)-Auto-Propagation-on-Login.md) | 2026-03-05 | e47a69e | launchd + systemd auto-pull with desktop notifications (EPIC-004) |
 | STORY-001 | [Backup Hub Syncthing Identity Keys]((STORY-001)-Backup-Hub-Syncthing-Identity-Keys.md) | 2026-03-03 | 3301fe2 | Age-encrypt hub cert.pem/key.pem to repo (ADR-002 pattern) |
 | STORY-002 | [Hub Sync Monitor]((STORY-002)-Hub-Sync-Monitor.md) | 2026-03-03 | 3301fe2 | Spoke-side health check with desktop + Shoutrrr alerts |
 | STORY-003 | [Hub Migration Automation]((STORY-003)-Hub-Migration-Automation.md) | 2026-03-03 | 3301fe2 | make hub-migrate script + Ansible hub playbook with key injection |
