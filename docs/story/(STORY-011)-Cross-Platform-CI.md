@@ -32,3 +32,4 @@ JOURNEY-002 documents "blind-authored tasks for the other platform aren't tested
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | ad25d92 | Created from JOURNEY-002 pain point; macOS runner cost and check scope need investigation |
+| Implemented | 2026-03-05 | a17a7d2 | macOS + Linux matrix CI with schedule/dispatch triggers, all lint/syntax/test checks |

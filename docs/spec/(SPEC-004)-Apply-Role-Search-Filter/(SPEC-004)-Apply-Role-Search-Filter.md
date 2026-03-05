@@ -84,3 +84,4 @@ The Apply Role screen (`ApplyRoleScreen`) presents all discovered roles in a fla
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | fb7ea84 | Initial creation |
+| Implemented | 2026-03-05 | a17a7d2 | Already implemented in apply_role.py — Input filter, phase-grouped results, name/tag/description matching |
