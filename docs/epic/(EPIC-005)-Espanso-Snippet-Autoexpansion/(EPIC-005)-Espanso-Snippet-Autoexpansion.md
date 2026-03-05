@@ -1,10 +1,10 @@
 ---
 title: "Espanso Snippet Autoexpansion"
 artifact: EPIC-005
-status: Proposed
+status: Complete
 author: cristos
 created: 2026-03-04
-last-updated: 2026-03-04
+last-updated: 2026-03-05
 parent-vision: VISION-001
 success-criteria:
   - All Raycast-imported snippets with date/time placeholders auto-expand correctly in Espanso
@@ -81,3 +81,4 @@ None. The converter and test infrastructure already exist.
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-03-04 | bafabec | Initial creation |
+| Complete | 2026-03-05 | 3d2f68b | Converter updated, tests passing, encrypted YAML fixed |
