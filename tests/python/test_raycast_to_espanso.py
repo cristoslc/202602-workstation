@@ -160,6 +160,89 @@ class TestPlaceholderMapping:
         assert any("{cursor}" in w for w in warnings)
 
 
+class TestIcuToStrftime:
+    """ICU/Java date format → Python strftime translation."""
+
+    def test_simple_date(self):
+        assert converter.icu_to_strftime("yyyy-MM-dd") == "%Y-%m-%d"
+
+    def test_datetime_no_separator(self):
+        assert converter.icu_to_strftime("yyyy-MM-dd HHmm") == "%Y-%m-%d %H%M"
+
+    def test_quoted_literal(self):
+        assert converter.icu_to_strftime("'GMT'Z") == "GMT%z"
+
+    def test_full_month_name(self):
+        assert converter.icu_to_strftime("MMMM dd, yyyy") == "%B %d, %Y"
+
+    def test_abbreviated_month(self):
+        assert converter.icu_to_strftime("dd MMM yyyy") == "%d %b %Y"
+
+    def test_weekday(self):
+        assert converter.icu_to_strftime("EEEE, MMMM dd") == "%A, %B %d"
+
+    def test_12_hour_with_ampm(self):
+        assert converter.icu_to_strftime("hh:mm a") == "%I:%M %p"
+
+    def test_time_with_seconds(self):
+        assert converter.icu_to_strftime("HH:mm:ss") == "%H:%M:%S"
+
+    def test_passthrough_chars(self):
+        assert converter.icu_to_strftime("yyyy/MM/dd") == "%Y/%m/%d"
+
+    def test_empty_string(self):
+        assert converter.icu_to_strftime("") == ""
+
+    def test_only_literal(self):
+        assert converter.icu_to_strftime("'hello'") == "hello"
+
+    def test_two_digit_year(self):
+        assert converter.icu_to_strftime("MM/dd/yy") == "%m/%d/%y"
+
+
+class TestParametricPlaceholders:
+    """Parametric {date format="..."} and {time format="..."} conversion."""
+
+    def test_parametric_date(self):
+        snippets = [{"name": "Date", "text": '{date format="yyyy-MM-dd"}', "keyword": "d;;"}]
+        matches = converter.convert_snippets(snippets)
+        assert matches[0]["replace"] == "{{date}}"
+        assert len(matches[0]["vars"]) == 1
+        assert matches[0]["vars"][0]["name"] == "date"
+        assert matches[0]["vars"][0]["params"]["format"] == "%Y-%m-%d"
+
+    def test_parametric_datetime(self):
+        snippets = [{"name": "DT", "text": '{date format="yyyy-MM-dd HHmm"}', "keyword": "dt;;"}]
+        matches = converter.convert_snippets(snippets)
+        assert matches[0]["replace"] == "{{date}}"
+        assert matches[0]["vars"][0]["params"]["format"] == "%Y-%m-%d %H%M"
+
+    def test_parametric_gmt_offset(self):
+        snippets = [{"name": "TZ", "text": """{date format="'GMT'Z"}""", "keyword": "dtz;;"}]
+        matches = converter.convert_snippets(snippets)
+        assert matches[0]["replace"] == "{{date}}"
+        assert matches[0]["vars"][0]["params"]["format"] == "GMT%z"
+
+    def test_parametric_time(self):
+        snippets = [{"name": "Time", "text": '{time format="HH:mm"}', "keyword": "t;;"}]
+        matches = converter.convert_snippets(snippets)
+        assert matches[0]["replace"] == "{{time}}"
+        assert matches[0]["vars"][0]["params"]["format"] == "%H:%M"
+
+    def test_parametric_with_surrounding_text(self):
+        snippets = [{"name": "Stamped", "text": 'Created: {date format="yyyy-MM-dd"} done', "keyword": "st;;"}]
+        matches = converter.convert_snippets(snippets)
+        assert matches[0]["replace"] == "Created: {{date}} done"
+
+    def test_multiple_parametric(self):
+        snippets = [{"name": "Both", "text": '{date format="yyyy-MM-dd"} at {date format="HH:mm"}', "keyword": "both;;"}]
+        matches = converter.convert_snippets(snippets)
+        assert matches[0]["replace"] == "{{date}} at {{date2}}"
+        assert len(matches[0]["vars"]) == 2
+        assert matches[0]["vars"][0]["params"]["format"] == "%Y-%m-%d"
+        assert matches[0]["vars"][1]["params"]["format"] == "%H:%M"
+
+
 class TestYamlOutput:
     """YAML serialization."""
 
