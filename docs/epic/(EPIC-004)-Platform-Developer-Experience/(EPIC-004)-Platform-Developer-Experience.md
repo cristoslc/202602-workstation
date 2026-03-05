@@ -1,10 +1,10 @@
 ---
 title: "EPIC-004: Platform Developer Experience"
 artifact: EPIC-004
-status: Proposed
+status: Complete
 author: cristos
 created: 2026-03-03
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-vision: VISION-001
 success-criteria:
   - Bootstrap age key transfer requires zero coordination with another machine
