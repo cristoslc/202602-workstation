@@ -1,0 +1,4 @@
+---
+# Workstation propagation: auto-pull on login.
+propagation_enabled: true
+propagation_repo: "{{ ansible_facts.env.HOME }}/.workstation"

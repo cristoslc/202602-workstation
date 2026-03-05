@@ -1,0 +1,67 @@
+---
+# Workstation auto-propagation: pull upstream changes on login.
+
+- name: Install propagation script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/propagate.sh"
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/workstation-propagate"
+    mode: "0755"
+
+# -- Linux: systemd user timer -----------------------------------------------
+
+- name: Configure propagation (Linux)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure systemd user directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Template propagation service
+      ansible.builtin.template:
+        src: workstation-propagate.service.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/workstation-propagate.service"
+        mode: "0644"
+
+    - name: Template propagation timer
+      ansible.builtin.template:
+        src: workstation-propagate.timer.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/workstation-propagate.timer"
+        mode: "0644"
+
+    - name: Reload systemd user daemon for propagation
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+
+    - name: Enable and start propagation timer
+      ansible.builtin.systemd:
+        name: workstation-propagate.timer
+        state: started
+        enabled: true
+        scope: user
+
+# -- macOS: launchd agent -----------------------------------------------------
+
+- name: Configure propagation (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Ensure LaunchAgents directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+        state: directory
+        mode: "0755"
+
+    - name: Template propagation launchd plist
+      ansible.builtin.template:
+        src: com.workstation.propagate.plist.j2
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.workstation.propagate.plist"
+        mode: "0644"
+
+    - name: Load propagation launchd agent
+      ansible.builtin.command:
+        cmd: launchctl load -w {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.workstation.propagate.plist
+      register: _propagate_launchctl
+      changed_when: _propagate_launchctl.rc == 0
+      failed_when: false

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.workstation.propagate</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{ ansible_facts.env.HOME }}/.local/bin/workstation-propagate</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>WORKSTATION_REPO</key>
+        <string>{{ propagation_repo }}</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StartInterval</key>
+    <integer>3600</integer>
+    <key>StandardOutPath</key>
+    <string>{{ ansible_facts.env.HOME }}/.local/log/workstation-propagate.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{ ansible_facts.env.HOME }}/.local/log/workstation-propagate.log</string>
+</dict>
+</plist>

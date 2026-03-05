@@ -1,0 +1,7 @@
+[Unit]
+Description=Pull workstation config updates
+
+[Service]
+Type=oneshot
+Environment=WORKSTATION_REPO={{ propagation_repo }}
+ExecStart={{ ansible_facts.env.HOME }}/.local/bin/workstation-propagate
