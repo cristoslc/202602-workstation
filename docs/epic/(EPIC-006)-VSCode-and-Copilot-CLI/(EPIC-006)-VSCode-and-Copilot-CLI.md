@@ -63,4 +63,4 @@ None. Copilot CLI is standalone (Homebrew formula / npm package) — no `gh` CLI
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Proposed | 2026-03-05 | — | Initial creation for Bureau Veritas phase |
+| Proposed | 2026-03-05 | 4e5aaba | Initial creation for Bureau Veritas phase |
