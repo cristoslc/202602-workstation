@@ -34,7 +34,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         backup-status backup-browse \
         data-pull data-pull-dry verify-sync-boundary \
         hub-migrate hub-migrate-dry hub-provision hub-restore \
-        hub-backup-keys
+        hub-backup-keys new-role
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -70,6 +70,12 @@ ifndef ROLE
 	$(error ROLE is required. Usage: make apply ROLE=git)
 endif
 	./scripts/apply-role.sh $(PLATFORM_DIR) $(ROLE)
+
+new-role: ## Scaffold a new role: make new-role NAME=my-tool
+ifndef NAME
+	$(error NAME is required. Usage: make new-role NAME=my-tool)
+endif
+	./scripts/new-role.sh $(NAME)
 
 decrypt: ## Decrypt all SOPS files to .decrypted/ dirs
 	@echo "Decrypting shared secrets..."
