@@ -114,3 +114,4 @@ This can be enhanced later with a `make apply-unattended` target if needed.
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Planned | 2026-03-04 | ea363f7 | Unblocks STORY-010 design; attached to EPIC-004 |
+| Complete | 2026-03-05 | 0f73e40 | GO — launchd user agent + systemd user timer; pull-only + notify |

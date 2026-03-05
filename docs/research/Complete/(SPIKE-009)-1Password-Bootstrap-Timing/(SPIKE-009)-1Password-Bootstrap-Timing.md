@@ -92,3 +92,4 @@ Three authentication methods exist:
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Planned | 2026-03-04 | ea363f7 | Unblocks STORY-007 design; attached to EPIC-004 |
+| Complete | 2026-03-05 | 0f73e40 | GO (conditional) — no circular dependency; one-time 1Password sign-in on fresh machines |

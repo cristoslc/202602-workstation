@@ -92,3 +92,4 @@ The spike anticipated needing a `make check-ci` target to skip SOPS-dependent ch
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Planned | 2026-03-04 | ea363f7 | Unblocks STORY-011 design; attached to EPIC-004 |
+| Complete | 2026-03-05 | 0f73e40 | GO — all 8 check targets work without secrets; Linux every push + macOS weekly |
