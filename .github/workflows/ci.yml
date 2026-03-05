@@ -6,23 +6,40 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 8 * * 1"  # Weekly Monday 08:00 UTC (macOS job)
+  workflow_dispatch: {}  # Manual trigger for on-demand macOS runs
 
 permissions:
   contents: read
 
 jobs:
   lint-and-test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: macos
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install system packages
+      - name: Install system packages (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq stow shellcheck
+          sudo apt-get install -y -qq stow shellcheck bats
+
+      - name: Install system packages (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install stow shellcheck bats-core
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,9 +54,8 @@ jobs:
         run: |
           ansible-galaxy collection install -r shared/requirements.yml
 
-      - name: Install bats-core
-        run: |
-          sudo apt-get install -y -qq bats
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: yamllint
         run: yamllint . --no-warnings
@@ -53,7 +69,9 @@ jobs:
             linux/bootstrap.sh \
             macos/bootstrap.sh \
             shared/lib/wizard.sh \
-            scripts/*.sh
+            scripts/*.sh \
+            scripts/wsync \
+            scripts/git-repo-scanner
 
       - name: ansible-lint (linux)
         env:
@@ -67,17 +85,29 @@ jobs:
           ANSIBLE_CONFIG: macos/ansible.cfg
         run: ansible-lint macos/site.yml
 
+      - name: check-playbook (linux)
+        env:
+          ANSIBLE_VARS_ENABLED: host_group_vars
+          ANSIBLE_CONFIG: linux/ansible.cfg
+        run: ansible-playbook linux/site.yml --syntax-check
+
+      - name: check-playbook (macos)
+        env:
+          ANSIBLE_VARS_ENABLED: host_group_vars
+          ANSIBLE_CONFIG: macos/ansible.cfg
+        run: ansible-playbook macos/site.yml --syntax-check
+
       - name: check-stow-collisions
         run: ./scripts/check-stow-collisions.sh
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - name: check-synced-settings
+        run: ./scripts/check-synced-settings.sh
 
       - name: bats tests
         run: bats tests/bats/
 
-      - name: Python tests (first-run wizard + setup TUI)
-        run: uv run --with rich,pyyaml,textual,pytest,pytest-asyncio pytest tests/python/ -v
+      - name: Python tests
+        run: uv run --with rich,pyyaml,textual,jinja2,pytest,pytest-asyncio pytest tests/python/ -v
 
       - name: gitleaks
         uses: gitleaks/gitleaks-action@v2
