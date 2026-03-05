@@ -238,3 +238,4 @@
 {"actor":"Cristos L-C","comment":null,"created_at":"2026-03-04T22:05:14Z","event_type":"closed","id":242,"issue_id":"bd_202602-workstation-20e.4","new_value":"Re-encrypted raycast.yml with native Espanso date vars for d;;, dt;;, dtz;;","old_value":""}
 {"actor":"Cristos L-C","comment":null,"created_at":"2026-03-04T22:05:14Z","event_type":"closed","id":243,"issue_id":"bd_202602-workstation-20e","new_value":"all steps complete","old_value":""}
 {"actor":"Cristos L-C","comment":null,"created_at":"2026-03-04T22:05:14Z","event_type":"closed","id":244,"issue_id":"bd_202602-workstation-20e","new_value":"All tasks complete — converter updated, tests passing, encrypted YAML fixed","old_value":""}
+{"actor":"Cristos L-C","comment":null,"created_at":"2026-03-05T15:54:06Z","event_type":"created","id":245,"issue_id":"bd_202602-workstation-k8m","new_value":"","old_value":""}
