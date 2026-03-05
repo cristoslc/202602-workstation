@@ -1,10 +1,10 @@
 ---
 title: "SPIKE-011: Cross-Platform CI Scope"
 artifact: SPIKE-011
-status: Planned
+status: Complete
 author: cristos
 created: 2026-03-04
-last-updated: 2026-03-04
+last-updated: 2026-03-05
 question: "Which make check targets can run in CI without the age private key, and what does macOS GitHub Actions runner availability and cost look like?"
 gate: Pre-implementation
 risks-addressed:
@@ -44,7 +44,48 @@ If no-go on macOS cost: Run macOS checks only on `workflow_dispatch` (manual tri
 
 ## Findings
 
-_Pending investigation._
+**Decision: GO — all 8 check targets work without secrets**
+
+### Check-by-check analysis
+
+| Target | Requires age key? | Why not? | CI dependencies |
+|--------|------------------|----------|----------------|
+| `shellcheck` | No | Pure static analysis | shellcheck |
+| `yamllint` | No | Syntax-only validation | yamllint (pip) |
+| `ansible-lint` | No | `ANSIBLE_VARS_ENABLED=host_group_vars` disables SOPS plugin | ansible-lint, ansible |
+| `check-collisions` | No | Compares filenames, not contents | bash, find |
+| `check-sync` | No | Diffs plaintext VSCode configs between platforms | bash, diff |
+| `check-playbook` | No | `--syntax-check` + SOPS plugin disabled | ansible |
+| `test-bats` | No | Tests use fake key files in temp dirs | bats-core |
+| `test-python` | No | All SOPS/age operations mocked via `MagicMock` | uv, Python packages |
+
+The codebase was engineered for secretless CI: `ANSIBLE_VARS_ENABLED=host_group_vars` is already baked into the Makefile, `scripts/lint.sh` documents the rationale, and the test suite mocks all crypto operations.
+
+### macOS GitHub Actions runner cost
+
+| Runner | Per-minute rate | Minute multiplier |
+|--------|----------------|-------------------|
+| Linux 2-core | $0.006/min | 1x |
+| macOS 3-core (M1) | $0.062/min | 10x |
+
+**Free tier:** GitHub Free plan includes 2,000 minutes/month. The 10x multiplier gives ~200 effective macOS minutes/month.
+
+**Estimated usage at ~30 pushes/month:**
+- Linux every push: 30 x 5 min = 150 quota minutes (free)
+- macOS weekly: 4 x 5 min = 200 quota minutes (free)
+- Total: 350 quota minutes — comfortably within free tier
+
+If the repo is public, GitHub Actions is completely free with no minute limits.
+
+### Recommended CI architecture
+
+1. **Linux runner (every push/PR):** Full `make check` — all 8 targets. Free.
+2. **macOS runner (weekly schedule + manual dispatch):** Same suite, catches platform-specific issues. Free within budget.
+3. **No `make check-ci` target needed** — existing `make check` works unmodified in CI.
+
+### Pivot not needed
+
+The spike anticipated needing a `make check-ci` target to skip SOPS-dependent checks. This is unnecessary — no check depends on SOPS or the age key.
 
 ## Lifecycle
 
