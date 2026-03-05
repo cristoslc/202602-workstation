@@ -31,4 +31,4 @@ JOURNEY-002 documents "cross-platform authoring requires knowing both platforms'
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-002 pain point; well-defined scope |
-| Implemented | 2026-03-05 | _pending_ | scripts/new-role.sh + Makefile target; all 4 ACs verified |
+| Implemented | 2026-03-05 | 19c087c | scripts/new-role.sh + Makefile target; all 4 ACs verified |
