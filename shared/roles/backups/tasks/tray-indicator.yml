@@ -61,11 +61,16 @@
 
     - name: Remove plugin from old default location
       ansible.builtin.file:
-        path: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins/backup-status.5m.sh"
+        path: "{{ ansible_facts.env.HOME }}/Library/Application Support/SwiftBar/Plugins/backup-status.1m.sh"
+        state: absent
+
+    - name: Remove old 5m refresh interval plugin
+      ansible.builtin.file:
+        path: "{{ swiftbar_plugin_dir }}/backup-status.5m.sh"
         state: absent
 
     - name: Template SwiftBar backup status plugin
       ansible.builtin.template:
         src: backup-status.swiftbar.sh.j2
-        dest: "{{ swiftbar_plugin_dir }}/backup-status.5m.sh"
+        dest: "{{ swiftbar_plugin_dir }}/backup-status.1m.sh"
         mode: "0755"
