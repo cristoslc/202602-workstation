@@ -1,10 +1,10 @@
 ---
 title: "STORY-010: Auto-Propagation on Login"
 artifact: STORY-010
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-03
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-epic: EPIC-004
 related:
   - JOURNEY-002
