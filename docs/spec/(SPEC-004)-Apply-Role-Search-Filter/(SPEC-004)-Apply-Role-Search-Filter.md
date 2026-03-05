@@ -1,10 +1,10 @@
 ---
 title: "SPEC-004: Apply Role Search Filter"
 artifact: SPEC-004
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-03
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-epic: EPIC-004
 linked-research: []
 linked-adrs: []

@@ -1,10 +1,10 @@
 ---
 title: "STORY-011: Cross-Platform CI"
 artifact: STORY-011
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-03
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-epic: EPIC-004
 related:
   - JOURNEY-002
