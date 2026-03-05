@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from textual import work
@@ -28,6 +29,7 @@ from textual.widgets import (
     TabPane,
 )
 
+from ..lib.ansible_summary import AnsibleOutputParser, AnsibleSummary
 from ..lib.defaults import run_all_imports
 from ..lib.discovery import PlaybookManifest, discover_playbook, validate_config
 from ..lib.proc_cleanup import terminate_procs
@@ -376,6 +378,7 @@ class BootstrapPasswordScreen(Screen):
                 self.mode, self.phases, password,
                 skip_tags=self.skip_tags,
                 role_apply=self.role_apply,
+                manifest=self.manifest,
             ),
         )
 
@@ -403,6 +406,7 @@ class BootstrapRunScreen(Screen):
         *,
         skip_tags: list[str] | None = None,
         role_apply: str | None = None,
+        manifest: PlaybookManifest | None = None,
     ) -> None:
         super().__init__()
         self.mode = mode
@@ -410,6 +414,7 @@ class BootstrapRunScreen(Screen):
         self.become_pass = become_pass
         self.skip_tags = skip_tags or []
         self.role_apply = role_apply
+        self.manifest = manifest
         self._procs: list[subprocess.Popen] = []
         self._finished = False
         self._success = False
@@ -418,6 +423,9 @@ class BootstrapRunScreen(Screen):
         self._timer = None
         self._spinner_frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         self._spinner_idx = 0
+        self._ansible_parser: AnsibleOutputParser | None = None
+        self._ansible_summary: AnsibleSummary | None = None
+        self._failed_phases: set[str] = set()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -430,6 +438,10 @@ class BootstrapRunScreen(Screen):
                 yield RichLog(id="output", highlight=True, markup=True, wrap=True)
         with Horizontal(id="run-footer-buttons"):
             yield Button("Done", id="done", variant="primary", disabled=True)
+            yield Button(
+                "Retry Failed", id="retry-failed",
+                variant="warning", disabled=True,
+            )
             yield Button("Migrate Data", id="migrate-data", disabled=True)
             yield Button("Import Settings", id="import-settings", disabled=True)
             yield Button("Back to Menu", id="back", disabled=True)
@@ -443,6 +455,7 @@ class BootstrapRunScreen(Screen):
     def on_mount(self) -> None:
         if self.app.platform != "macos":
             self.query_one("#import-settings", Button).display = False
+        self.query_one("#retry-failed", Button).display = False
         self._start_time = time.monotonic()
         self._timer = self.set_interval(1, self._tick_elapsed)
         self._run_bootstrap()
@@ -458,7 +471,6 @@ class BootstrapRunScreen(Screen):
     @work(thread=True)
     def _run_bootstrap(self) -> None:
         """Run the full bootstrap pipeline in a background thread."""
-        import re
         from datetime import datetime, timezone
 
         platform = self.app.platform
@@ -500,8 +512,17 @@ class BootstrapRunScreen(Screen):
         self._grant_nopasswd_sudo()
 
         success = True
+        ansible_failed = False
         try:
             for i, (label, step_fn) in enumerate(steps):
+                # Skip verify if ansible failed — results would be meaningless.
+                if ansible_failed and step_fn == self._step_verify:
+                    self.app.call_from_thread(
+                        self._log,
+                        f"\n[dim]>>> {label} (skipped — ansible failed)[/dim]\n"
+                    )
+                    continue
+
                 self.app.call_from_thread(
                     self._update_sidebar, steps, i
                 )
@@ -516,8 +537,19 @@ class BootstrapRunScreen(Screen):
                         f"\n[bold red]ERROR:[/bold red] {exc}\n"
                     )
                     logger.exception("Bootstrap step failed: %s", label)
-                    success = False
-                    break
+
+                    if step_fn == self._step_ansible:
+                        # Don't break — render the summary, then skip verify.
+                        ansible_failed = True
+                        success = False
+                        self._render_ansible_summary()
+                    else:
+                        success = False
+                        break
+
+                # Render summary after successful ansible too.
+                if step_fn == self._step_ansible and not ansible_failed:
+                    self._render_ansible_summary()
         finally:
             self._revoke_nopasswd_sudo()
 
@@ -684,7 +716,8 @@ class BootstrapRunScreen(Screen):
     _SUDOERS_TEMP = "/etc/sudoers.d/99-bootstrap-temp"
 
     def _step_ansible(
-        self, platform: str, platform_dir: str, apply_system_roles: bool
+        self, platform: str, platform_dir: str, apply_system_roles: bool,
+        *, tags_override: list[str] | None = None,
     ) -> None:
         ansible_cfg = REPO_ROOT / platform_dir / "ansible.cfg"
         playbook = REPO_ROOT / platform_dir / "site.yml"
@@ -704,15 +737,20 @@ class BootstrapRunScreen(Screen):
             cmd.extend(["-e", f"apply_macos_defaults={apply_defaults}"])
 
         # Filter playbook to only the selected phases.
-        if self.phases:
-            cmd.extend(["--tags", ",".join(self.phases)])
+        tags = tags_override or self.phases
+        if tags:
+            cmd.extend(["--tags", ",".join(tags)])
 
         # Skip deselected roles.
         if self.skip_tags:
             cmd.extend(["--skip-tags", ",".join(self.skip_tags)])
 
+        self._ansible_parser = AnsibleOutputParser()
         env_extra = {"ANSIBLE_CONFIG": str(ansible_cfg)}
-        self._run_streaming(cmd, env_extra=env_extra)
+        self._run_streaming(
+            cmd, env_extra=env_extra,
+            line_callback=self._ansible_parser.feed_line,
+        )
 
     def _step_verify(
         self, platform: str, _platform_dir: str, _apply_system: bool
@@ -768,6 +806,139 @@ class BootstrapRunScreen(Screen):
         summary = f"  {pass_count} passed, {fail_count} failed, {warn_count} warnings"
         self.app.call_from_thread(self._log, summary)
 
+    def _render_ansible_summary(self) -> None:
+        """Extract and render a structured summary from the Ansible parser."""
+        if self._ansible_parser is None:
+            return
+
+        summary = self._ansible_parser.summary()
+        self._ansible_summary = summary
+        if summary is None:
+            self.app.call_from_thread(
+                self._log,
+                "\n[dim]  (No Ansible recap captured)[/dim]\n"
+            )
+            return
+
+        # Counts line.
+        counts = (
+            f"  [green]OK: {summary.ok}[/green]  "
+            f"[yellow]Changed: {summary.changed}[/yellow]  "
+            f"[red]Failed: {summary.failed}[/red]  "
+            f"[dim]Skipped: {summary.skipped}[/dim]"
+        )
+        if summary.unreachable:
+            counts += f"  [red]Unreachable: {summary.unreachable}[/red]"
+        if summary.rescued:
+            counts += f"  [cyan]Rescued: {summary.rescued}[/cyan]"
+        if summary.ignored:
+            counts += f"  [dim]Ignored: {summary.ignored}[/dim]"
+
+        self.app.call_from_thread(
+            self._log,
+            "\n[bold]Ansible Run Summary[/bold]\n"
+            f"{'─' * 50}"
+        )
+        self.app.call_from_thread(self._log, counts)
+
+        # Failed tasks table.
+        if summary.failures:
+            self.app.call_from_thread(
+                self._log,
+                f"\n  [bold red]Failed Tasks ({len(summary.failures)}):[/bold red]"
+            )
+            for i, ft in enumerate(summary.failures, 1):
+                role_label = f"[cyan]{ft.role}[/cyan] : " if ft.role else ""
+                # Truncate long messages to first line for scannability.
+                msg_first_line = ft.message.split("\n")[0][:200]
+                self.app.call_from_thread(
+                    self._log,
+                    f"  {i}. {role_label}[bold]{ft.task}[/bold]\n"
+                    f"     [dim]{ft.play}[/dim]\n"
+                    f"     [red]{msg_first_line}[/red]"
+                )
+
+            # Populate _failed_phases for retry button.
+            self._failed_phases = self._resolve_failed_phases(summary)
+            if self._failed_phases:
+                self.app.call_from_thread(self._show_retry_button)
+
+        self.app.call_from_thread(
+            self._log, f"{'─' * 50}\n"
+        )
+
+    def _resolve_failed_phases(self, summary: AnsibleSummary) -> set[str]:
+        """Map failed task play names back to phase IDs via the manifest."""
+        if self.manifest is None:
+            return set()
+
+        failed = set()
+        for ft in summary.failures:
+            # Play name looks like "Phase 2: Development tools".
+            # The manifest display_name is "Development tools" or similar.
+            for phase in self.manifest.phases:
+                if phase.display_name in ft.play:
+                    failed.add(phase.phase_id)
+                    break
+        return failed
+
+    def _show_retry_button(self) -> None:
+        """Show and enable the retry-failed button."""
+        btn = self.query_one("#retry-failed", Button)
+        btn.display = True
+        btn.disabled = False
+
+    def _retry_failed(self) -> None:
+        """Re-run ansible-playbook with --tags limited to failed phases."""
+        if not self._failed_phases:
+            return
+        self.query_one("#retry-failed", Button).disabled = True
+        self.query_one("#done", Button).disabled = True
+        self._finished = False
+        if self._timer is None:
+            self._start_time = time.monotonic()
+            self._timer = self.set_interval(1, self._tick_elapsed)
+        self._retry_failed_worker()
+
+    @work(thread=True)
+    def _retry_failed_worker(self) -> None:
+        """Background worker for retrying failed phases."""
+        platform = self.app.platform
+        platform_dir = "macos" if platform == "macos" else "linux"
+        apply_system_roles = "system" in self._failed_phases
+        tags = sorted(self._failed_phases)
+
+        self.app.call_from_thread(
+            self._log,
+            f"\n[bold cyan]>>> Retrying failed phases: "
+            f"{', '.join(tags)}[/bold cyan]\n"
+        )
+
+        self._grant_nopasswd_sudo()
+        try:
+            self._step_ansible(
+                platform, platform_dir, apply_system_roles,
+                tags_override=tags,
+            )
+            self._render_ansible_summary()
+            self.app.call_from_thread(
+                self._log,
+                "\n[bold green]Retry complete![/bold green]\n"
+            )
+            self._success = True
+        except Exception as exc:
+            self.app.call_from_thread(
+                self._log,
+                f"\n[bold red]Retry failed:[/bold red] {exc}\n"
+            )
+            self._render_ansible_summary()
+            self._success = False
+        finally:
+            self._revoke_nopasswd_sudo()
+
+        self._finished = True
+        self.app.call_from_thread(self._enable_done_buttons)
+
     def _grant_nopasswd_sudo(self) -> None:
         """Create a temporary NOPASSWD sudoers entry for the current user."""
         import getpass
@@ -804,6 +975,7 @@ class BootstrapRunScreen(Screen):
         *,
         env_extra: dict[str, str] | None = None,
         cwd: Path | None = None,
+        line_callback: Callable[[str], None] | None = None,
     ) -> None:
         """Run a command and stream stdout/stderr to the RichLog widget."""
         env = os.environ.copy()
@@ -838,6 +1010,8 @@ class BootstrapRunScreen(Screen):
         try:
             for line in proc.stdout:
                 stripped = line.rstrip("\n")
+                if line_callback is not None:
+                    line_callback(stripped)
                 self.app.call_from_thread(self._log_output, stripped)
                 logger.debug(stripped)
 
@@ -940,6 +1114,8 @@ class BootstrapRunScreen(Screen):
             if self._success:
                 self._generate_post_install_doc()
             self.app.exit(result="reload_shell" if self._success else None)
+        elif event.button.id == "retry-failed":
+            self._retry_failed()
         elif event.button.id == "migrate-data":
             from .migration import DataMigrationScreen
             self.app.push_screen(DataMigrationScreen())
