@@ -1,7 +1,7 @@
 ---
 title: "EPIC-006: VSCode Insiders and GitHub Copilot CLI"
 artifact: EPIC-006
-status: Proposed
+status: Active
 author: cristos
 created: 2026-03-05
 last-updated: 2026-03-05
@@ -53,7 +53,8 @@ The following is already in place for stable VSCode and should inform (but not b
 
 ## Child Specs
 
-_To be created as the epic is decomposed._
+- [SPEC-005: VSCode Insiders Ansible Role](../../spec/(SPEC-005)-VSCode-Insiders-Ansible-Role/(SPEC-005)-VSCode-Insiders-Ansible-Role.md) — Install + extensions on macOS and Linux
+- [STORY-012: GitHub Copilot CLI Installation](../../story/(STORY-012)-GitHub-Copilot-CLI-Installation.md) — Standalone CLI tool on both platforms
 
 ## Key Dependencies
 
