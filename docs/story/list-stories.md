@@ -5,6 +5,7 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | STORY-006 | [Headless Settings Import]((STORY-006)-Headless-Settings-Import.md) | 2026-03-03 | ad25d92 | Investigate removing interactive GUI dialogs from Raycast/Stream Deck import (EPIC-003) |
+| STORY-012 | [GitHub Copilot CLI Installation]((STORY-012)-GitHub-Copilot-CLI-Installation.md) | 2026-03-05 | ab03bdb | Standalone Copilot CLI on both platforms (EPIC-006) |
 
 ## Ready
 

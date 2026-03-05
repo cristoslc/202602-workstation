@@ -73,4 +73,4 @@ Bureau Veritas development requires VSCode Insiders with GitHub Copilot extensio
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Draft | 2026-03-05 | _pending_ | Initial creation |
+| Draft | 2026-03-05 | ab03bdb | Initial creation |

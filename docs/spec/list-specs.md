@@ -2,7 +2,9 @@
 
 ## Draft
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| SPEC-005 | [VSCode Insiders Ansible Role](./(SPEC-005)-VSCode-Insiders-Ansible-Role/(SPEC-005)-VSCode-Insiders-Ansible-Role.md) | 2026-03-05 | ab03bdb | Install + extensions for macOS and Linux (EPIC-006) |
 
 ## Review
 
