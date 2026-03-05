@@ -4,6 +4,7 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
+| EPIC-006 | [VSCode Insiders and GitHub Copilot CLI](./(EPIC-006)-VSCode-and-Copilot-CLI/(EPIC-006)-VSCode-and-Copilot-CLI.md) | 2026-03-05 | — | Bureau Veritas phase: Insiders editor + Copilot CLI |
 
 ## Active
 
