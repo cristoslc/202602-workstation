@@ -649,6 +649,8 @@ class BootstrapRunScreen(Screen):
 
         if choice in ("receive", "import"):
             self._run_interactive_transfer(choice, TRANSFER_KEY_SCRIPT)
+        elif choice == "1password":
+            self._step_retrieve_age_from_1password(AGE_KEY_PATH)
         elif choice == "generate":
             status_msg, public_key = generate_age_key(self.app.runner)
             self.app.call_from_thread(self._log, f"  {status_msg}")
@@ -685,6 +687,56 @@ class BootstrapRunScreen(Screen):
             self.app.call_from_thread(
                 self._log,
                 f"  [bold yellow]Warning:[/bold yellow] {exc}"
+            )
+
+    def _step_retrieve_age_from_1password(self, key_path: Path) -> None:
+        """Retrieve the age key from 1Password CLI."""
+        self.app.call_from_thread(
+            self._log, "  Retrieving age key from 1Password..."
+        )
+        try:
+            result = subprocess.run(
+                ["op", "--version"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode != 0:
+                self.app.call_from_thread(
+                    self._log,
+                    "  [bold yellow]Error:[/bold yellow] 1Password CLI "
+                    "(op) not found. Install the 1Password desktop app first."
+                )
+                return
+
+            key_path.parent.mkdir(parents=True, exist_ok=True)
+            key_path.parent.chmod(0o700)
+
+            result = subprocess.run(
+                ["op", "read", "op://Private/age-key/private-key"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if result.returncode != 0 or not result.stdout.strip():
+                self.app.call_from_thread(
+                    self._log,
+                    "  [bold yellow]Error:[/bold yellow] Could not retrieve "
+                    "key from 1Password. Ensure the desktop app is running "
+                    "and unlocked."
+                )
+                return
+
+            key_path.write_text(result.stdout)
+            key_path.chmod(0o600)
+            self.app.call_from_thread(
+                self._log, "  Age key retrieved from 1Password."
+            )
+        except subprocess.TimeoutExpired:
+            self.app.call_from_thread(
+                self._log,
+                "  [bold yellow]Error:[/bold yellow] 1Password CLI timed out."
+            )
+        except Exception as exc:
+            self.app.call_from_thread(
+                self._log,
+                f"  [bold yellow]Error:[/bold yellow] {exc}"
             )
 
     def _run_interactive_transfer(

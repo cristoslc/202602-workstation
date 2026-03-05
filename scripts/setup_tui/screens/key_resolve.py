@@ -12,7 +12,7 @@ from textual.widgets.option_list import Option
 class KeyResolveScreen(Screen[str]):
     """Modal screen that asks the user how to obtain their age key.
 
-    Dismisses with one of: "receive", "import", "generate", "skip".
+    Dismisses with one of: "receive", "import", "1password", "generate", "skip".
     """
 
     BINDINGS = [("escape", "cancel", "Cancel")]
@@ -31,6 +31,7 @@ class KeyResolveScreen(Screen[str]):
             yield OptionList(
                 Option("Receive via Magic Wormhole", id="receive"),
                 Option("Import encrypted blob", id="import"),
+                Option("Retrieve from 1Password", id="1password"),
                 Option("Generate new key", id="generate"),
                 Option("Skip (no key)", id="skip"),
                 id="key-menu",

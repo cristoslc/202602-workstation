@@ -103,6 +103,7 @@ def _install_macos_prereqs(msg: callable) -> list[str]:
     # Homebrew prereqs (idempotent — brew skips already-installed).
     msg("Installing prerequisites via Homebrew...")
     _run(["brew", "install", "sops", "age", "stow", "rsync"], check=False)
+    _run(["brew", "install", "--cask", "1password-cli"], check=False)
 
     return messages
 
