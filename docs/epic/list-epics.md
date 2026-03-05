@@ -22,7 +22,7 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| EPIC-004 | [Platform Developer Experience](./(EPIC-004)-Platform-Developer-Experience/(EPIC-004)-Platform-Developer-Experience.md) | 2026-03-05 | — | All 5 stories + 1 spec implemented, 3 spikes complete, all success criteria met |
+| EPIC-004 | [Platform Developer Experience](./(EPIC-004)-Platform-Developer-Experience/(EPIC-004)-Platform-Developer-Experience.md) | 2026-03-05 | f994fe1 | All 5 stories + 1 spec implemented, 3 spikes complete, all success criteria met |
 | EPIC-005 | [Espanso Snippet Autoexpansion](./(EPIC-005)-Espanso-Snippet-Autoexpansion/(EPIC-005)-Espanso-Snippet-Autoexpansion.md) | 2026-03-05 | 3d2f68b | Converter updated, tests passing, encrypted YAML fixed |
 
 ## Abandoned
