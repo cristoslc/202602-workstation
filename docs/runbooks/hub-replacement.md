@@ -2,7 +2,7 @@
 
 Operational procedures for hub server migration and emergency replacement. Covers both Syncthing (file sync) and Unison/wsync (code sync) in the hub-and-spoke topology.
 
-**Origin:** [SPIKE-007](../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md)
+**Origin:** [SPIKE-007](../research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md)
 
 ## Architecture Summary
 

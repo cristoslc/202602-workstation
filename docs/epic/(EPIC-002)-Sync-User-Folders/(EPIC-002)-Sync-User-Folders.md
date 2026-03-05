@@ -66,7 +66,7 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 | Syncthing conflict on user data | `.sync-conflict-*` files require manual resolution | Hub-and-spoke serializes; enable staggered versioning |
 | Unison OCaml 5 data corruption | Silent corruption | Pin Unison to OCaml 4.14 builds; verify in Ansible |
 | Unison version mismatch | Sync fails | Pin version across all machines via Ansible |
-| Hub server unavailable | No syncing until hub returns | Fall back to `git push/pull`; auto-resume on reconnect; see [SPIKE-007](../../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) |
+| Hub server unavailable | No syncing until hub returns | Fall back to `git push/pull`; auto-resume on reconnect; see [SPIKE-007](../../research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) |
 
 ## Related artifacts
 
@@ -74,7 +74,7 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 |------|----|-------|
 | Vision | [VISION-001](../../vision/(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code |
 | Spike | [SPIKE-006](../../research/Complete/(SPIKE-006)-Sync-User-Folders/(SPIKE-006)-Sync-User-Folders.md) | Sync User Folders |
-| Spike | [SPIKE-007](../../research/Planned/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | Hub Server Failover and Migration |
+| Spike | [SPIKE-007](../../research/Complete/(SPIKE-007)-Hub-Server-Failover-and-Migration/(SPIKE-007)-Hub-Server-Failover-and-Migration.md) | Hub Server Failover and Migration |
 | Spike | [SPIKE-008](../../research/Complete/(SPIKE-008)-Sync-Boundary-Enforcement/(SPIKE-008)-Sync-Boundary-Enforcement.md) | Sync Boundary Enforcement |
 | ADR | [ADR-006](../../adr/Adopted/(ADR-006)-Git-Repo-Detection-Journal-with-Sync-Boundary-Enforcement.md) | Git Repo Detection Journal with Sync Boundary Enforcement |
 | Legacy | [PRD-003](../../prd/Abandoned/(PRD-003)-Sync-User-Folders/(PRD-003)-Sync-User-Folders.md) | Sync User Folders (migrated from PRD) |

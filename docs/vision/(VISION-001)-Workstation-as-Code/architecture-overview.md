@@ -1,6 +1,6 @@
 # Architecture Overview
 
-_Supporting document for [VISION-001: Workstation as Code](./\(VISION-001\)-Workstation-as-Code.md)_
+_Supporting document for [VISION-001: Workstation as Code]((VISION-001)-Workstation-as-Code.md)_
 
 This is a living description of the system's architecture. It describes *how the system works* holistically. Individual architectural *decisions* (choices between alternatives with rationale) are recorded as ADRs.
 

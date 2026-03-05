@@ -90,7 +90,7 @@ Both Syncthing (< 60s) and Unison (< 5 min) resume automatically within 5 minute
 
 ### 2. Hub Replacement Procedures
 
-Three runbook variants were developed and documented at [`docs/runbooks/hub-replacement.md`](../../runbooks/hub-replacement.md):
+Three runbook variants were developed and documented at [`docs/runbooks/hub-replacement.md`](../../../runbooks/hub-replacement.md):
 
 | Runbook | Scenario | Downtime | Spoke Re-pairing |
 |---------|----------|----------|-----------------|

@@ -3,7 +3,7 @@
 **Date:** 2026-02-25
 **Context:** Evaluated as a potential cross-platform (Linux + macOS) cloud-based file
 sync solution for user data folders, as part of the
-[sync-user-folders](README.md) research.
+[sync-user-folders]((SPIKE-006)-Sync-User-Folders.md) research.
 
 ---
 

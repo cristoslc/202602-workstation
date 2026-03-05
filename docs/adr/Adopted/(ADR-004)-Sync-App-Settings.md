@@ -95,7 +95,7 @@ One-time export captures settings from a source machine into the correct stow pa
 
 ## Alternatives Considered
 
-See [research doc](../../research/Active/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md#alternatives-considered) for detailed evaluation of Mackup, Chezmoi, Syncthing, and Nix Home Manager.
+See [research doc](../../research/Complete/(SPIKE-005)-Sync-App-Settings/(SPIKE-005)-Sync-App-Settings.md#alternatives-considered) for detailed evaluation of Mackup, Chezmoi, Syncthing, and Nix Home Manager.
 
 ### Lifecycle
 

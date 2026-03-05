@@ -104,9 +104,9 @@ See [architecture-overview.md](./architecture-overview.md) for the full system d
 | Journey | [JOURNEY-003](../../journey/(JOURNEY-003)-Machine-Migration/(JOURNEY-003)-Machine-Migration.md) | Machine Migration |
 | Journey | [JOURNEY-004](../../journey/(JOURNEY-004)-Daily-Multi-Machine-Workflow/(JOURNEY-004)-Daily-Multi-Machine-Workflow.md) | Daily Multi-Machine Workflow |
 | ADR | [ADR-002](../../adr/Adopted/(ADR-002)-Encryption-at-Rest-for-Personal-Files.md) | Encryption at Rest for Personal Files |
-| ADR | [ADR-003](../../adr/Proposed/(ADR-003)-Cross-Platform-Action-Bindings.md) | Cross-Platform Action Bindings |
-| ADR | [ADR-004](../../adr/Proposed/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
-| ADR | [ADR-005](../../adr/Adopted/(ADR-005)-@tui-Annotation-Based-Secrets-Autodiscovery.md) | @tui Annotation-Based Secrets Autodiscovery |
+| ADR | [ADR-003](../../adr/Adopted/(ADR-003)-Cross-Platform-Action-Bindings.md) | Cross-Platform Action Bindings |
+| ADR | [ADR-004](../../adr/Adopted/(ADR-004)-Sync-App-Settings.md) | Sync App Settings |
+| ADR | [ADR-005](../../adr/Adopted/(ADR-005)-TUI-Annotation-Secrets-Autodiscovery.md) | @tui Annotation-Based Secrets Autodiscovery |
 | ADR | [ADR-006](../../adr/Adopted/(ADR-006)-Git-Repo-Detection-Journal-with-Sync-Boundary-Enforcement.md) | Git Repo Detection Journal with Sync Boundary Enforcement |
 | Epic | [EPIC-001](../../epic/(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | Restic Backup Stack |
 | Epic | [EPIC-002](../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | Sync User Folders |

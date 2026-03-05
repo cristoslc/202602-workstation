@@ -7,7 +7,7 @@ ongoing sync of user data folders across 2-3 workstations, with a home server as
 the always-on hub. Covers topology configuration, conflict handling mechanics,
 folder type strategies, and operational tradeoffs.
 
-**Context:** The parent [README.md](README.md) evaluates Syncthing as one of
+**Context:** The parent [(SPIKE-006)]((SPIKE-006)-Sync-User-Folders.md) evaluates Syncthing as one of
 several ongoing-sync candidates. This document goes deeper on the specific
 deployment model under consideration: a trusted (unencrypted) central hub with
 spoke clients that only connect to the hub, not to each other.
