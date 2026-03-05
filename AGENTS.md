@@ -10,8 +10,6 @@ When the user wants to create, plan, write, update, transition, or review any do
 
 Implementation of any SPEC artifact (Epic, Story, Agent Spec, Spike) requires an execution-tracking plan **before** writing code. Invoke the spec-management skill — it enforces the full workflow.
 
-## Documentation lifecycle workflow
-
 ### Encryption-at-rest policy
 
 All personalized or user-specific files MUST be age-encrypted before committing to the repo. No plaintext personal data at rest in git.
