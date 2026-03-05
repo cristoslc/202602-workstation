@@ -80,4 +80,4 @@ None. The converter and test infrastructure already exist.
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Proposed | 2026-03-04 | _pending_ | Initial creation |
+| Proposed | 2026-03-04 | bafabec | Initial creation |
