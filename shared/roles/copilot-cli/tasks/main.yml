@@ -1,0 +1,24 @@
+---
+# Copilot CLI role: standalone GitHub Copilot CLI installation
+# No dependency on gh CLI or Phase 2 dev-tools.
+
+- name: Install GitHub Copilot CLI (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew:
+    name: gh-copilot
+    state: present
+
+- name: Install GitHub Copilot CLI (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if npm is available
+      ansible.builtin.command: which npm
+      register: _npm_available
+      changed_when: false
+      failed_when: false
+
+    - name: Install GitHub Copilot CLI via npm
+      when: _npm_available.rc == 0
+      ansible.builtin.command: npm install -g @githubnext/github-copilot-cli
+      register: _copilot_cli_install
+      changed_when: "'added' in _copilot_cli_install.stdout"

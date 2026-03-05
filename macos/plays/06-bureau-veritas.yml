@@ -30,3 +30,9 @@
 
     - role: gli-kvm
       tags: [gli-kvm, bureau-veritas]
+
+    - role: editor-insiders
+      tags: [editor-insiders, bureau-veritas]
+
+    - role: copilot-cli
+      tags: [copilot-cli, bureau-veritas]

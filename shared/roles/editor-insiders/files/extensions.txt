@@ -1,0 +1,5 @@
+# VS Code Insiders extensions — one extension ID per line.
+# Separate from stable VS Code extensions (Phase 2).
+
+github.copilot
+github.copilot-chat

@@ -1,0 +1,75 @@
+---
+# Editor Insiders role: VS Code Insiders installation and extensions
+# Separate from the stable VS Code editor role (Phase 2).
+
+- name: Install VS Code Insiders (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: visual-studio-code-insiders
+    state: present
+
+- name: Install VS Code Insiders (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if VS Code Insiders is already installed
+      ansible.builtin.command: dpkg-query -W code-insiders
+      register: _vscode_insiders_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Install VS Code Insiders from latest .deb
+      when: _vscode_insiders_installed.rc != 0
+      block:
+        - name: Create temp file for VS Code Insiders download
+          ansible.builtin.tempfile:
+            suffix: .deb
+          register: _vscode_insiders_tmp
+
+        - name: Download latest VS Code Insiders .deb
+          ansible.builtin.get_url:
+            url: "https://code.visualstudio.com/sha/download?build=insider&os=linux-deb-x64"
+            dest: "{{ _vscode_insiders_tmp.path }}"
+            mode: "0644"
+            force: true
+          register: _vscode_insiders_download
+          retries: 3
+          delay: 5
+          until: _vscode_insiders_download is not failed
+
+        - name: Verify VS Code Insiders .deb is not truncated
+          ansible.builtin.stat:
+            path: "{{ _vscode_insiders_tmp.path }}"
+          register: _vscode_insiders_stat
+          failed_when: _vscode_insiders_stat.stat.size < 50000000
+
+        - name: Install VS Code Insiders .deb
+          ansible.builtin.apt:
+            deb: "{{ _vscode_insiders_tmp.path }}"
+            state: present
+          become: true
+
+        - name: Clean up VS Code Insiders temp file
+          ansible.builtin.file:
+            path: "{{ _vscode_insiders_tmp.path }}"
+            state: absent
+
+    - name: Check if VS Code Insiders has an apt source
+      ansible.builtin.shell: test -f /etc/apt/sources.list.d/vscode-insiders.sources -o -f /etc/apt/sources.list.d/vscode-insiders.list  # noqa: command-instead-of-shell
+      register: _vscode_insiders_has_source
+      changed_when: false
+      failed_when: false
+      when: _vscode_insiders_installed.rc == 0
+
+    - name: Restore VS Code Insiders vendor apt repo  # noqa: no-changed-when
+      ansible.builtin.command: /var/lib/dpkg/info/code-insiders.postinst configure
+      when:
+        - _vscode_insiders_installed.rc == 0
+        - _vscode_insiders_has_source.rc | default(0) != 0
+      become: true
+
+- name: Install VS Code Insiders extensions
+  ansible.builtin.command: "code-insiders --install-extension {{ item }}"
+  loop: "{{ lookup('file', role_path + '/files/extensions.txt').splitlines() | select | list }}"
+  register: ext_result
+  changed_when: "'was successfully installed' in ext_result.stdout"
+  failed_when: false
