@@ -112,6 +112,7 @@ See [architecture-overview.md](./architecture-overview.md) for the full system d
 | Epic | [EPIC-002](../../epic/(EPIC-002)-Sync-User-Folders/(EPIC-002)-Sync-User-Folders.md) | Sync User Folders |
 | Epic | [EPIC-003](../../epic/(EPIC-003)-Sync-App-Settings/(EPIC-003)-Sync-App-Settings.md) | Sync App Settings |
 | Epic | [EPIC-004](../../epic/(EPIC-004)-Platform-Developer-Experience/(EPIC-004)-Platform-Developer-Experience.md) | Platform Developer Experience |
+| Epic | [EPIC-007](../../epic/Proposed/(EPIC-007)-Steam-Deck-Provisioning/(EPIC-007)-Steam-Deck-Provisioning.md) | Steam Deck Provisioning |
 | Spec | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync |
 | Vision | [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (sibling — shared platform layer) |
 

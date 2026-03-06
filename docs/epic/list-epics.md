@@ -2,7 +2,9 @@
 
 ## Proposed
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| EPIC-007 | [Steam Deck Provisioning](./Proposed/(EPIC-007)-Steam-Deck-Provisioning/(EPIC-007)-Steam-Deck-Provisioning.md) | 2026-03-06 | _pending_ | SteamOS desktop mode: Nix+Flatpak+Stow (from SPIKE-012) |
 
 ## Active
 
