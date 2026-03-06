@@ -1,17 +1,17 @@
 ---
 name: spec-management
-description: Create, validate, and transition documentation artifacts (Vision, Journey, Epic, Story, Agent Spec, Spike, ADR, Persona, Runbook, Bug) and their supporting docs (architecture overviews, journey maps, competitive analyses) through their lifecycle phases. Use when the user wants to write a spec, plan a feature, create an epic, add a user story, draft an ADR, start a research spike, define a persona, create a user persona, create a runbook, define a validation procedure, file a bug, report a defect, update the architecture overview, document the system architecture, move an artifact to a new phase, seed an implementation plan, or validate cross-references between artifacts. When a SPEC transitions to implementation, always chain into the execution-tracking skill to create a tracked plan before any code is written. Covers any request to create, update, review, or transition spec artifacts and supporting docs.
+description: Create, validate, and transition documentation artifacts (Vision, Journey, Epic, Story, Agent Spec, Spike, ADR, Persona, Runbook, Bug) and their supporting docs (architecture overviews, journey maps, competitive analyses) through their lifecycle phases. Use when the user wants to write a spec, plan a feature, create an epic, add a user story, draft an ADR, start a research spike, define a persona, create a user persona, create a runbook, define a validation procedure, file a bug, report a defect, update the architecture overview, document the system architecture, move an artifact to a new phase, seed an implementation plan, implement a spec, fix a bug, work on a story, or validate cross-references between artifacts. When a SPEC, STORY, or BUG comes up for implementation, always chain into the execution-tracking skill to create a tracked plan before any code is written. When execution-tracking is requested on an EPIC, VISION, or JOURNEY, decompose into implementable children first — execution-tracking runs on the children, not the container. Covers any request to create, update, review, or transition spec artifacts and supporting docs.
 license: UNLICENSED
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 metadata:
   short-description: Manage spec artifact creation and lifecycle
-  version: 1.1.0
+  version: 1.2.0
   author: cristos
 ---
 
 # Spec Management
 
-Create, transition, and validate documentation artifacts. This skill defines the canonical artifact types, phases, and hierarchy — the ER diagram below is the summary; detailed definitions live in `references/`. If the host repo has an AGENTS.md, keep its artifact sections in sync with the skill's reference data.
+This skill defines the canonical artifact types, phases, and hierarchy. The ER diagram below is the relationship summary; detailed definitions and templates live in `references/`. If the host repo has an AGENTS.md, keep its artifact sections in sync with the skill's reference data.
 
 ## Artifact relationship model
 
@@ -116,11 +116,9 @@ STALE <source-file>:<line>
   artifact: <TYPE-NNN>
 ```
 
-### Bookends for every artifact operation
+### Post-operation scan
 
-**Before:** Run `scripts/specwatch.sh scan`. If `.agents/specwatch.log` is produced, surface stale references as warnings and fix them (or acknowledge false positives) before proceeding. Delete the log when clear. The scan has no external dependencies — it uses only Python 3 and the filesystem.
-
-**After:** Run `scripts/specwatch.sh scan` again to catch any stale references introduced by the operation itself.
+After every artifact operation (create, edit, transition, audit), run `scripts/specwatch.sh scan` to catch any stale references introduced by the changes. If `.agents/specwatch.log` reports stale references, surface them as warnings and fix them before committing. The scan has no external dependencies — it uses only Python 3 and the filesystem.
 
 The background `watch` mode (requires `fswatch`) is available for long-running sessions but is not part of the default workflow.
 
@@ -186,7 +184,7 @@ This rule is referenced as the **index refresh step** in the workflows below. Do
 
 ## Auditing artifacts
 
-Audits touch every artifact, so **always parallelize with sub-agents** — serial auditing is too slow and misses the cross-cutting checks that only make sense when run together. Spawn three agents in a single turn:
+Audits touch every artifact, so **always parallelize with sub-agents** — serial auditing is too slow and misses the cross-cutting checks that only make sense when run together. Spawn four agents in a single turn:
 
 | Agent | Responsibility |
 |-------|---------------|
@@ -196,6 +194,8 @@ Audits touch every artifact, so **always parallelize with sub-agents** — seria
 | **Phase/folder alignment** | Run `specwatch.sh phase-fix` to detect and move artifacts whose frontmatter `status:` doesn't match their phase subdirectory. Review the staged `git mv` renames and commit. |
 
 Each agent reports gaps as a structured table with file path, issue type, and missing/invalid field. Merge the three tables into a single audit report. Always include a 1-2 sentence summary of each artifact (not just its title) in result tables.
+
+**Enforce definitions, not current layout.** The artifact definition files (in `references/`) are the source of truth for folder structure. If the repo's current layout diverges from the definitions (e.g., epics in a flat directory instead of phase subdirectories), the audit should flag misplaced files and propose `git mv` commands to bring them into compliance. Do not silently adopt a non-standard layout just because it already exists.
 
 ## Status overview
 
@@ -244,7 +244,7 @@ When an operation fails (missing parent, number collision, script error, etc.), 
 
 1. Scan `docs/<type>/` (recursively, across all phase subdirectories) to determine the next available number for the prefix.
 2. Read the artifact's definition file and template from the lookup table below.
-3. Create the artifact in the correct phase subdirectory (usually the first phase — e.g., `docs/epic/Proposed/`, `docs/spec/Draft/`). See the definition file for the exact directory structure.
+3. Create the artifact in the correct phase subdirectory (usually the first phase — e.g., `docs/epic/Proposed/`, `docs/spec/Draft/`). Create the phase directory with `mkdir -p` if it doesn't exist yet. See the definition file for the exact directory structure.
 4. Populate frontmatter with the required fields for the type (see the template).
 5. Initialize the lifecycle table with the appropriate phase and current date. This is usually the first phase (Draft, Planned, etc.), but an artifact may be created directly in a later phase if it was fully developed during the conversation (see [Phase skipping](#phase-skipping)).
 6. Validate parent references exist (e.g., the Epic referenced by a new Agent Spec must already exist).
@@ -293,6 +293,47 @@ Phases listed in the artifact definition files are available waypoints, not mand
 - An Epic is "Complete" only when all child Agent Specs are "Implemented" and success criteria are met.
 - An Agent Spec is "Implemented" only when its implementation plan is closed (or all tasks are done in fallback mode).
 - An ADR is "Superseded" only when the superseding ADR is "Adopted" and links back.
+
+## Execution tracking handoff
+
+Artifact types fall into four tracking tiers based on their relationship to implementation work:
+
+| Tier | Artifacts | Rule |
+|------|-----------|------|
+| **Implementation** | SPEC, STORY, BUG | Execution-tracking **must** be invoked when the artifact comes up for implementation — create a tracked plan before writing code |
+| **Coordination** | EPIC, VISION, JOURNEY | Spec-management decomposes into implementable children first; execution-tracking runs on the children, not the container |
+| **Research** | SPIKE | Execution-tracking is optional but recommended for complex spikes with multiple investigation threads |
+| **Reference** | ADR, PERSONA, RUNBOOK | No execution tracking expected |
+
+### The `execution-tracking` frontmatter field
+
+Artifacts that need execution-tracking carry `execution-tracking: required` in their frontmatter. This field is:
+- **Always present** on SPEC, STORY, and BUG artifacts (injected by their templates)
+- **Added per-instance** on SPIKE artifacts when spec-management assesses the spike is complex enough to warrant tracked research
+- **Never present** on EPIC, VISION, JOURNEY, ADR, PERSONA, or RUNBOOK artifacts — orchestration for those types lives in the skill, not the artifact
+
+When an agent reads an artifact with `execution-tracking: required`, it should invoke the execution-tracking skill before beginning implementation work.
+
+### What "comes up for implementation" means
+
+The trigger is intent, not phase transition alone. An artifact comes up for implementation when the user or workflow indicates they want to start building — not merely when its status changes.
+
+- "Let's implement SPEC-003" → invoke execution-tracking
+- "Move SPEC-003 to Approved" → phase transition only, no tracking yet
+- "Fix BUG-001" → invoke execution-tracking
+- "Let's work on EPIC-008" → decompose into SPECs/STORYs first, then track the children
+
+### Coordination artifact decomposition
+
+When execution-tracking is requested on an EPIC, VISION, or JOURNEY:
+
+1. **Spec-management leads.** Decompose the artifact into implementable children (SPECs, STORYs) if they don't already exist.
+2. **Execution-tracking follows.** Create tracked plans for the child artifacts, not the container.
+3. **Spec-management monitors.** The container transitions (e.g., EPIC → Complete) based on child completion per the existing completion rules.
+
+### STORY and SPEC coordination
+
+Under the same parent Epic, Stories define user-facing requirements and Specs define technical implementations. They connect through shared `addresses` pain-point references and their common parent Epic. When creating execution-tracking plans, tag tasks with both `spec:SPEC-NNN` and `story:STORY-NNN` labels when a task satisfies both artifacts.
 
 ## Implementation plans
 
