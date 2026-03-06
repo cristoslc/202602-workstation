@@ -2,9 +2,7 @@
 
 ## Draft
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| SPEC-005 | [VSCode Insiders Ansible Role](./(SPEC-005)-VSCode-Insiders-Ansible-Role/(SPEC-005)-VSCode-Insiders-Ansible-Role.md) | 2026-03-05 | ab03bdb | Install + extensions for macOS and Linux (EPIC-006) |
+_None._
 
 ## Review
 
@@ -22,6 +20,7 @@ _None._
 | SPEC-002 | [Git Repo Detection and Sync Boundary Enforcement](./(SPEC-002)-Git-Repo-Detection-and-Sync-Boundary-Enforcement/(SPEC-002)-Git-Repo-Detection-and-Sync-Boundary-Enforcement.md) | 2026-03-03 | d18c058 | Implementation complete |
 | SPEC-003 | [wsync Multi-Directory Support](./(SPEC-003)-wsync-Multi-Directory-Support/(SPEC-003)-wsync-Multi-Directory-Support.md) | 2026-03-03 | 44c5887 | Implementation complete |
 | SPEC-004 | [Apply Role Search Filter](./(SPEC-004)-Apply-Role-Search-Filter/(SPEC-004)-Apply-Role-Search-Filter.md) | 2026-03-05 | a17a7d2 | Already implemented in apply_role.py |
+| SPEC-005 | [VSCode Insiders Ansible Role](./(SPEC-005)-VSCode-Insiders-Ansible-Role/(SPEC-005)-VSCode-Insiders-Ansible-Role.md) | 2026-03-06 | PLACEHOLDER | All acceptance criteria met (EPIC-006) |
 
 ## Deprecated
 
