@@ -8,7 +8,6 @@ _None._
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| EPIC-001 | [Restic Backup Stack](./(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | 2026-03-03 | 007be42 | Implementation exists; pending bootstrap validation |
 | EPIC-006 | [VSCode Insiders and GitHub Copilot CLI](./(EPIC-006)-VSCode-and-Copilot-CLI/(EPIC-006)-VSCode-and-Copilot-CLI.md) | 2026-03-05 | ab03bdb | Decomposed into SPEC-005 + STORY-012 |
 
 ## Testing
@@ -22,6 +21,7 @@ _None._
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
+| EPIC-001 | [Restic Backup Stack](./(EPIC-001)-Restic-Backup-Stack/(EPIC-001)-Restic-Backup-Stack.md) | 2026-03-05 | eea59bd | All success criteria met |
 | EPIC-004 | [Platform Developer Experience](./(EPIC-004)-Platform-Developer-Experience/(EPIC-004)-Platform-Developer-Experience.md) | 2026-03-05 | f994fe1 | All 5 stories + 1 spec implemented, 3 spikes complete, all success criteria met |
 | EPIC-005 | [Espanso Snippet Autoexpansion](./(EPIC-005)-Espanso-Snippet-Autoexpansion/(EPIC-005)-Espanso-Snippet-Autoexpansion.md) | 2026-03-05 | 3d2f68b | Converter updated, tests passing, encrypted YAML fixed |
 
