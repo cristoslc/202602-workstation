@@ -1,7 +1,7 @@
 ---
 title: "STORY-004: Resumable Data Pull"
 artifact: STORY-004
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -30,3 +30,4 @@ JOURNEY-003 documents "large data transfers take hours with no resume-on-disconn
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-003 pain point; skipped Draft (trivial scope) |
+| Implemented | 2026-03-06 | _pending_ | --partial-dir=.rsync-partial + auto-cleanup after successful sync |

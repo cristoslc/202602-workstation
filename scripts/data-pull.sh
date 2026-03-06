@@ -23,6 +23,7 @@ RSYNC_OPTS=(
   -az                   # archive, compress
   --info=progress2      # overall transfer progress (% / speed / ETA)
   --partial             # resume interrupted transfers
+  --partial-dir=.rsync-partial  # store partial files in hidden dir (auto-cleaned)
   --human-readable      # human-readable sizes
   --exclude-from="$EXCLUDE_FILE"
 )
@@ -117,6 +118,10 @@ data_pull_sync_folder() {
   echo "=== Syncing $folder from $host ==="
   mkdir -p "$dst"
   rsync "${opts[@]}" "$src" "$dst"
+  # Clean up partial-transfer directory after successful sync
+  if [[ "$dry_run" != "true" && -d "${dst}.rsync-partial" ]]; then
+    rm -rf "${dst}.rsync-partial"
+  fi
   echo "@@FOLDER_DONE:${folder}@@"
 }
 

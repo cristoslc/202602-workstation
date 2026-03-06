@@ -34,9 +34,10 @@ teardown() {
   [[ "$opts" == *"--info=progress2"* ]]
 }
 
-@test "RSYNC_OPTS contains --partial" {
+@test "RSYNC_OPTS contains --partial and --partial-dir" {
   local opts="${RSYNC_OPTS[*]}"
   [[ "$opts" == *"--partial"* ]]
+  [[ "$opts" == *"--partial-dir=.rsync-partial"* ]]
 }
 
 @test "RSYNC_OPTS does not contain --delete" {
@@ -118,6 +119,34 @@ teardown() {
   [[ "$output" == *"@@FOLDER_START:Desktop@@"* ]]
   [[ "$output" == *"@@FOLDER_DONE:Desktop@@"* ]]
   [[ "$output" == *"=== Syncing Desktop from fakehost ==="* ]]
+}
+
+@test "sync_folder: cleans up .rsync-partial after successful sync" {
+  rsync() { return 0; }
+  export -f rsync
+  data_pull_folder_exists() { return 0; }
+
+  export HOME="$TEST_TEMP/home"
+  mkdir -p "$HOME/Desktop/.rsync-partial"
+  touch "$HOME/Desktop/.rsync-partial/somefile.part"
+
+  run data_pull_sync_folder "fakehost" "Desktop" "false"
+  [ "$status" -eq 0 ]
+  [ ! -d "$TEST_TEMP/home/Desktop/.rsync-partial" ]
+}
+
+@test "sync_folder: preserves .rsync-partial on dry run" {
+  rsync() { return 0; }
+  export -f rsync
+  data_pull_folder_exists() { return 0; }
+
+  export HOME="$TEST_TEMP/home"
+  mkdir -p "$HOME/Desktop/.rsync-partial"
+  touch "$HOME/Desktop/.rsync-partial/somefile.part"
+
+  run data_pull_sync_folder "fakehost" "Desktop" "true"
+  [ "$status" -eq 0 ]
+  [ -d "$TEST_TEMP/home/Desktop/.rsync-partial" ]
 }
 
 @test "sync_folder: creates target directory" {
