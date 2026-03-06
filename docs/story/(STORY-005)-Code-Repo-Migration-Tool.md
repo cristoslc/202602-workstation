@@ -32,4 +32,4 @@ JOURNEY-003 documents "no unified way to transfer repos with uncommitted work" a
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-003 pain point; partially addressed by SPEC-002/003 for user-data repos |
-| Implemented | 2026-03-06 | _pending_ | code-pull.sh with repo discovery, clean clone, dirty rsync |
+| Implemented | 2026-03-06 | 18a7cd2 | code-pull.sh with repo discovery, clean clone, dirty rsync |

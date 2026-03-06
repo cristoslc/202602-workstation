@@ -2,21 +2,20 @@
 
 ## Draft
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| STORY-006 | [Headless Settings Import]((STORY-006)-Headless-Settings-Import.md) | 2026-03-03 | ad25d92 | Investigate removing interactive GUI dialogs from Raycast/Stream Deck import (EPIC-003) |
+_None._
 
 ## Ready
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | STORY-004 | [Resumable Data Pull]((STORY-004)-Resumable-Data-Pull.md) | 2026-03-03 | ad25d92 | rsync --partial for resumable data migration (EPIC-002) |
-| STORY-005 | [Code Repo Migration Tool]((STORY-005)-Code-Repo-Migration-Tool.md) | 2026-03-03 | ad25d92 | make code-pull with repo discovery and dirty-state detection (EPIC-002) |
 
 ## Implemented
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
+| STORY-005 | [Code Repo Migration Tool]((STORY-005)-Code-Repo-Migration-Tool.md) | 2026-03-06 | 18a7cd2 | code-pull.sh with repo discovery, clean clone, dirty rsync (EPIC-002) |
+| STORY-006 | [Headless Settings Import]((STORY-006)-Headless-Settings-Import.md) | 2026-03-06 | 18a7cd2 | Stream Deck headless restore; Raycast remains interactive (EPIC-003) |
 | STORY-007 | [1Password Age Key Retrieval]((STORY-007)-1Password-Age-Key-Retrieval.md) | 2026-03-05 | a17a7d2 | 1Password CLI retrieval with biometric auth + error handling (EPIC-004) |
 | STORY-008 | [Ansible Failure Summary Panel]((STORY-008)-Ansible-Failure-Summary-Panel.md) | 2026-03-05 | 19c087c | All ACs met by existing TUI parser + summary + retry (EPIC-004) |
 | STORY-009 | [Role Scaffolding Generator]((STORY-009)-Role-Scaffolding-Generator.md) | 2026-03-05 | 19c087c | scripts/new-role.sh + Makefile target (EPIC-004) |

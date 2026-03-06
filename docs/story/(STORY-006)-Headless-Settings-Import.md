@@ -30,4 +30,4 @@ JOURNEY-001 documents "Raycast and Stream Deck require interactive confirmation 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | ad25d92 | Created from JOURNEY-001 pain point; feasibility of headless import needs investigation |
-| Implemented | 2026-03-06 | _pending_ | Stream Deck headless restore via zip extraction; Raycast remains interactive (not feasible) |
+| Implemented | 2026-03-06 | 18a7cd2 | Stream Deck headless restore via zip extraction; Raycast remains interactive (not feasible) |
