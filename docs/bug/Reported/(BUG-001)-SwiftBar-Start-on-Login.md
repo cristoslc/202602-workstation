@@ -40,4 +40,4 @@ Backup staleness alerts are invisible until SwiftBar is manually started, which 
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Reported | 2026-03-05 | _pending_ | Initial report |
+| Reported | 2026-03-05 | 10eac63 | Initial report |
