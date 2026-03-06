@@ -2,6 +2,12 @@
 {"issue_id":"bd_202602-workstation-20e.2","label":"spec:EPIC-005"}
 {"issue_id":"bd_202602-workstation-20e.3","label":"spec:EPIC-005"}
 {"issue_id":"bd_202602-workstation-20e.4","label":"spec:EPIC-005"}
+{"issue_id":"bd_202602-workstation-2nn.1","label":"story:STORY-005"}
+{"issue_id":"bd_202602-workstation-2nn.2","label":"story:STORY-005"}
+{"issue_id":"bd_202602-workstation-2nn.3","label":"story:STORY-005"}
+{"issue_id":"bd_202602-workstation-2nn.4","label":"story:STORY-005"}
+{"issue_id":"bd_202602-workstation-2nn.5","label":"story:STORY-005"}
+{"issue_id":"bd_202602-workstation-2nn.6","label":"story:STORY-005"}
 {"issue_id":"bd_202602-workstation-39h","label":"spec:EPIC-003"}
 {"issue_id":"bd_202602-workstation-39h.1","label":"priority:P1"}
 {"issue_id":"bd_202602-workstation-39h.1","label":"spec:EPIC-003"}
@@ -45,6 +51,13 @@
 {"issue_id":"bd_202602-workstation-5vk.2","label":"spec:STORY-001"}
 {"issue_id":"bd_202602-workstation-5vk.3","label":"spec:STORY-001"}
 {"issue_id":"bd_202602-workstation-5vk.4","label":"spec:STORY-001"}
+{"issue_id":"bd_202602-workstation-af1.1","label":"story:STORY-006"}
+{"issue_id":"bd_202602-workstation-af1.2","label":"story:STORY-006"}
+{"issue_id":"bd_202602-workstation-af1.3","label":"story:STORY-006"}
+{"issue_id":"bd_202602-workstation-af1.4","label":"story:STORY-006"}
+{"issue_id":"bd_202602-workstation-af1.5","label":"story:STORY-006"}
+{"issue_id":"bd_202602-workstation-af1.6","label":"story:STORY-006"}
+{"issue_id":"bd_202602-workstation-af1.7","label":"story:STORY-006"}
 {"issue_id":"bd_202602-workstation-bns.1","label":"spec:STORY-002"}
 {"issue_id":"bd_202602-workstation-bns.2","label":"spec:STORY-002"}
 {"issue_id":"bd_202602-workstation-bns.3","label":"spec:STORY-002"}
