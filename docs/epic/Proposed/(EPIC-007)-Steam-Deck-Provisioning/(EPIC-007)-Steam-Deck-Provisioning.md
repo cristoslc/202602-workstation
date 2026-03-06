@@ -69,4 +69,4 @@ None — this epic adds a new platform target without modifying existing macOS o
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
-| Proposed | 2026-03-06 | _pending_ | Created from SPIKE-012 GO verdict |
+| Proposed | 2026-03-06 | b58ca4e | Created from SPIKE-012 GO verdict |
