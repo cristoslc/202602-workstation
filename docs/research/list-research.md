@@ -27,7 +27,7 @@ _None._
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| SPIKE-012 | [Steam Deck Desktop Mode Provisioning](./Planned/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | 2026-03-06 | _pending_ | Can the provisioning engine target SteamOS desktop mode? Filesystem, packages, dotfiles, connectivity |
+| SPIKE-012 | [Steam Deck Desktop Mode Provisioning](./Planned/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | 2026-03-06 | 317a8f9 | Can the provisioning engine target SteamOS desktop mode? Filesystem, packages, dotfiles, connectivity |
 
 ## Abandoned
 
