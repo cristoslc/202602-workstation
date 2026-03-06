@@ -5,7 +5,6 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | STORY-006 | [Headless Settings Import]((STORY-006)-Headless-Settings-Import.md) | 2026-03-03 | ad25d92 | Investigate removing interactive GUI dialogs from Raycast/Stream Deck import (EPIC-003) |
-| STORY-012 | [GitHub Copilot CLI Installation]((STORY-012)-GitHub-Copilot-CLI-Installation.md) | 2026-03-05 | ab03bdb | Standalone Copilot CLI on both platforms (EPIC-006) |
 
 ## Ready
 
@@ -26,6 +25,7 @@
 | STORY-002 | [Hub Sync Monitor]((STORY-002)-Hub-Sync-Monitor.md) | 2026-03-03 | 3301fe2 | Spoke-side health check with desktop + Shoutrrr alerts |
 | STORY-003 | [Hub Migration Automation]((STORY-003)-Hub-Migration-Automation.md) | 2026-03-03 | 3301fe2 | make hub-migrate script + Ansible hub playbook with key injection |
 | STORY-011 | [Cross-Platform CI]((STORY-011)-Cross-Platform-CI.md) | 2026-03-05 | a17a7d2 | macOS + Linux matrix CI with all lint/syntax/test checks (EPIC-004) |
+| STORY-012 | [GitHub Copilot CLI Installation]((STORY-012)-GitHub-Copilot-CLI-Installation.md) | 2026-03-06 | PLACEHOLDER | Standalone Copilot CLI on both platforms (EPIC-006) |
 
 ## Abandoned
 

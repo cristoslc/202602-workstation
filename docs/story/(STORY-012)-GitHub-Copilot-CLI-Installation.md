@@ -1,10 +1,10 @@
 ---
 title: "STORY-012: GitHub Copilot CLI Installation"
 artifact: STORY-012
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-05
-last-updated: 2026-03-05
+last-updated: 2026-03-06
 parent-epic: EPIC-006
 depends-on: []
 addresses: []
