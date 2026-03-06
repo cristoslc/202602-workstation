@@ -144,4 +144,4 @@ A `steamos/` platform directory with:
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Planned | 2026-03-06 | 317a8f9 | Initial creation |
-| Complete | 2026-03-06 | _pending_ | GO — Nix+Flatpak+Stow strategy viable; all go criteria met |
+| Complete | 2026-03-06 | b407c2f | GO — Nix+Flatpak+Stow strategy viable; all go criteria met |
