@@ -752,6 +752,29 @@ roles:
         check: {command: linear}
         tags: [linear]
 
+  copilot-cli:
+    phase: bureau-veritas
+    apps:
+      - name: GitHub Copilot CLI
+        platforms: [macos]
+        check: {command: gh-copilot}
+        tags: [copilot-cli]
+        optional: true
+
+  editor-insiders:
+    phase: bureau-veritas
+    apps:
+      - name: VS Code Insiders
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Visual Studio Code - Insiders.app"]}
+        tags: [editor-insiders]
+        optional: true
+      - name: VS Code Insiders
+        platforms: [linux]
+        check: {command: code-insiders}
+        tags: [editor-insiders]
+        optional: true
+
   gli-kvm:
     phase: bureau-veritas
     apps:
@@ -821,6 +844,14 @@ roles:
         platforms: [macos, linux]
         check: {path: "~/.local/bin/sync-health-check"}
         tags: [sync-monitor]
+
+  propagation:
+    phase: sync
+    apps:
+      - name: workstation-propagate
+        platforms: [macos, linux]
+        check: {path: "~/.local/bin/workstation-propagate"}
+        tags: [propagation]
 
   syncthing-hub:
     phase: sync
