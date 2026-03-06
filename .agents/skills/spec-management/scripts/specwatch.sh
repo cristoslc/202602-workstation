@@ -14,6 +14,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
 }
 DOCS_DIR="$REPO_ROOT/docs"
 LOG_FILE="$REPO_ROOT/.agents/specwatch.log"
+IGNORE_FILE="$REPO_ROOT/.agents/specwatch-ignore"
 
 # --- Sentinel and PID paths (repo-specific) ---
 REPO_HASH=$(printf '%s' "$REPO_ROOT" | shasum -a 256 | cut -c1-12)
@@ -70,6 +71,50 @@ log_header() {
   } > "$LOG_FILE"
 }
 
+# --- Ignore list ---
+# Reads .agents/specwatch-ignore for glob patterns to suppress from stale-reference reports.
+# Supports blank lines, # comments, and .gitignore-style glob patterns.
+# Patterns are matched against: source file path (repo-relative), broken link target, and artifact ID.
+
+IGNORE_PATTERNS=()
+
+load_ignore_patterns() {
+  IGNORE_PATTERNS=()
+  [ -f "$IGNORE_FILE" ] || return 0
+  while IFS= read -r line; do
+    # Strip leading/trailing whitespace
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    # Skip blank lines and comments
+    [ -z "$line" ] && continue
+    [[ "$line" == \#* ]] && continue
+    IGNORE_PATTERNS+=("$line")
+  done < "$IGNORE_FILE"
+}
+
+# is_ignored <source_rel_path> <link_target> <artifact_id>
+# Returns 0 (true) if any ignore pattern matches any of the three fields.
+is_ignored() {
+  local source_path="$1"
+  local link_target="$2"
+  local artifact_id="$3"
+  [ "${#IGNORE_PATTERNS[@]}" -eq 0 ] && return 1
+  for pattern in "${IGNORE_PATTERNS[@]}"; do
+    # Match against source file path (repo-relative)
+    # shellcheck disable=SC2254
+    if [[ "$source_path" == $pattern ]]; then return 0; fi
+    # Match against the broken link target
+    # shellcheck disable=SC2254
+    if [[ "$link_target" == $pattern ]]; then return 0; fi
+    # Match against the artifact ID (if present)
+    if [ -n "$artifact_id" ]; then
+      # shellcheck disable=SC2254
+      if [[ "$artifact_id" == $pattern ]]; then return 0; fi
+    fi
+  done
+  return 1
+}
+
 # --- Stale reference scanner ---
 # Extracts markdown links [text](path) pointing to local files, checks existence,
 # and suggests corrections using artifact ID extraction.
@@ -78,6 +123,8 @@ scan_stale_refs() {
   local mode="${1:-full}"   # "full" or "event" with artifact ID
   local event_id="${2:-}"   # artifact ID for event-driven mode (e.g., ADR-001)
   local found_stale=0
+
+  load_ignore_patterns
 
   log_header
 
@@ -149,6 +196,12 @@ PYEOF
         artifact_id="${BASH_REMATCH[1]}"
       elif [[ "$clean_path" =~ $bare_id_re ]]; then
         artifact_id="${BASH_REMATCH[1]}"
+      fi
+
+      # Check ignore list — skip if source path, link target, or artifact ID matches
+      local rel_source_check="${md_file#"$REPO_ROOT"/}"
+      if is_ignored "$rel_source_check" "$link_target" "$artifact_id"; then
+        continue
       fi
 
       if [ -n "$artifact_id" ]; then
