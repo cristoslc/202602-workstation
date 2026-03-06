@@ -1,10 +1,10 @@
 ---
 title: "EPIC-006: VSCode Insiders and GitHub Copilot CLI"
 artifact: EPIC-006
-status: Active
+status: Complete
 author: cristos
 created: 2026-03-05
-last-updated: 2026-03-05
+last-updated: 2026-03-06
 parent-vision: VISION-001
 success-criteria:
   - VSCode Insiders is installed via Ansible on both macOS and Linux
