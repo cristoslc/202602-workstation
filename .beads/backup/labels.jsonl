@@ -31,6 +31,9 @@
 {"issue_id":"bd_202602-workstation-39h.8","label":"spec:EPIC-003"}
 {"issue_id":"bd_202602-workstation-39h.9","label":"priority:P4"}
 {"issue_id":"bd_202602-workstation-39h.9","label":"spec:EPIC-003"}
+{"issue_id":"bd_202602-workstation-4iq.1","label":"spec:BUG-001"}
+{"issue_id":"bd_202602-workstation-4iq.2","label":"spec:BUG-001"}
+{"issue_id":"bd_202602-workstation-4iq.3","label":"spec:BUG-001"}
 {"issue_id":"bd_202602-workstation-5dz.1","label":"spec:SPIKE-007"}
 {"issue_id":"bd_202602-workstation-5dz.2","label":"spec:SPIKE-007"}
 {"issue_id":"bd_202602-workstation-5dz.3","label":"spec:SPIKE-007"}
