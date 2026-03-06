@@ -1,10 +1,10 @@
 ---
 title: "BUG-001: SwiftBar Should Start on Login"
 artifact: BUG-001
-status: Fixed
+status: Verified
 author: cristos
 created: 2026-03-05
-last-updated: 2026-03-05
+last-updated: 2026-03-06
 severity: low
 affected-artifacts:
   - EPIC-001
