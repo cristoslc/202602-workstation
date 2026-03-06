@@ -5,8 +5,7 @@ status: Draft
 author: cristos
 created: 2026-03-05
 last-updated: 2026-03-05
-depends-on:
-  - VISION-001
+depends-on: []
 ---
 
 # VISION-003: Plumbline

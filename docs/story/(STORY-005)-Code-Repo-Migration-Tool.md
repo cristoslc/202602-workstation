@@ -1,7 +1,7 @@
 ---
 title: "STORY-005: Code Repo Migration Tool"
 artifact: STORY-005
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -32,3 +32,4 @@ JOURNEY-003 documents "no unified way to transfer repos with uncommitted work" a
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-003 pain point; partially addressed by SPEC-002/003 for user-data repos |
+| Implemented | 2026-03-06 | _pending_ | code-pull.sh with repo discovery, clean clone, dirty rsync |

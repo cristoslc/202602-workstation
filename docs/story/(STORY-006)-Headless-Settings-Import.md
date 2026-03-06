@@ -1,7 +1,7 @@
 ---
 title: "STORY-006: Headless Settings Import"
 artifact: STORY-006
-status: Draft
+status: Implemented
 author: cristos
 created: 2026-03-03
 last-updated: 2026-03-03
@@ -21,12 +21,13 @@ JOURNEY-001 documents "Raycast and Stream Deck require interactive confirmation 
 
 ## Acceptance Criteria
 
-1. Raycast settings are imported without requiring the user to switch to the Raycast app and click a confirmation dialog.
+1. ~~Raycast settings are imported without requiring the user to switch to the Raycast app and click a confirmation dialog.~~ **Not feasible** — Raycast's `.rayconfig` format is opaque/encrypted binary; no CLI or filesystem-level import exists. Raycast import remains interactive.
 2. Stream Deck settings are restored without requiring the user to switch to the Stream Deck app and click a confirmation dialog.
-3. The TUI's Import Settings screen completes all imports in sequence without user interaction.
+3. ~~The TUI's Import Settings screen completes all imports in sequence without user interaction.~~ Partially met — Stream Deck is now headless; Raycast still requires confirmation.
 
 ## Lifecycle
 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-03 | ad25d92 | Created from JOURNEY-001 pain point; feasibility of headless import needs investigation |
+| Implemented | 2026-03-06 | _pending_ | Stream Deck headless restore via zip extraction; Raycast remains interactive (not feasible) |

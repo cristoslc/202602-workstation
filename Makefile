@@ -32,7 +32,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         log-send log-receive export-iterm2 export-ice export-raycast export-streamdeck export-openin \
         snippets-convert export-all \
         backup-status backup-browse \
-        data-pull data-pull-dry verify-sync-boundary \
+        data-pull data-pull-dry code-pull code-pull-dry verify-sync-boundary \
         hub-migrate hub-migrate-dry hub-provision hub-restore \
         hub-backup-keys new-role
 
@@ -240,6 +240,18 @@ snippets-convert: ## One-time: convert Raycast snippets JSON to SOPS-encrypted E
 	rm -f "$$SNIPFILE"; \
 	echo "Snippets converted and encrypted to $${SOPS_DEST}.sops"; \
 	echo "Edit later with: sops shared/secrets/dotfiles/espanso/.config/espanso/match/raycast.yml.sops"
+
+code-pull: ## Migrate git repos from another machine: make code-pull SOURCE=<hostname>
+ifndef SOURCE
+	$(error SOURCE is required. Usage: make code-pull SOURCE=desktop)
+endif
+	./scripts/code-pull.sh $(SOURCE)
+
+code-pull-dry: ## Preview code migration: make code-pull-dry SOURCE=<hostname>
+ifndef SOURCE
+	$(error SOURCE is required. Usage: make code-pull-dry SOURCE=desktop)
+endif
+	./scripts/code-pull.sh $(SOURCE) --dry-run
 
 data-pull: ## Bulk-copy user data from another machine: make data-pull SOURCE=<hostname>
 ifndef SOURCE

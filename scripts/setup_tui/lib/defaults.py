@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -58,6 +60,10 @@ STREAMDECK_IMPORT_TMP = (
     Path.home() / ".cache" / "workstation"
     / "streamdeck-import.streamDeckProfilesBackup"
 )
+STREAMDECK_PROFILES_DIR = (
+    Path.home() / "Library" / "Application Support"
+    / "com.elgato.StreamDeck" / "ProfilesV3"
+)
 OPENIN_APP_PATH = Path("/Applications/Setapp/OpenIn.app")
 OPENIN_PLIST_PATH = (
     REPO_ROOT / "macos" / "files" / "openin" / "openin.plist"
@@ -93,9 +99,7 @@ IMPORT_ITEMS: list[dict] = [
         "id": "streamdeck",
         "label": "Stream Deck profiles",
         "import_fn": "import_streamdeck_profiles",
-        "interactive": True,
-        "cleanup_fn": "cleanup_streamdeck_import",
-        "confirm_prompt": "Confirm the restore in the Stream Deck app",
+        "interactive": False,
     },
     {
         "id": "openin",
@@ -657,18 +661,16 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
     return msg
 
 
-def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
-    """Decrypt and open Stream Deck backup for import.
+def import_streamdeck_profiles(runner: ToolRunner) -> str:
+    """Decrypt and restore Stream Deck profiles without GUI interaction.
 
-    Returns ``(message, needs_confirm)`` — when *needs_confirm* is True the
-    caller should pause for the user to confirm the Stream Deck restore dialog,
-    then call :func:`cleanup_streamdeck_import`.
+    Extracts the backup zip's ``Profiles/`` directory directly into the
+    Stream Deck ``ProfilesV3/`` folder, restarting the app if running.
     """
     if not STREAMDECK_BACKUP_AGE_PATH.exists():
         return (
             "No Stream Deck export found — skipping import. "
-            "Configure manually, then run: make export-streamdeck",
-            False,
+            "Configure manually, then run: make export-streamdeck"
         )
     STREAMDECK_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
     runner.run(
@@ -680,7 +682,34 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
         ],
         check=True,
     )
-    runner.run(["open", str(STREAMDECK_IMPORT_TMP)], check=True)
+    # Quit Stream Deck if running so we can overwrite profiles safely
+    subprocess.run(
+        ["osascript", "-e", 'tell application "Elgato Stream Deck" to quit'],
+        capture_output=True,
+    )
+    # Extract Profiles/ from backup zip into ProfilesV3/
+    STREAMDECK_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(str(STREAMDECK_IMPORT_TMP), "r") as zf:
+        for member in zf.infolist():
+            if not member.filename.startswith("Profiles/"):
+                continue
+            # Strip "Profiles/" prefix to get the relative path
+            rel = member.filename[len("Profiles/"):]
+            if not rel:
+                continue
+            dest = STREAMDECK_PROFILES_DIR / rel
+            if member.is_dir():
+                dest.mkdir(parents=True, exist_ok=True)
+            else:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(zf.read(member.filename))
+    # Clean up temp file
+    STREAMDECK_IMPORT_TMP.unlink(missing_ok=True)
+    # Restart Stream Deck
+    subprocess.run(
+        ["open", "-a", "Elgato Stream Deck"],
+        capture_output=True,
+    )
     # Decrypt plugin list and render HTML so user can reinstall plugins
     if STREAMDECK_PLUGINS_AGE_PATH.exists():
         try:
@@ -708,15 +737,11 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
             )
         except Exception:
             pass  # Plugin list is nice-to-have, don't fail restore
-    return (
-        "Stream Deck restore dialog opened — confirm the restore in the app.",
-        True,
-    )
+    return "Stream Deck profiles restored (headless)"
 
 
 def cleanup_streamdeck_import() -> None:
-    """Remove the temporary decrypted Stream Deck backup."""
-    STREAMDECK_IMPORT_TMP.unlink(missing_ok=True)
+    """No-op — headless restore cleans up inline."""
 
 
 def run_all_imports(
