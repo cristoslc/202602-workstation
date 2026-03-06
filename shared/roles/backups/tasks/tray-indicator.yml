@@ -74,3 +74,16 @@
         src: backup-status.swiftbar.sh.j2
         dest: "{{ swiftbar_plugin_dir }}/backup-status.1m.sh"
         mode: "0755"
+
+    - name: Check if SwiftBar is running
+      ansible.builtin.command:
+        cmd: pgrep -xq SwiftBar
+      register: _swiftbar_running
+      changed_when: false
+      failed_when: false
+
+    - name: Launch SwiftBar (registers as login item on first open)
+      ansible.builtin.command:
+        cmd: open -a SwiftBar
+      when: _swiftbar_running.rc != 0
+      changed_when: true

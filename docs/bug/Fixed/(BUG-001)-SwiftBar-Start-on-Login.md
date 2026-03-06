@@ -1,7 +1,7 @@
 ---
 title: "BUG-001: SwiftBar Should Start on Login"
 artifact: BUG-001
-status: Reported
+status: Fixed
 author: cristos
 created: 2026-03-05
 last-updated: 2026-03-05
@@ -9,7 +9,7 @@ severity: low
 affected-artifacts:
   - EPIC-001
 discovered-in: "Manual observation — SwiftBar backup staleness widget not running after reboot"
-fix-ref: ""
+fix-ref: "bd_202602-workstation-4iq"
 ---
 
 # BUG-001: SwiftBar Should Start on Login
