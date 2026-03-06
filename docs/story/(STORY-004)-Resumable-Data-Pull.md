@@ -30,4 +30,4 @@ JOURNEY-003 documents "large data transfers take hours with no resume-on-disconn
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Ready | 2026-03-03 | ad25d92 | Created from JOURNEY-003 pain point; skipped Draft (trivial scope) |
-| Implemented | 2026-03-06 | _pending_ | --partial-dir=.rsync-partial + auto-cleanup after successful sync |
+| Implemented | 2026-03-06 | 1c12fd2 | --partial-dir=.rsync-partial + auto-cleanup after successful sync |
