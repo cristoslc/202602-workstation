@@ -136,8 +136,14 @@ A `steamos/` platform directory with:
 ### Open Questions for Epic
 
 - Should the Epic depend on Nix, making it a hard requirement? Or offer Distrobox as a fallback?
+  - Depend on nix, but bootstrap it if Steam Deck detected. Do not rely on Nix for other environments.
+
 - Does the Ansible `os_family` bug warrant an upstream PR to fix the SteamOS 3 mapping?
+  - No, figure out after fault-tolerant solution.
+
 - Should KDE keybinding management be a new cross-cutting concern (currently the keyboard role is Hammerspoon/dconf only)?
+  - Yes, make a new SPIKE if needed.
+
 
 ## Lifecycle
 
