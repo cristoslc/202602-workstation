@@ -1,10 +1,10 @@
 ---
 title: "EPIC-001: Restic Backup Stack"
 artifact: EPIC-001
-status: Active
+status: Complete
 author: cristos
 created: 2026-03-01
-last-updated: 2026-03-03
+last-updated: 2026-03-05
 parent-vision: VISION-001
 success-criteria:
   - "`make apply ROLE=backups` configures Restic + Backrest on both macOS and Linux"
