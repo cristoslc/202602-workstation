@@ -66,3 +66,4 @@ None. Copilot CLI is standalone (Homebrew formula / npm package) — no `gh` CLI
 |-------|------|--------|-------|
 | Proposed | 2026-03-05 | 4e5aaba | Initial creation for Bureau Veritas phase |
 | Active | 2026-03-05 | ab03bdb | Decomposed into SPEC-005 + STORY-012 |
+| Complete | 2026-03-06 | a888cab | All children implemented — SPEC-005 + STORY-012 |
