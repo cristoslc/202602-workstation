@@ -661,7 +661,7 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
     return msg
 
 
-def import_streamdeck_profiles(runner: ToolRunner) -> str:
+def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
     """Decrypt and restore Stream Deck profiles without GUI interaction.
 
     Extracts the backup zip's ``Profiles/`` directory directly into the
@@ -670,7 +670,8 @@ def import_streamdeck_profiles(runner: ToolRunner) -> str:
     if not STREAMDECK_BACKUP_AGE_PATH.exists():
         return (
             "No Stream Deck export found — skipping import. "
-            "Configure manually, then run: make export-streamdeck"
+            "Configure manually, then run: make export-streamdeck",
+            False,
         )
     STREAMDECK_IMPORT_TMP.parent.mkdir(parents=True, exist_ok=True)
     runner.run(
@@ -737,7 +738,7 @@ def import_streamdeck_profiles(runner: ToolRunner) -> str:
             )
         except Exception:
             pass  # Plugin list is nice-to-have, don't fail restore
-    return "Stream Deck profiles restored (headless)"
+    return "Stream Deck profiles restored (headless)", False
 
 
 def cleanup_streamdeck_import() -> None:

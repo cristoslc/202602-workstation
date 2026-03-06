@@ -504,12 +504,12 @@ class TestRunAllImports:
         ):
             messages, confirmations = run_all_imports(mock_runner)
         assert len(messages) == 4  # iTerm2 + OpenIn + Raycast + Stream Deck
-        assert len(confirmations) == 2  # Raycast + Stream Deck need confirm
+        assert len(confirmations) == 1  # Raycast needs confirm; Stream Deck is headless
         # iTerm2 (decrypt + 2 defaults write = 3) +
         # OpenIn (PlistBuddy + decrypt + defaults import = 3) +
         # Raycast (decrypt + open = 2) +
-        # Stream Deck (decrypt + open + decrypt plugins attempt = 3)
-        assert mock_runner.run.call_count == 11
+        # Stream Deck (decrypt = 1, then zipfile fails on mock path)
+        assert mock_runner.run.call_count == 9
 
     def test_no_confirm_when_no_exports(self, mock_runner):
         with patch.object(
