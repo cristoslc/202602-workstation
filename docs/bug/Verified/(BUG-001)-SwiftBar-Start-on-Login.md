@@ -42,3 +42,4 @@ Backup staleness alerts are invisible until SwiftBar is manually started, which 
 |-------|------|--------|-------|
 | Reported | 2026-03-05 | 10eac63 | Initial report |
 | Fixed | 2026-03-05 | fbdddc4 | Added open -a SwiftBar to Ansible backups role |
+| Verified | 2026-03-06 | ce6115f | Fix confirmed working |
