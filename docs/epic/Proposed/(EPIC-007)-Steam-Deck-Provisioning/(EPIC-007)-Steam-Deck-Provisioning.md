@@ -53,7 +53,7 @@ _To be created during decomposition._
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| [SPIKE-012](../../research/Complete/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | Steam Deck Desktop Mode Provisioning | Complete | GO — all go criteria met |
+| [SPIKE-012](../../../research/Complete/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | Steam Deck Desktop Mode Provisioning | Complete | GO — all go criteria met |
 
 ## Key Dependencies
 
