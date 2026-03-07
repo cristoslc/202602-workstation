@@ -1,2 +1,6 @@
 # Espanso configuration for X11.
 backend: x11
+
+# Disable the search bar shortcut (Alt+Space) to avoid conflicts.
+# Espanso remains accessible via the system tray icon.
+search_shortcut: off
