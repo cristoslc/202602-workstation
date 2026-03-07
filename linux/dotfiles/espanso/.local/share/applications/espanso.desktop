@@ -2,7 +2,7 @@
 Name=Espanso
 Comment=Cross-platform text expander
 Exec=/usr/bin/espanso cmd search
-Icon=/home/cristos/.local/share/icons/hicolor/128x128/apps/espanso.png
+Icon=espanso
 Terminal=false
 Type=Application
 Categories=Utility;TextTools;
