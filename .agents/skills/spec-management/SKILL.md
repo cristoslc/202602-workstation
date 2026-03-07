@@ -1,11 +1,11 @@
 ---
 name: spec-management
-description: Create, validate, and transition documentation artifacts (Vision, Journey, Epic, Story, Agent Spec, Spike, ADR, Persona, Runbook, Bug) and their supporting docs (architecture overviews, journey maps, competitive analyses) through their lifecycle phases. Use when the user wants to write a spec, plan a feature, create an epic, add a user story, draft an ADR, start a research spike, define a persona, create a user persona, create a runbook, define a validation procedure, file a bug, report a defect, update the architecture overview, document the system architecture, move an artifact to a new phase, seed an implementation plan, implement a spec, fix a bug, work on a story, or validate cross-references between artifacts. When a SPEC, STORY, or BUG comes up for implementation, always chain into the execution-tracking skill to create a tracked plan before any code is written. When execution-tracking is requested on an EPIC, VISION, or JOURNEY, decompose into implementable children first — execution-tracking runs on the children, not the container. Covers any request to create, update, review, or transition spec artifacts and supporting docs.
+description: Create, validate, and transition documentation artifacts (Vision, Journey, Epic, Story, Agent Spec, Spike, ADR, Persona, Runbook, Bug, Design) and their supporting docs (architecture overviews, journey maps, competitive analyses) through their lifecycle phases. Use when the user wants to write a spec, plan a feature, create an epic, add a user story, draft an ADR, start a research spike, define a persona, create a user persona, create a runbook, define a validation procedure, file a bug, report a defect, create a design, capture a wireframe, document a UI flow, sketch interaction states, update the architecture overview, document the system architecture, move an artifact to a new phase, seed an implementation plan, implement a spec, fix a bug, work on a story, or validate cross-references between artifacts. When a SPEC, STORY, or BUG comes up for implementation, always chain into the execution-tracking skill to create a tracked plan before any code is written. When execution-tracking is requested on an EPIC, VISION, or JOURNEY, decompose into implementable children first — execution-tracking runs on the children, not the container. Covers any request to create, update, review, or transition spec artifacts and supporting docs.
 license: UNLICENSED
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 metadata:
   short-description: Manage spec artifact creation and lifecycle
-  version: 1.2.0
+  version: 1.3.0
   author: cristos
 ---
 
@@ -39,6 +39,10 @@ erDiagram
     SPIKE }o--o{ ADR : "linked-research"
     SPIKE }o--o{ EPIC : "linked-research"
     SPIKE }o--o{ BUG : "linked-research"
+    DESIGN }o--o{ EPIC : "linked-designs"
+    DESIGN }o--o{ STORY : "linked-designs"
+    DESIGN }o--o{ SPEC : "linked-designs"
+    DESIGN }o--o{ BUG : "linked-designs"
 
     EPIC {
         string parent_vision FK
@@ -84,6 +88,14 @@ erDiagram
         string gate "required"
         list depends_on "optional"
     }
+    DESIGN {
+        string superseded_by "optional"
+        list linked_epics "optional"
+        list linked_stories "optional"
+        list linked_specs "optional"
+        list linked_bugs "optional"
+        list depends_on "optional"
+    }
     IMPL_PLAN {
         string origin_ref "SPEC-NNN"
         list spec_tags "mutable"
@@ -94,7 +106,10 @@ erDiagram
 
 ## Stale reference watcher
 
-The `specwatch.sh` script monitors `docs/` for file moves, renames, and deletes, and flags stale markdown link references with suggested fixes.
+The `specwatch.sh` script monitors `docs/` for stale references. It checks two things:
+
+1. **Markdown link paths** — `[text](path/to/file.md)` links where the target no longer exists. Suggests corrections by artifact ID lookup.
+2. **Frontmatter artifact references** — all `depends-on`, `parent-*`, `linked-*`, `addresses`, `validates`, `affected-artifacts`, `superseded-by`, and `fix-ref` fields. For each artifact ID, resolves to a relative file path and checks both existence and semantic coherence (target in Abandoned/Rejected state, phase mismatches where the source is significantly more advanced than the target).
 
 **Script location:** `scripts/specwatch.sh` (relative to this skill)
 
@@ -108,12 +123,24 @@ The `specwatch.sh` script monitors `docs/` for file moves, renames, and deletes,
 | `status` | Show watcher status and log summary |
 | `touch` | Refresh the sentinel keepalive timer |
 
-**Log format:** When stale references are found, they are written to `.agents/specwatch.log` in a structured format. This file is a runtime artifact — add `specwatch.log` to your `.gitignore` if it isn't already.
+**Log format:** Findings are written to `.agents/specwatch.log` in a structured format. This file is a runtime artifact — add `specwatch.log` to your `.gitignore` if it isn't already.
 ```
 STALE <source-file>:<line>
   broken: <relative-path-as-written>
   found: <suggested-new-path>
   artifact: <TYPE-NNN>
+
+STALE_REF <source-file>:<line> (frontmatter)
+  field: <frontmatter-field-name>
+  target: <TYPE-NNN>
+  resolved: NONE
+  issue: unresolvable artifact ID
+
+WARN <source-file>:<line> (frontmatter)
+  field: <frontmatter-field-name>
+  target: <TYPE-NNN>
+  resolved: <relative-path-to-target>
+  issue: <target is Abandoned | source is X but target is still Y>
 ```
 
 ### Post-operation scan
@@ -192,8 +219,19 @@ Audits touch every artifact, so **always parallelize with sub-agents** — seria
 | **Cross-reference checker** | Verify all `parent-*`, `depends-on`, `linked-*`, and `addresses` frontmatter values resolve to existing artifact files. Flag dangling references. |
 | **Naming & structure validator** | Confirm directory/file names follow `(TYPE-NNN)-Title` convention, templates have required frontmatter fields, and folder-type artifacts contain a primary `.md` file. |
 | **Phase/folder alignment** | Run `specwatch.sh phase-fix` to detect and move artifacts whose frontmatter `status:` doesn't match their phase subdirectory. Review the staged `git mv` renames and commit. |
+| **Dependency coherence auditor** | Validate that `depends-on` edges are logically sound, not just syntactically valid. See checks below. |
 
-Each agent reports gaps as a structured table with file path, issue type, and missing/invalid field. Merge the three tables into a single audit report. Always include a 1-2 sentence summary of each artifact (not just its title) in result tables.
+The dependency coherence auditor catches cases where the graph *exists* but is *wrong*. The cross-reference checker confirms targets resolve to real files; this agent checks whether those edges still make sense. Specific checks:
+
+1. **Dead-end dependencies** — `depends-on` targets an Abandoned or Rejected artifact. The dependency can never be satisfied; flag it for removal or replacement.
+2. **Orphaned satisfied dependencies** — `depends-on` targets a Complete/Implemented artifact but the dependent is still in Draft/Proposed. The blocker is resolved — is the dependent actually stalled for a different reason, or should it advance?
+3. **Phase-inversion** — A dependent artifact is in a *later* lifecycle phase than something it supposedly depends on (e.g., an Implemented spec that `depends-on` a Draft spike). This suggests the edge was never cleaned up or was added in error.
+4. **Content-drift** — Read both artifacts and assess whether the dependency relationship still holds given what each artifact actually describes. Artifacts evolve; an edge that made sense at creation time may no longer reflect reality. Flag edges where the content of the two artifacts has no apparent logical connection.
+5. **Missing implicit dependencies** — Scan artifact bodies for references to other artifact IDs (e.g., "as decided in ADR-001" or "builds on SPIKE-003") that are *not* declared in `depends-on` or `linked-*` frontmatter. These are shadow dependencies that should be formalized or explicitly noted as informational.
+
+For checks 4 and 5, the agent must actually read artifact content — frontmatter alone is not sufficient. Present findings as a table with: source artifact, target artifact, check type, evidence (quote or summary), and recommended action (remove edge, add edge, update frontmatter, or investigate).
+
+Each agent reports gaps as a structured table with file path, issue type, and missing/invalid field. Merge the tables into a single audit report. Always include a 1-2 sentence summary of each artifact (not just its title) in result tables.
 
 **Enforce definitions, not current layout.** The artifact definition files (in `references/`) are the source of truth for folder structure. If the repo's current layout diverges from the definitions (e.g., epics in a flat directory instead of phase subdirectories), the audit should flag misplaced files and propose `git mv` commands to bring them into compliance. Do not silently adopt a non-standard layout just because it already exists.
 
