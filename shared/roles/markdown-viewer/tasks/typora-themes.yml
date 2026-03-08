@@ -1,0 +1,45 @@
+---
+# Deploy Typora community themes from the repo to the platform's theme directory.
+
+- name: Set Typora themes directory (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  ansible.builtin.set_fact:
+    _typora_themes_dir: "{{ ansible_facts.env.HOME }}/Library/Application Support/abnerworks.Typora/themes"
+
+- name: Set Typora themes directory (Linux)
+  when: ansible_facts.os_family != "Darwin"
+  ansible.builtin.set_fact:
+    _typora_themes_dir: "{{ ansible_facts.env.HOME }}/.config/Typora/themes"
+
+- name: Ensure Typora themes directory exists
+  ansible.builtin.file:
+    path: "{{ _typora_themes_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Find community themes in repo
+  ansible.builtin.find:
+    paths: "{{ workstation_dir }}/shared/files/typora-themes"
+    file_type: any
+    recurse: false
+  register: _typora_theme_files
+
+- name: Copy theme files
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ _typora_themes_dir }}/{{ item.path | basename }}"
+    mode: "0644"
+  loop: "{{ _typora_theme_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when: not item.isdir
+
+- name: Copy theme directories
+  ansible.builtin.copy:
+    src: "{{ item.path }}/"
+    dest: "{{ _typora_themes_dir }}/{{ item.path | basename }}/"
+    mode: "0644"
+  loop: "{{ _typora_theme_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when: item.isdir

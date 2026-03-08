@@ -4,3 +4,7 @@
 - name: Install Typora
   ansible.builtin.include_tasks: typora.yml
   tags: [typora]
+
+- name: Deploy Typora themes
+  ansible.builtin.include_tasks: typora-themes.yml
+  tags: [typora, typora-themes]

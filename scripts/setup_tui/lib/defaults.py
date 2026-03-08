@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import zipfile
 from datetime import datetime, timezone
@@ -72,6 +73,14 @@ OPENIN_PLIST_AGE_PATH = (
     REPO_ROOT / "macos" / "files" / "openin" / "openin.plist.age"
 )
 AGE_KEYS_PATH = Path.home() / ".config" / "sops" / "age" / "keys.txt"
+TYPORA_THEMES_REPO_DIR = REPO_ROOT / "shared" / "files" / "typora-themes"
+# Bundled themes shipped with Typora — excluded from export.
+_TYPORA_BUNDLED_THEMES = {
+    "github.css", "newsprint.css", "night.css", "pixyll.css", "whitey.css",
+}
+_TYPORA_BUNDLED_DIRS = {
+    "github", "newsprint", "night", "pixyll", "whitey", "old-themes",
+}
 
 # ---------------------------------------------------------------------------
 # Export registry — shared by Makefile (export-all) and TUI checklist
@@ -144,6 +153,12 @@ EXPORT_ITEMS: list[dict] = [
         "label": "OpenIn browser rules",
         "interactive": False,
         "export_fn": "export_openin_settings",
+    },
+    {
+        "id": "typora-themes",
+        "label": "Typora themes",
+        "interactive": False,
+        "export_fn": "export_typora_themes",
     },
 ]
 
@@ -430,6 +445,47 @@ def export_openin_settings(runner: ToolRunner) -> str:
 # ---------------------------------------------------------------------------
 # Import functions — mirror Ansible tasks for standalone re-import
 # ---------------------------------------------------------------------------
+
+
+def _typora_themes_dir() -> Path:
+    """Return the platform-specific Typora user themes directory."""
+    import platform as _plat
+
+    if _plat.system() == "Darwin":
+        return (
+            Path.home() / "Library" / "Application Support"
+            / "abnerworks.Typora" / "themes"
+        )
+    return Path.home() / ".config" / "Typora" / "themes"
+
+
+def export_typora_themes(runner: ToolRunner) -> str:
+    """Copy non-bundled Typora themes from the local install into the repo."""
+    src = _typora_themes_dir()
+    if not src.is_dir():
+        raise RuntimeError(f"Typora themes directory not found: {src}")
+
+    TYPORA_THEMES_REPO_DIR.mkdir(parents=True, exist_ok=True)
+    count = 0
+
+    # Copy CSS files (excluding bundled)
+    for css in sorted(src.glob("*.css")):
+        if css.name in _TYPORA_BUNDLED_THEMES:
+            continue
+        shutil.copy2(css, TYPORA_THEMES_REPO_DIR / css.name)
+        count += 1
+
+    # Copy theme asset directories (excluding bundled)
+    for d in sorted(src.iterdir()):
+        if not d.is_dir() or d.name in _TYPORA_BUNDLED_DIRS:
+            continue
+        dest = TYPORA_THEMES_REPO_DIR / d.name
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(d, dest)
+        count += 1
+
+    return f"Typora themes exported ({count} items) to {TYPORA_THEMES_REPO_DIR}"
 
 
 def import_iterm2_settings(runner: ToolRunner) -> str:

@@ -30,7 +30,7 @@ RESTIC_B2_BUCKET ?= $(shell cat $(HOME)/.config/restic/bucket-name 2>/dev/null)
         edit-secrets-shared edit-secrets-linux edit-secrets-macos \
         key-export key-import key-send key-receive \
         log-send log-receive export-iterm2 export-ice export-raycast export-streamdeck export-openin \
-        snippets-convert export-all \
+        export-typora-themes snippets-convert export-all \
         backup-status backup-browse \
         data-pull data-pull-dry code-pull code-pull-dry verify-sync-boundary \
         hub-migrate hub-migrate-dry hub-provision hub-restore \
@@ -172,7 +172,7 @@ log-send: ## Send bootstrap.log to another machine via Magic Wormhole
 log-receive: ## Receive bootstrap.log from another machine via Magic Wormhole
 	uv run --with magic-wormhole wormhole receive -o bootstrap.log
 
-export-all: export-iterm2 export-ice export-streamdeck export-raycast export-openin ## Export all settings (macOS only)
+export-all: export-iterm2 export-ice export-streamdeck export-raycast export-openin export-typora-themes ## Export all settings
 
 export-iterm2: ## Re-export iTerm2 plist, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
@@ -223,6 +223,37 @@ export-openin: ## Export OpenIn preferences, age-encrypted for the repo (macOS o
 	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
 	age -r "$$AGE_PUBKEY" -o macos/files/openin/openin.plist.age macos/files/openin/openin.plist; \
 	echo "OpenIn settings exported and encrypted. Review with: git diff --stat macos/files/openin/"
+
+export-typora-themes: ## Sync Typora themes from local install to repo (cross-platform)
+	@if [ "$(PLATFORM)" = "darwin" ]; then \
+		THEMES_DIR="$$HOME/Library/Application Support/abnerworks.Typora/themes"; \
+	else \
+		THEMES_DIR="$$HOME/.config/Typora/themes"; \
+	fi; \
+	if [ ! -d "$$THEMES_DIR" ]; then echo "Typora themes directory not found: $$THEMES_DIR"; exit 1; fi; \
+	BUNDLED="github.css newsprint.css night.css pixyll.css whitey.css"; \
+	DEST="$(CURDIR)/shared/files/typora-themes"; \
+	mkdir -p "$$DEST"; \
+	count=0; \
+	for f in "$$THEMES_DIR"/*.css; do \
+		base=$$(basename "$$f"); \
+		skip=false; \
+		for b in $$BUNDLED; do [ "$$base" = "$$b" ] && skip=true; done; \
+		if [ "$$skip" = "false" ]; then \
+			cp "$$f" "$$DEST/$$base"; \
+			count=$$((count + 1)); \
+		fi; \
+	done; \
+	for d in "$$THEMES_DIR"/*/; do \
+		base=$$(basename "$$d"); \
+		skip=false; \
+		for b in github newsprint night pixyll whitey old-themes; do [ "$$base" = "$$b" ] && skip=true; done; \
+		if [ "$$skip" = "false" ]; then \
+			cp -r "$$d" "$$DEST/$$base"; \
+			count=$$((count + 1)); \
+		fi; \
+	done; \
+	echo "Typora themes exported ($$count items). Review with: git diff --stat shared/files/typora-themes/"
 
 snippets-convert: ## One-time: convert Raycast snippets JSON to SOPS-encrypted Espanso YAML
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
