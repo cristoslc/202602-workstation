@@ -1945,6 +1945,7 @@ class TestExportStreamdeckPluginList:
             plugins_dir=fake_plugins_dir,
             json_path=json_out,
             html_path=html_out,
+            backup_path=tmp_path / "nonexistent.zip",
         )
 
         assert json_out.exists()
@@ -1958,6 +1959,7 @@ class TestExportStreamdeckPluginList:
             plugins_dir=fake_plugins_dir,
             json_path=json_out,
             html_path=html_out,
+            backup_path=tmp_path / "nonexistent.zip",
         )
         data = json.loads(json_out.read_text())
         assert isinstance(data, list)
@@ -1971,6 +1973,7 @@ class TestExportStreamdeckPluginList:
             plugins_dir=fake_plugins_dir,
             json_path=json_out,
             html_path=html_out,
+            backup_path=tmp_path / "nonexistent.zip",
         )
         html = html_out.read_text()
         assert "Counter" in html
@@ -1986,6 +1989,7 @@ class TestExportStreamdeckPluginList:
             plugins_dir=empty_dir,
             json_path=json_out,
             html_path=html_out,
+            backup_path=tmp_path / "nonexistent.zip",
         )
         assert "0 plugins" in msg
         assert json.loads(json_out.read_text()) == []

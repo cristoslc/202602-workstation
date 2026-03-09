@@ -609,6 +609,12 @@ def cleanup_raycast_import() -> None:
     RAYCAST_IMPORT_TMP.unlink(missing_ok=True)
 
 
+_STREAMDECK_BUILTIN_PREFIXES = (
+    "com.elgato.streamdeck.system.",
+    "com.elgato.streamdeck.profile.",
+)
+
+
 def scan_streamdeck_plugins(
     plugins_dir: Path | None = None,
 ) -> list[dict]:
@@ -642,14 +648,112 @@ def scan_streamdeck_plugins(
     return plugins
 
 
+def scan_streamdeck_backup_plugins(backup_path: Path) -> list[dict]:
+    """Extract plugin UUIDs referenced in a Stream Deck backup zip.
+
+    Returns minimal plugin dicts (name derived from UUID, no version/URL)
+    for plugins that are referenced in profile JSON files.  Built-in
+    system actions (hotkey, multimedia, open-app, profile navigation)
+    are excluded.
+    """
+    if not backup_path.is_file():
+        return []
+
+    plugins_map: dict[str, dict] = {}
+    with zipfile.ZipFile(str(backup_path), "r") as zf:
+        for member in zf.infolist():
+            if not member.filename.endswith(".json"):
+                continue
+            try:
+                data = zf.read(member.filename).decode("utf-8", errors="replace")
+            except OSError:
+                continue
+            for match in re.findall(
+                r'"(?:UUID|Plugin)"\s*:\s*"([^"]+)"', data
+            ):
+                if "." not in match:
+                    continue
+                if any(match.startswith(p) for p in _STREAMDECK_BUILTIN_PREFIXES):
+                    continue
+                # Normalize to base UUID — strip action suffixes like
+                # .toggle, .action, .history, etc.  Heuristic: keep first
+                # 3 dotted segments for 4+ segment UUIDs.
+                parts = match.split(".")
+                base = ".".join(parts[:3]) if len(parts) > 3 else match
+                if base not in plugins_map:
+                    # Derive a human-readable name from the last segment
+                    short = base.rsplit(".", 1)[-1]
+                    name = short.replace("-", " ").replace("_", " ").title()
+                    plugins_map[base] = {
+                        "name": name,
+                        "uuid": base,
+                        "url": f"https://marketplace.elgato.com/product/{base}",
+                        "version": "unknown",
+                    }
+    return sorted(plugins_map.values(), key=lambda p: p["name"])
+
+
+def _merge_plugin_lists(*sources: list[dict]) -> list[dict]:
+    """Union multiple plugin lists, preferring entries with richer metadata.
+
+    When the same UUID appears in multiple sources, the entry with more
+    complete data (real URL, version, name) wins.  This lets installed-
+    plugin scans (which read manifest.json) take precedence over
+    backup-extracted entries (which only have the UUID).
+    """
+    merged: dict[str, dict] = {}
+    for plugins in sources:
+        for p in plugins:
+            uuid = p["uuid"]
+            existing = merged.get(uuid)
+            if existing is None:
+                merged[uuid] = dict(p)
+                continue
+            # Prefer entry with a real version over "unknown"
+            if existing.get("version") == "unknown" and p.get("version") != "unknown":
+                merged[uuid] = dict(p)
+            # Prefer entry whose URL doesn't look auto-generated
+            elif (
+                existing["url"].startswith(
+                    "https://marketplace.elgato.com/product/com."
+                )
+                and not p["url"].startswith(
+                    "https://marketplace.elgato.com/product/com."
+                )
+            ):
+                merged[uuid] = dict(p)
+    return sorted(merged.values(), key=lambda p: p["name"])
+
+
 def export_streamdeck_plugin_list(
     plugins_dir: Path | None = None,
     json_path: Path | None = None,
     html_path: Path | None = None,
     templates_dir: Path | None = None,
+    backup_path: Path | None = None,
 ) -> str:
-    """Scan plugins and write ``plugins.json`` + ``streamdeck-plugins.html``."""
-    plugins = scan_streamdeck_plugins(plugins_dir)
+    """Scan plugins and write ``plugins.json`` + ``streamdeck-plugins.html``.
+
+    Unions plugins found from installed manifests and from the backup
+    archive so that the exported list is complete even when some plugins
+    are only referenced in profiles.
+    """
+    installed = scan_streamdeck_plugins(plugins_dir)
+    backup_plugins: list[dict] = []
+    if backup_path is None:
+        # Try to find the newest backup automatically
+        if STREAMDECK_BACKUP_DIR.is_dir():
+            backups = sorted(
+                STREAMDECK_BACKUP_DIR.glob("*.streamDeckProfilesBackup"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            if backups:
+                backup_path = backups[0]
+    if backup_path is not None:
+        backup_plugins = scan_streamdeck_backup_plugins(backup_path)
+
+    plugins = _merge_plugin_lists(installed, backup_plugins)
 
     out_json = json_path or STREAMDECK_PLUGINS_JSON
     out_html = html_path or STREAMDECK_PLUGINS_HTML
@@ -708,7 +812,7 @@ def export_streamdeck_profiles(runner: ToolRunner) -> str:
 
     # Also export + encrypt plugin list (best-effort)
     try:
-        plugin_msg = export_streamdeck_plugin_list()
+        plugin_msg = export_streamdeck_plugin_list(backup_path=newest)
         runner.run(
             [
                 "age", "-r", pubkey,
@@ -767,6 +871,8 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
             else:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(zf.read(member.filename))
+    # Scan the backup for referenced plugins before cleaning up
+    backup_plugins = scan_streamdeck_backup_plugins(STREAMDECK_IMPORT_TMP)
     # Clean up temp file
     STREAMDECK_IMPORT_TMP.unlink(missing_ok=True)
     # Restart Stream Deck
@@ -774,9 +880,12 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
         ["open", "-a", "Elgato Stream Deck"],
         capture_output=True,
     )
-    # Decrypt plugin list and render HTML so user can reinstall plugins
-    if STREAMDECK_PLUGINS_AGE_PATH.exists():
-        try:
+    # Build plugin list from backup + encrypted plugin list, then render HTML
+    try:
+        sources: list[list[dict]] = [backup_plugins]
+        # Also load the pre-exported plugin list if available (has richer
+        # metadata like real marketplace URLs and versions)
+        if STREAMDECK_PLUGINS_AGE_PATH.exists():
             runner.run(
                 [
                     "age", "-d",
@@ -786,7 +895,17 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
                 ],
                 check=True,
             )
-            plugins = json.loads(STREAMDECK_PLUGINS_JSON.read_text())
+            sources.append(
+                json.loads(STREAMDECK_PLUGINS_JSON.read_text())
+            )
+        # Union installed plugins too (may already have some on this machine)
+        sources.append(scan_streamdeck_plugins())
+        plugins = _merge_plugin_lists(*sources)
+        if plugins:
+            STREAMDECK_PLUGINS_JSON.parent.mkdir(parents=True, exist_ok=True)
+            STREAMDECK_PLUGINS_JSON.write_text(
+                json.dumps(plugins, indent=2) + "\n"
+            )
             env = Environment(
                 loader=FileSystemLoader(str(TEMPLATES_DIR)),
                 autoescape=True,
@@ -799,8 +918,8 @@ def import_streamdeck_profiles(runner: ToolRunner) -> tuple[str, bool]:
             runner.run(
                 ["open", str(STREAMDECK_PLUGINS_HTML)], check=False
             )
-        except Exception:
-            pass  # Plugin list is nice-to-have, don't fail restore
+    except Exception:
+        pass  # Plugin list is nice-to-have, don't fail restore
     return "Stream Deck profiles restored (headless)", False
 
 

@@ -205,7 +205,7 @@ export-raycast: ## Export Raycast settings and age-encrypt for the repo (macOS o
 	rm -f "$$RCFILE"; \
 	echo "Raycast export encrypted. Review with: git diff --stat macos/files/raycast/"
 
-export-streamdeck: ## Export Stream Deck profiles (age-encrypted, macOS only)
+export-streamdeck: ## Export Stream Deck profiles + plugin list (age-encrypted, macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
 	@SD_BACKUP="$$HOME/Library/Application Support/com.elgato.StreamDeck/BackupV3"; \
 	SDFILE=$$(ls -t "$$SD_BACKUP"/*.streamDeckProfilesBackup 2>/dev/null | head -1); \
@@ -213,7 +213,17 @@ export-streamdeck: ## Export Stream Deck profiles (age-encrypted, macOS only)
 	echo "Found: $$SDFILE"; \
 	AGE_PUBKEY=$$(grep -oE 'age1[a-z0-9]+' .sops.yaml | head -1); \
 	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/streamdeck.backup.age "$$SDFILE"; \
-	echo "Stream Deck profiles encrypted. Review with: git diff --stat macos/files/stream-deck/"
+	echo "Profiles encrypted."; \
+	echo "Scanning plugins (installed + backup)..."; \
+	python3 -c " \
+import sys; sys.path.insert(0, 'scripts/setup_tui'); \
+from pathlib import Path; \
+from lib.defaults import export_streamdeck_plugin_list; \
+print(export_streamdeck_plugin_list(backup_path=Path('$$SDFILE'))) \
+	"; \
+	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/plugins.json.age macos/files/stream-deck/plugins.json; \
+	echo "Plugin list encrypted."; \
+	echo "Review with: git diff --stat macos/files/stream-deck/"
 
 export-openin: ## Export OpenIn preferences, age-encrypted for the repo (macOS only)
 	@test "$(PLATFORM)" = "darwin" || { echo "macOS only"; exit 1; }
