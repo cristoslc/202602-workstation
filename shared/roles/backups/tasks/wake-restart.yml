@@ -1,0 +1,68 @@
+---
+# Wake restart: automatically restart Backrest when its scheduler stalls after sleep/resume.
+
+- name: Template wake-restart script
+  ansible.builtin.template:
+    src: backrest-wake-restart.sh.j2
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/backrest-wake-restart"
+    mode: "0755"
+
+# ── macOS: launchd agent (polls every 5 min; fires on wake if overdue) ──
+
+- name: Configure wake restart (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Ensure LaunchAgents directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+        state: directory
+        mode: "0755"
+
+    - name: Template wake-restart launchd plist
+      ansible.builtin.template:
+        src: com.user.backrest-wake.plist.j2
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest-wake.plist"
+        mode: "0644"
+      register: _wake_plist
+
+    - name: Unload old wake-restart agent
+      ansible.builtin.command:
+        cmd: launchctl bootout gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest-wake.plist
+      when: _wake_plist.changed
+      failed_when: false
+      changed_when: false
+
+    - name: Load wake-restart launchd agent
+      ansible.builtin.command:
+        cmd: launchctl bootstrap gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest-wake.plist
+      register: _wake_launchctl
+      changed_when: _wake_launchctl.rc == 0
+      failed_when: false
+
+# ── Linux: systemd user service (runs after resume from suspend) ─────
+
+- name: Configure wake restart (Linux)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure systemd user directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Template wake-restart systemd service
+      ansible.builtin.template:
+        src: backrest-wake.service.j2
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/backrest-wake.service"
+        mode: "0644"
+
+    - name: Reload systemd user daemon for wake restart
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+
+    - name: Enable wake-restart service
+      ansible.builtin.systemd:
+        name: backrest-wake.service
+        enabled: true
+        scope: user

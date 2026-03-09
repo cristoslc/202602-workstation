@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Restart Backrest if its scheduler appears stuck after system wake.
+# Deployed by Ansible backups role — do not edit manually.
+
+set -euo pipefail
+
+HEARTBEAT="{{ restic_heartbeat_file }}"
+STALE_MINS=45  # 3x the 15-min backup interval
+LOG="{{ ansible_facts.env.HOME }}/.local/log/backrest-wake-restart.log"
+
+mkdir -p "$(dirname "$LOG")"
+
+if [[ ! -f "$HEARTBEAT" ]]; then
+  exit 0
+fi
+
+LAST_TS="$(tail -1 "$HEARTBEAT" | cut -d' ' -f1)"
+if ! LAST_EPOCH="$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$LAST_TS" +%s 2>/dev/null || date -d "$LAST_TS" +%s 2>/dev/null)"; then
+  exit 0
+fi
+
+NOW_EPOCH="$(date +%s)"
+AGE_MINS="$(( (NOW_EPOCH - LAST_EPOCH) / 60 ))"
+
+if [[ "$AGE_MINS" -gt "$STALE_MINS" ]]; then
+{% if ansible_facts.os_family == "Darwin" %}
+  brew services restart backrest
+{% else %}
+  systemctl --user restart backrest
+{% endif %}
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) restarted backrest (last backup ${AGE_MINS}m ago)" >> "$LOG"
+fi

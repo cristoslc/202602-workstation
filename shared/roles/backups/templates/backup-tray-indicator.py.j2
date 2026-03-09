@@ -59,6 +59,10 @@ def open_backrest(_):
     subprocess.Popen(["xdg-open", BACKREST_URL])  # noqa: S603
 
 
+def restart_backrest(_):
+    subprocess.Popen(["systemctl", "--user", "restart", "backrest"])  # noqa: S603
+
+
 def refresh(indicator, menu_status):
     icon, tooltip = get_status()
     indicator.set_icon_full(icon, tooltip)
@@ -86,6 +90,10 @@ def main():
     menu_open = Gtk.MenuItem(label="Open Backrest UI")
     menu_open.connect("activate", open_backrest)
     menu.append(menu_open)
+
+    menu_restart = Gtk.MenuItem(label="Restart Backrest")
+    menu_restart.connect("activate", restart_backrest)
+    menu.append(menu_restart)
 
     menu_sep = Gtk.SeparatorMenuItem()
     menu.append(menu_sep)

@@ -140,6 +140,12 @@
   changed_when: "'Successfully started' in _backrest_brew_start.stdout"
   failed_when: false
 
+# ── Wake restart (both platforms) ──────────────────────────────────
+
+- name: Install wake restart hook
+  ansible.builtin.include_tasks: wake-restart.yml
+  tags: [wake-restart]
+
 # ── Staleness watcher (both platforms) ──────────────────────────────
 
 - name: Install staleness watcher

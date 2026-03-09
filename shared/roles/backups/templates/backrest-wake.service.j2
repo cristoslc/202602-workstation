@@ -1,0 +1,10 @@
+[Unit]
+Description=Restart Backrest after system resume
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+
+[Service]
+Type=oneshot
+ExecStart={{ ansible_facts.env.HOME }}/.local/bin/backrest-wake-restart
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
