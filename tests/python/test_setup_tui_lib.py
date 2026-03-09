@@ -1922,7 +1922,7 @@ class TestScanStreamdeckPlugins:
     def test_fallback_url_when_missing(self, fake_plugins_dir):
         result = scan_streamdeck_plugins(fake_plugins_dir)
         nourl = next(p for p in result if p["uuid"] == "com.vendor.nourl")
-        assert nourl["url"] == "https://marketplace.elgato.com/product/com.vendor.nourl"
+        assert nourl["url"] == "https://marketplace.elgato.com/stream-deck/plugins?search=com.vendor.nourl"
 
     def test_empty_list_for_missing_dir(self, tmp_path):
         result = scan_streamdeck_plugins(tmp_path / "nonexistent")

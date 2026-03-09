@@ -638,7 +638,7 @@ def scan_streamdeck_plugins(
         uuid = data.get("UUID", sd_dir.stem)
         url = data.get("URL", "").strip()
         if not url:
-            url = f"https://marketplace.elgato.com/product/{uuid}"
+            url = f"https://marketplace.elgato.com/stream-deck/plugins?search={uuid}"
         plugins.append({
             "name": data.get("Name", sd_dir.stem),
             "uuid": uuid,
@@ -714,12 +714,8 @@ def _merge_plugin_lists(*sources: list[dict]) -> list[dict]:
                 merged[uuid] = dict(p)
             # Prefer entry whose URL doesn't look auto-generated
             elif (
-                existing["url"].startswith(
-                    "https://marketplace.elgato.com/product/com."
-                )
-                and not p["url"].startswith(
-                    "https://marketplace.elgato.com/product/com."
-                )
+                "?search=" in existing["url"]
+                and "?search=" not in p["url"]
             ):
                 merged[uuid] = dict(p)
     return sorted(merged.values(), key=lambda p: p["name"])
