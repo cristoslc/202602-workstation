@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Timeout wrapper around restic — prevents hung operations from blocking
+# Backrest's scheduler indefinitely.
+# Deployed by Ansible backups role — do not edit manually.
+
+set -uo pipefail
+
+TIMEOUT="{{ restic_operation_timeout }}"
+RESTIC="{{ restic_real_command }}"
+
+"$RESTIC" "$@" &
+PID=$!
+
+# Watchdog: kill restic after timeout.
+# stdout/stderr → /dev/null so the watchdog never holds backrest's pipe open.
+# sleep runs in the background inside the subshell so that the bash `wait`
+# builtin (not an external command) is the blocking call — this lets the
+# TERM trap fire immediately when the parent kills us, avoiding orphans.
+(
+  _watchdog_sleep_pid=
+  trap 'kill "$_watchdog_sleep_pid" 2>/dev/null; exit 0' TERM
+  sleep "$TIMEOUT" &
+  _watchdog_sleep_pid=$!
+  if wait "$_watchdog_sleep_pid" 2>/dev/null; then
+    # Timeout reached — restic is still running
+    kill -TERM "$PID" 2>/dev/null
+    sleep 10 &
+    _watchdog_sleep_pid=$!
+    wait "$_watchdog_sleep_pid" 2>/dev/null
+    kill -KILL "$PID" 2>/dev/null
+  fi
+) >/dev/null 2>&1 &
+WATCHDOG=$!
+
+# Forward signals to restic child, clean up watchdog
+trap 'kill -TERM "$PID" 2>/dev/null; kill "$WATCHDOG" 2>/dev/null; wait "$PID" 2>/dev/null; exit 143' TERM INT
+
+wait "$PID" 2>/dev/null
+RC=$?
+
+kill "$WATCHDOG" 2>/dev/null
+wait "$WATCHDOG" 2>/dev/null
+
+exit "$RC"

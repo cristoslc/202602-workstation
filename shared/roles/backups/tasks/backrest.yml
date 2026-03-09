@@ -62,6 +62,20 @@
   when: restic_b2_bucket | length > 0 and b2_master_key_id | length > 0
   tags: [b2-provision]
 
+# ── Restic timeout wrapper (both platforms) ──────────────────────────
+
+- name: Template restic-wrapper script
+  ansible.builtin.template:
+    src: restic-wrapper.sh.j2
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/restic-wrapper"
+    mode: "0755"
+  vars:
+    restic_real_command: >-
+      {{ '/opt/homebrew/bin/restic'
+         if ansible_facts.os_family == 'Darwin'
+         else '/usr/local/bin/restic' }}
+  notify: restart backrest
+
 # ── Configure Backrest (both platforms) ─────────────────────────────
 
 - name: Ensure Backrest config directory exists
@@ -130,15 +144,43 @@
         enabled: true
         scope: user
 
-# ── Launchd user agent (macOS via Homebrew) ─────────────────────────
+# ── Launchd user agent (macOS — custom plist for BACKREST_RESTIC_COMMAND) ──
 
-- name: Start Backrest via Homebrew services (macOS)
+- name: Configure Backrest launchd agent (macOS)
   when: ansible_facts.os_family == "Darwin"
-  ansible.builtin.command:
-    cmd: brew services start backrest
-  register: _backrest_brew_start
-  changed_when: "'Successfully started' in _backrest_brew_start.stdout"
-  failed_when: false
+  block:
+    - name: Stop Homebrew-managed Backrest service (one-time migration)
+      ansible.builtin.command:
+        cmd: brew services stop backrest
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure log directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.local/log"
+        state: directory
+        mode: "0755"
+
+    - name: Template Backrest launchd plist
+      ansible.builtin.template:
+        src: com.user.backrest.plist.j2
+        dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist"
+        mode: "0644"
+      register: _backrest_plist
+
+    - name: Unload old Backrest agent
+      ansible.builtin.command:
+        cmd: launchctl bootout gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist
+      when: _backrest_plist.changed
+      failed_when: false
+      changed_when: false
+
+    - name: Load Backrest launchd agent
+      ansible.builtin.command:
+        cmd: launchctl bootstrap gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist
+      register: _backrest_launchctl
+      changed_when: _backrest_launchctl.rc == 0
+      failed_when: false
 
 # ── Wake restart (both platforms) ──────────────────────────────────
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.backrest</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/opt/backrest/bin/backrest</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>{{ ansible_facts.env.HOME }}</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>BACKREST_PORT</key>
+        <string>{{ backrest_port }}</string>
+        <key>BACKREST_CONFIG</key>
+        <string>{{ ansible_facts.env.HOME }}/.config/backrest/config.json</string>
+        <key>BACKREST_DATA</key>
+        <string>{{ ansible_facts.env.HOME }}/.local/share/backrest</string>
+        <key>BACKREST_RESTIC_COMMAND</key>
+        <string>{{ ansible_facts.env.HOME }}/.local/bin/restic-wrapper</string>
+        <key>XDG_CACHE_HOME</key>
+        <string>{{ ansible_facts.env.HOME }}/.cache</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{{ ansible_facts.env.HOME }}/.local/log/backrest.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{ ansible_facts.env.HOME }}/.local/log/backrest.log</string>
+</dict>
+</plist>

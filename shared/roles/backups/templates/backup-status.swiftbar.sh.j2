@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 # <bitbar.title>Backup Status</bitbar.title>
-# <bitbar.version>v1.0</bitbar.version>
+# <bitbar.version>v2.0</bitbar.version>
 # <bitbar.author>Ansible backups role</bitbar.author>
 # <bitbar.desc>Shows restic backup heartbeat status in macOS menu bar</bitbar.desc>
 # <swiftbar.hideAbout>true</swiftbar.hideAbout>
@@ -11,7 +11,57 @@
 HEARTBEAT="{{ restic_heartbeat_file }}"
 STALE_MINS=60
 AGING_MINS=30
+BACKREST_URL="http://{{ backrest_port }}"
 BACKREST_PORT="{{ backrest_port.split(':')[-1] }}"
+PLAN_ID="home-backup"
+REPO_ID="b2-backup"
+
+# ── Helper: detect stuck restic processes ────────────────────────────
+STUCK_MINS=20  # consider a restic process stuck after this many minutes
+restic_is_stuck() {
+  local pids elapsed
+  pids="$(pgrep -f 'restic.*(backup|snapshots|forget)' 2>/dev/null)" || return 1
+  for pid in $pids; do
+    elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
+    # etime format: [[dd-]hh:]mm:ss — anything with hours or days is stuck
+    if [[ "$elapsed" == *-* || "$elapsed" == *:*:*:* ]]; then
+      return 0  # days present → definitely stuck
+    fi
+    if [[ "$elapsed" == *:*:* ]]; then
+      # hh:mm:ss format — extract hours
+      local hours="${elapsed%%:*}"
+      [[ "$hours" -gt 0 ]] && return 0
+    fi
+    # mm:ss format — extract minutes
+    local mins="${elapsed%%:*}"
+    [[ "$mins" -ge "$STUCK_MINS" ]] && return 0
+  done
+  return 1
+}
+
+# ── Helper: check if a backup is currently running ───────────────────
+backup_is_running() {
+  pgrep -f 'restic.*backup' >/dev/null 2>&1
+}
+
+# ── Backup Now action (called via bash= param) ──────────────────────
+if [[ "${1:-}" == "--backup-now" ]]; then
+  if restic_is_stuck; then
+    # Kill stuck restic processes, unlock repo, then trigger backup
+    pkill -f '\.local/share/backrest/restic' 2>/dev/null
+    sleep 2
+    curl -sf -X POST "${BACKREST_URL}/v1.Backrest/DoRepoTask" \
+      -H 'Content-Type: application/json' \
+      -d "{\"repo_id\":\"${REPO_ID}\",\"task\":\"TASK_UNLOCK\"}" >/dev/null 2>&1
+    sleep 1
+  fi
+  curl -sf -X POST "${BACKREST_URL}/v1.Backrest/Backup" \
+    -H 'Content-Type: application/json' \
+    -d "{\"value\":\"${PLAN_ID}\"}" >/dev/null 2>&1
+  exit 0
+fi
+
+# ── Main: render menu bar status ─────────────────────────────────────
 
 if [[ ! -f "$HEARTBEAT" ]]; then
   echo "🔴💾"
@@ -57,7 +107,18 @@ else
   echo "OK: last backup ${AGE_LABEL} | color=green"
 fi
 
+# ── Backup Now (smart: detects stuck processes) ──────────────────────
+SELF="$0"
+if backup_is_running; then
+  if restic_is_stuck; then
+    echo "Backup Now (kill stuck + restart) | bash=${SELF} | param1=--backup-now | terminal=false | refresh=true | color=red"
+  else
+    echo "Backup running… | color=#888888"
+  fi
+else
+  echo "Backup Now | bash=${SELF} | param1=--backup-now | terminal=false | refresh=true"
+fi
+
 echo "Open Backrest | href=http://localhost:${BACKREST_PORT}"
-echo "Restart Backrest | bash=brew | param1=services | param2=restart | param3=backrest | terminal=false | refresh=true"
 echo "---"
 echo "Refresh | refresh=true"

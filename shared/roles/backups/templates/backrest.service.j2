@@ -9,7 +9,7 @@ ExecStart=/usr/local/bin/backrest
 Environment=BACKREST_PORT={{ backrest_port }}
 Environment=BACKREST_CONFIG={{ ansible_facts.env.HOME }}/.config/backrest/config.json
 Environment=BACKREST_DATA={{ ansible_facts.env.HOME }}/.local/share/backrest
-Environment=BACKREST_RESTIC_COMMAND=/usr/local/bin/restic
+Environment=BACKREST_RESTIC_COMMAND={{ ansible_facts.env.HOME }}/.local/bin/restic-wrapper
 Environment=XDG_CACHE_HOME={{ ansible_facts.env.HOME }}/.cache
 Restart=on-failure
 RestartSec=10

@@ -23,8 +23,15 @@ NOW_EPOCH="$(date +%s)"
 AGE_MINS="$(( (NOW_EPOCH - LAST_EPOCH) / 60 ))"
 
 if [[ "$AGE_MINS" -gt "$STALE_MINS" ]]; then
+  # Kill orphaned restic processes that may be holding repo locks
+  if pkill -f '\.local/share/backrest/restic' 2>/dev/null; then
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) killed orphaned restic processes" >> "$LOG"
+    sleep 2
+  fi
+
 {% if ansible_facts.os_family == "Darwin" %}
-  brew services restart backrest
+  launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.user.backrest.plist 2>/dev/null || true
+  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.user.backrest.plist
 {% else %}
   systemctl --user restart backrest
 {% endif %}

@@ -53,6 +53,11 @@ restic_keep_yearly: 5
 restic_backup_schedule: "*/15 * * * *"
 restic_prune_schedule: "0 3 * * 0"
 
+# ── Operation timeout (seconds; 0 = disabled) ────────────────────
+# Kills any single restic invocation that exceeds this duration.
+# 30 min is generous for incremental backups on a 15-min cycle.
+restic_operation_timeout: 1800
+
 # ── Bandwidth (0 = unlimited; KiB/s) ───────────────────────────────
 restic_upload_limit: 0
 restic_download_limit: 0
