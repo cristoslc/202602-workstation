@@ -614,6 +614,24 @@ _STREAMDECK_BUILTIN_PREFIXES = (
     "com.elgato.streamdeck.profile.",
 )
 
+# Plugins bundled with the Stream Deck app — no install needed.
+_STREAMDECK_BUNDLED_UUIDS = frozenset({
+    "com.elgato.keycreator",   # Stream Deck Icon Library
+    "com.elgato.tutorial",     # Tutorial
+})
+
+# Marketplace URLs for plugins whose manifests lack a URL field.
+# Elgato first-party plugins are the most common offenders.
+_STREAMDECK_KNOWN_URLS: dict[str, str] = {
+    "com.elgato.clocks": "https://marketplace.elgato.com/product/clocks-a150a62e-0e32-4d9c-9443-60b8b398e83a",
+    "com.elgato.counter": "https://marketplace.elgato.com/product/counter-18498c47-5e43-4253-9e4a-1b2e2aae472a",
+    "com.elgato.cpu": "https://marketplace.elgato.com/product/cpu-4b55e27a-1f39-4b53-9f28-c31d3c508523",
+    "com.elgato.volume-controller": "https://marketplace.elgato.com/product/volume-controller-34d9aa59-a41a-4a4c-a853-202ca91409e1",
+    "com.elgato.weather": "https://marketplace.elgato.com/product/weather-info-5c3b5556-febc-4a3d-939d-469c15057407",
+    "com.fredemmott.micmutetoggle": "https://marketplace.elgato.com/product/audio-mute-705c5433-1e05-4d8a-844f-b5914b7f642f",
+    "com.fredemmott.audioswitcher": "https://marketplace.elgato.com/product/audio-switcher-772dab6c-39f5-4afd-8d52-ef7e4043a768",
+}
+
 
 def scan_streamdeck_plugins(
     plugins_dir: Path | None = None,
@@ -636,9 +654,19 @@ def scan_streamdeck_plugins(
         except (json.JSONDecodeError, OSError):
             continue
         uuid = data.get("UUID", sd_dir.stem)
+        if uuid in _STREAMDECK_BUNDLED_UUIDS:
+            continue
         url = data.get("URL", "").strip()
-        if not url:
-            url = f"https://marketplace.elgato.com/stream-deck/plugins"
+        # Some manifests have a generic Elgato homepage instead of a
+        # plugin-specific URL — treat those as missing.
+        if not url or url.rstrip("/") in (
+            "https://www.elgato.com/gaming/stream-deck",
+            "https://www.elgato.com/en/gaming/stream-deck",
+            "https://www.elgato.com/de/gaming/stream-deck",
+        ):
+            url = _STREAMDECK_KNOWN_URLS.get(
+                uuid, url or "https://marketplace.elgato.com/stream-deck/plugins"
+            )
         plugins.append({
             "name": data.get("Name", sd_dir.stem),
             "uuid": uuid,
@@ -675,6 +703,8 @@ def scan_streamdeck_backup_plugins(backup_path: Path) -> list[dict]:
                     continue
                 if any(match.startswith(p) for p in _STREAMDECK_BUILTIN_PREFIXES):
                     continue
+                if match in _STREAMDECK_BUNDLED_UUIDS:
+                    continue
                 # Normalize to base UUID — strip action suffixes like
                 # .toggle, .action, .history, etc.  Heuristic: keep first
                 # 3 dotted segments for 4+ segment UUIDs.
@@ -687,7 +717,10 @@ def scan_streamdeck_backup_plugins(backup_path: Path) -> list[dict]:
                     plugins_map[base] = {
                         "name": name,
                         "uuid": base,
-                        "url": f"https://marketplace.elgato.com/product/{base}",
+                        "url": _STREAMDECK_KNOWN_URLS.get(
+                            base,
+                            "https://marketplace.elgato.com/stream-deck/plugins",
+                        ),
                         "version": "unknown",
                     }
     return sorted(plugins_map.values(), key=lambda p: p["name"])
