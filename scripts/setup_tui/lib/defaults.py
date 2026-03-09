@@ -506,6 +506,13 @@ def import_iterm2_settings(runner: ToolRunner) -> str:
             ],
             check=True,
         )
+    # Stow the iterm2 package so the plist is symlinked into ~/.config/iterm2
+    stow_dir = REPO_ROOT / "macos" / "dotfiles"
+    runner.run(
+        ["stow", "--no-folding", "--restow", "-d", str(stow_dir), "-t",
+         str(Path.home()), "iterm2"],
+        check=True,
+    )
     runner.run(
         [
             "defaults", "write", "com.googlecode.iterm2",

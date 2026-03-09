@@ -316,8 +316,8 @@ class TestImportIterm2Settings:
             type(ITERM2_PLIST_AGE_PATH), "exists", return_value=True
         ):
             msg = import_iterm2_settings(mock_runner)
-        # age decrypt + 2 defaults write = 3 calls
-        assert mock_runner.run.call_count == 3
+        # age decrypt + stow + 2 defaults write = 4 calls
+        assert mock_runner.run.call_count == 4
         decrypt_call = mock_runner.run.call_args_list[0]
         assert decrypt_call == call(
             [
@@ -328,6 +328,10 @@ class TestImportIterm2Settings:
             ],
             check=True,
         )
+        stow_call = mock_runner.run.call_args_list[1]
+        assert stow_call[0][0][0] == "stow"
+        assert "--no-folding" in stow_call[0][0]
+        assert "iterm2" in stow_call[0][0]
         assert "iterm2" in msg.lower()
 
     def test_skips_decrypt_when_no_age_file(self, mock_runner):
@@ -335,8 +339,8 @@ class TestImportIterm2Settings:
             type(ITERM2_PLIST_AGE_PATH), "exists", return_value=False
         ):
             msg = import_iterm2_settings(mock_runner)
-        # Only 2 defaults write calls (no decrypt)
-        assert mock_runner.run.call_count == 2
+        # stow + 2 defaults write calls (no decrypt)
+        assert mock_runner.run.call_count == 3
         mock_runner.run.assert_any_call(
             [
                 "defaults", "write", "com.googlecode.iterm2",
@@ -505,11 +509,11 @@ class TestRunAllImports:
             messages, confirmations = run_all_imports(mock_runner)
         assert len(messages) == 4  # iTerm2 + OpenIn + Raycast + Stream Deck
         assert len(confirmations) == 1  # Raycast needs confirm; Stream Deck is headless
-        # iTerm2 (decrypt + 2 defaults write = 3) +
+        # iTerm2 (decrypt + stow + 2 defaults write = 4) +
         # OpenIn (PlistBuddy + decrypt + defaults import = 3) +
         # Raycast (decrypt + open = 2) +
         # Stream Deck (decrypt = 1, then zipfile fails on mock path)
-        assert mock_runner.run.call_count == 9
+        assert mock_runner.run.call_count == 10
 
     def test_no_confirm_when_no_exports(self, mock_runner):
         with patch.object(
@@ -521,8 +525,8 @@ class TestRunAllImports:
             messages, confirmations = run_all_imports(mock_runner)
         assert len(messages) == 4  # iTerm2 + OpenIn skip + Raycast skip + Stream Deck skip
         assert len(confirmations) == 0
-        # Only iTerm2 calls (2 defaults write, no decrypt since exists=False)
-        assert mock_runner.run.call_count == 2
+        # Only iTerm2 calls (stow + 2 defaults write, no decrypt since exists=False)
+        assert mock_runner.run.call_count == 3
 
     def test_continues_after_iterm2_failure(self, mock_runner):
         # First call (iTerm2) raises, subsequent calls should still run
