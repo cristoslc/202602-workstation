@@ -215,12 +215,7 @@ export-streamdeck: ## Export Stream Deck profiles + plugin list (age-encrypted, 
 	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/streamdeck.backup.age "$$SDFILE"; \
 	echo "Profiles encrypted."; \
 	echo "Scanning plugins (installed + backup)..."; \
-	python3 -c " \
-import sys; sys.path.insert(0, 'scripts/setup_tui'); \
-from pathlib import Path; \
-from lib.defaults import export_streamdeck_plugin_list; \
-print(export_streamdeck_plugin_list(backup_path=Path('$$SDFILE'))) \
-	"; \
+	uv run --with pyyaml,jinja2 python3 -c "import sys; sys.path.insert(0, 'scripts/setup_tui'); from pathlib import Path; from lib.defaults import export_streamdeck_plugin_list; print(export_streamdeck_plugin_list(backup_path=Path('$$SDFILE')))"; \
 	age -r "$$AGE_PUBKEY" -o macos/files/stream-deck/plugins.json.age macos/files/stream-deck/plugins.json; \
 	echo "Plugin list encrypted."; \
 	echo "Review with: git diff --stat macos/files/stream-deck/"
