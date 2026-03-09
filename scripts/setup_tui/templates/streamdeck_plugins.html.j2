@@ -100,6 +100,14 @@
     background: var(--accent);
     color: var(--bg);
   }
+  .plugin-link--search {
+    color: var(--dim);
+    border-color: var(--dim);
+  }
+  .plugin-link--search:hover {
+    background: var(--dim);
+    color: var(--bg);
+  }
   .footer {
     margin-top: 2rem;
     padding-top: 1rem;
@@ -136,7 +144,11 @@
       <span class="plugin-version">v{{ p.version }}</span>
       <span class="plugin-uuid">{{ p.uuid }}</span>
     </div>
+    {% if p.url == 'https://marketplace.elgato.com/stream-deck/plugins' %}
+    <a class="plugin-link plugin-link--search" href="{{ p.url }}" target="_blank" rel="noopener">Search</a>
+    {% else %}
     <a class="plugin-link" href="{{ p.url }}" target="_blank" rel="noopener">Install</a>
+    {% endif %}
   </li>
   {% endfor %}
 </ul>
