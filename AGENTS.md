@@ -18,6 +18,10 @@ This project uses **bd (beads)** for all issue tracking. Do NOT use markdown TOD
 
 <!-- end swain governance -->
 
+### Ansible role conventions
+
+Never use `ansible.builtin.debug` to print reminder messages in tasks. Ansible output scrolls past and messages get lost. Every role must either **actually install the application** or **not exist at all**. If there's no package manager support, download and install from the release artifacts directly (GitHub releases, vendor URLs, etc.).
+
 ### Encryption-at-rest policy
 
 All personalized or user-specific files MUST be age-encrypted before committing to the repo. No plaintext personal data at rest in git.

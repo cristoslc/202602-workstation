@@ -3,19 +3,46 @@
 # No native package manager support; installed from GitHub releases.
 # https://github.com/H-M-H/Weylus
 
-- name: Check if Weylus is installed (macOS)
+- name: Install Weylus (macOS)
   when: ansible_facts.os_family == "Darwin"
-  ansible.builtin.stat:
-    path: /Applications/Weylus.app
-  register: weylus_mac_check
+  block:
+    - name: Check if Weylus is installed
+      ansible.builtin.stat:
+        path: /Applications/Weylus.app
+      register: _weylus_mac_check
 
-- name: Remind to install Weylus (macOS)
-  when: ansible_facts.os_family == "Darwin" and not weylus_mac_check.stat.exists
-  ansible.builtin.debug:
-    msg: >
-      Weylus is not installed. Download from
-      https://github.com/H-M-H/Weylus/releases and drag Weylus.app
-      to /Applications.
+    - name: Determine macOS architecture
+      when: not _weylus_mac_check.stat.exists
+      ansible.builtin.set_fact:
+        _weylus_mac_arch: "{{ 'macOS_apple_silicon' if ansible_facts.architecture == 'arm64' else 'macOS_intel' }}"
+
+    - name: Download Weylus zip
+      when: not _weylus_mac_check.stat.exists
+      ansible.builtin.get_url:
+        url: "https://github.com/H-M-H/Weylus/releases/download/v0.11.4/{{ _weylus_mac_arch }}.zip"
+        dest: /tmp/weylus-mac.zip
+        mode: "0644"
+      register: _weylus_mac_download
+      retries: 3
+      delay: 5
+      until: _weylus_mac_download is not failed
+
+    - name: Unzip Weylus.app
+      when: not _weylus_mac_check.stat.exists
+      ansible.builtin.command:
+        cmd: ditto -xk /tmp/weylus-mac.zip /Applications
+      changed_when: true
+
+    - name: Remove quarantine attribute
+      when: not _weylus_mac_check.stat.exists
+      ansible.builtin.command:
+        cmd: xattr -rd com.apple.quarantine /Applications/Weylus.app
+      changed_when: true
+
+    - name: Clean up zip
+      ansible.builtin.file:
+        path: /tmp/weylus-mac.zip
+        state: absent
 
 - name: Install Weylus (Debian)
   when: ansible_facts.os_family == "Debian"

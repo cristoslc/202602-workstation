@@ -10,13 +10,8 @@
 - name: restart backrest (macOS)
   listen: restart backrest
   when: ansible_facts.os_family == "Darwin"
-  block:
-    - name: Kill orphaned restic processes before restart
-      ansible.builtin.shell: pkill -f '\.local/share/backrest/restic' || true
-      changed_when: false
-
-    - name: Restart Backrest via launchctl
-      ansible.builtin.shell: |
-        launchctl bootout gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist 2>/dev/null || true
-        launchctl bootstrap gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist
-      changed_when: true
+  ansible.builtin.shell: |
+    pkill -f '\.local/share/backrest/restic' || true
+    launchctl bootout gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist 2>/dev/null || true
+    launchctl bootstrap gui/{{ ansible_facts.user_uid }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.backrest.plist
+  changed_when: true
