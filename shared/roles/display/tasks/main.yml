@@ -1,0 +1,5 @@
+---
+# Display role: tools for extending displays to other devices.
+
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"

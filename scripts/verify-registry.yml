@@ -449,6 +449,18 @@ roles:
         tags: [rustdesk]
         optional: true
 
+  display:
+    phase: desktop
+    apps:
+      - name: Weylus
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Weylus.app"]}
+        tags: [weylus]
+      - name: Weylus
+        platforms: [linux]
+        check: {command: weylus}
+        tags: [weylus]
+
   backups:
     phase: desktop
     apps:

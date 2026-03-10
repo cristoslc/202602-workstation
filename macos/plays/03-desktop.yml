@@ -34,6 +34,9 @@
     - role: remote-desktop
       tags: [remote-desktop, rustdesk, desktop]
 
+    - role: display
+      tags: [display, weylus, desktop]
+
     - role: backups
       tags: [backups, restic, backrest, desktop]
 

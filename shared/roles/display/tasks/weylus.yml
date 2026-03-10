@@ -1,0 +1,50 @@
+---
+# Weylus — extend your screen onto tablets/phones via a web browser.
+# No native package manager support; installed from GitHub releases.
+# https://github.com/H-M-H/Weylus
+
+- name: Check if Weylus is installed (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  ansible.builtin.stat:
+    path: /Applications/Weylus.app
+  register: weylus_mac_check
+
+- name: Remind to install Weylus (macOS)
+  when: ansible_facts.os_family == "Darwin" and not weylus_mac_check.stat.exists
+  ansible.builtin.debug:
+    msg: >
+      Weylus is not installed. Download from
+      https://github.com/H-M-H/Weylus/releases and drag Weylus.app
+      to /Applications.
+
+- name: Install Weylus (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if Weylus is already installed
+      ansible.builtin.command: which weylus
+      register: _weylus_check
+      changed_when: false
+      failed_when: false
+
+    - name: Download Weylus .deb
+      when: _weylus_check.rc != 0
+      ansible.builtin.get_url:
+        url: https://github.com/H-M-H/Weylus/releases/download/v0.11.4/Weylus_0.11.4_amd64.deb
+        dest: /tmp/weylus.deb
+        mode: "0644"
+      register: _weylus_download
+      retries: 3
+      delay: 5
+      until: _weylus_download is not failed
+
+    - name: Install Weylus .deb
+      when: _weylus_check.rc != 0
+      ansible.builtin.apt:
+        deb: /tmp/weylus.deb
+        state: present
+      become: true
+
+    - name: Clean up .deb
+      ansible.builtin.file:
+        path: /tmp/weylus.deb
+        state: absent

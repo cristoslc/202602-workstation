@@ -1,0 +1,6 @@
+---
+# Linux: Weylus
+
+- name: Install Weylus
+  ansible.builtin.include_tasks: weylus.yml
+  tags: [weylus]
