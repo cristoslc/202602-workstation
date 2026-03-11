@@ -48,5 +48,36 @@ __pycache__/
 
 # Beads runtime state
 .beads/dolt-monitor.pid
+.beads/dolt-monitor.pid.lock
 .beads/dolt-server.activity
 .beads/dolt-server.port
+
+# AI tool configs (auto-created by various coding assistants)
+.adal/
+.agent/
+.augment/
+.codebuddy/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.factory/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
