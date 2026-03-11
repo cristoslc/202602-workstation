@@ -148,3 +148,8 @@
 {"created_at":"2026-03-03T14:40:14Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-sfw.1","issue_id":"bd_202602-workstation-sfw.4","type":"blocks"}
 {"created_at":"2026-03-03T14:40:14Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-sfw.2","issue_id":"bd_202602-workstation-sfw.4","type":"blocks"}
 {"created_at":"2026-03-03T14:40:14Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-sfw.3","issue_id":"bd_202602-workstation-sfw.4","type":"blocks"}
+{"created_at":"2026-03-11T13:16:10Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-x18","issue_id":"bd_202602-workstation-x18.1","type":"parent-child"}
+{"created_at":"2026-03-11T13:16:12Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-x18","issue_id":"bd_202602-workstation-x18.2","type":"parent-child"}
+{"created_at":"2026-03-11T13:16:13Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-x18","issue_id":"bd_202602-workstation-x18.3","type":"parent-child"}
+{"created_at":"2026-03-11T13:16:18Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-x18.1","issue_id":"bd_202602-workstation-x18.3","type":"blocks"}
+{"created_at":"2026-03-11T13:16:18Z","created_by":"Cristos L-C","depends_on_id":"bd_202602-workstation-x18.2","issue_id":"bd_202602-workstation-x18.3","type":"blocks"}
