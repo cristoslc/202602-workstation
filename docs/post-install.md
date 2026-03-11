@@ -33,7 +33,7 @@ These steps cannot be automated and must be done manually after bootstrap comple
 
 ## macOS
 
-- [ ] Setapp: sign in and install Setapp-managed apps (Dato, BusyCal, CleanShot X, Downie, OpenIn, Paletro)
+- [ ] Setapp: sign in and install Setapp-managed apps (see `verify-registry.yml` entries with `note: "Install via Setapp"`)
 - [ ] OpenIn: if no export was imported during bootstrap, configure browser routing rules (work profile → Chrome, personal → Firefox, etc.), then run `make export-openin`
 - [ ] CleanShot X: configure screenshot shortcuts (replace default ⌘⇧4)
 - [ ] Dato: configure menu bar calendar display
