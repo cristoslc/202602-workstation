@@ -5,17 +5,9 @@ if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
   alias fd='fdfind'
 fi
 
-# bat is installed as batcat on Debian
+# bat is installed as batcat on Debian — alias so scripts expecting `bat` work
 if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
   alias bat='batcat'
-  alias cat='batcat --paging=never'
-fi
-
-# Modern ls replacement
-if command -v eza &>/dev/null; then
-  alias ls='eza'
-  alias ll='eza -l'
-  alias la='eza -la'
 fi
 
 # xdg-open shortcut
