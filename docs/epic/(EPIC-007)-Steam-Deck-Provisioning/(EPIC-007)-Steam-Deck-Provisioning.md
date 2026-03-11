@@ -1,7 +1,7 @@
 ---
 title: "EPIC-007: Steam Deck Provisioning"
 artifact: EPIC-007
-status: Proposed
+status: Active
 author: cristos
 created: 2026-03-06
 last-updated: 2026-03-06
@@ -70,3 +70,4 @@ None — this epic adds a new platform target without modifying existing macOS o
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Proposed | 2026-03-06 | b58ca4e | Created from SPIKE-012 GO verdict |
+| Active | 2026-03-11 | — | Approved by user; not started |

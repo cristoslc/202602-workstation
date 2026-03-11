@@ -46,6 +46,7 @@ Systematically extend the existing Stow + Ansible primitives so that every role 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
 | [SPEC-001](../../spec/(SPEC-001)-Raycast-Sync/(SPEC-001)-Raycast-Sync.md) | Raycast Sync | Implemented | Export/import workflow with age encryption |
+| — | OpenIn Settings Sync | Implemented | plist export/import with age encryption; `make export-openin`, TUI auto-import |
 
 _Gap items from SPIKE-005 resolved directly as implementation tasks (tracked in bd). VS Code syncs independently; .npmrc, uv.toml, VLC, Keka deferred (configs not yet initialized on active machines)._
 

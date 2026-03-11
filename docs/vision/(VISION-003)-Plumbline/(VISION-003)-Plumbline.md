@@ -1,7 +1,7 @@
 ---
 title: "VISION-003: Plumbline"
 artifact: VISION-003
-status: Draft
+status: Active
 author: cristos
 created: 2026-03-05
 last-updated: 2026-03-05
@@ -77,3 +77,4 @@ Developers and power users who:
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-05 | c53c8bb | Initial creation |
+| Active | 2026-03-11 | — | Approved by user; not started |

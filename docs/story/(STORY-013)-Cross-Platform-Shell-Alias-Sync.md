@@ -1,7 +1,7 @@
 ---
 title: "Cross-Platform Shell Alias Sync"
 artifact: STORY-013
-status: Draft
+status: Active
 author: cristos
 created: 2026-03-07
 last-updated: 2026-03-07
@@ -45,3 +45,4 @@ Some aliases (e.g., `eza`/`ls`, `bat`/`cat`) are duplicated in both platform fil
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-07 | — | Initial creation |
+| Active | 2026-03-11 | — | Approved by user |
