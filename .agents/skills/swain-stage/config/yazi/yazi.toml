@@ -1,0 +1,5 @@
+# Minimal yazi config for swain-stage narrow tmux panes.
+# Single-pane: hides parent and preview columns.
+
+[manager]
+ratio = [0, 1, 0]
