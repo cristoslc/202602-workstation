@@ -1,7 +1,7 @@
 ---
 title: "STORY-014: SteamOS Shell and Dotfile Setup"
 artifact: STORY-014
-status: Ready
+status: Implemented
 author: cristos
 created: 2026-03-12
 last-updated: 2026-03-13
@@ -31,3 +31,4 @@ swain-do: required
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
 | Ready | 2026-03-13 | 83d9096 | SPEC-006 approved; acceptance criteria reviewed and ready for implementation |
+| Implemented | 2026-03-13 | 7065570 | Implementation complete; physical device verification deferred |

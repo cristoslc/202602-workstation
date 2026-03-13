@@ -1,7 +1,7 @@
 ---
 title: "SPEC-009: Shared Role SteamOS Compatibility"
 artifact: SPEC-009
-status: Approved
+status: Implemented
 author: cristos
 created: 2026-03-12
 last-updated: 2026-03-13
@@ -78,3 +78,4 @@ Shared roles (git, shell, terminal, text-expansion, backups, secrets-manager) co
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
 | Approved | 2026-03-13 | 83d9096 | ADR check clean; spec reviewed and approved for implementation |
+| Implemented | 2026-03-13 | 7065570 | Implementation complete; physical device verification deferred |

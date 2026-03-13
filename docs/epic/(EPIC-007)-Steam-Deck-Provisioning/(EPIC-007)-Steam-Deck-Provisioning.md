@@ -77,4 +77,4 @@ None — this epic adds a new platform target without modifying existing macOS o
 |-------|------|--------|-------|
 | Proposed | 2026-03-06 | b58ca4e | Created from SPIKE-012 GO verdict |
 | Active | 2026-03-11 | — | Approved by user; not started |
-| Testing | 2026-03-13 | — | All 5 child specs/stories Implemented; pending physical Steam Deck validation |
+| Testing | 2026-03-13 | 7065570 | All 5 child specs/stories Implemented; pending physical Steam Deck validation |

@@ -12,7 +12,7 @@ _None._
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| EPIC-007 | [Steam Deck Provisioning](./(EPIC-007)-Steam-Deck-Provisioning/(EPIC-007)-Steam-Deck-Provisioning.md) | 2026-03-13 | — | All 5 child specs/stories Implemented; pending physical Steam Deck validation |
+| EPIC-007 | [Steam Deck Provisioning](./(EPIC-007)-Steam-Deck-Provisioning/(EPIC-007)-Steam-Deck-Provisioning.md) | 2026-03-13 | 7065570 | All 5 child specs/stories Implemented; pending physical Steam Deck validation |
 
 ## Complete
 

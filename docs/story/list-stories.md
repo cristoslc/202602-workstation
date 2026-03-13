@@ -7,9 +7,7 @@
 | STORY-013 | [Cross-Platform Shell Alias Sync]((STORY-013)-Cross-Platform-Shell-Alias-Sync.md) | 2026-03-07 | — | Deduplicate shared aliases, audit live systems (EPIC-003) |
 ## Ready
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| STORY-014 | [SteamOS Shell and Dotfile Setup](Ready/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | 2026-03-13 | 83d9096 | Dotfiles + zsh via Konsole + git signing on Steam Deck; SPEC-006 approved (EPIC-007) |
+_None._
 
 ## Implemented
 
@@ -27,6 +25,7 @@
 | STORY-003 | [Hub Migration Automation]((STORY-003)-Hub-Migration-Automation.md) | 2026-03-03 | 3301fe2 | make hub-migrate script + Ansible hub playbook with key injection |
 | STORY-011 | [Cross-Platform CI]((STORY-011)-Cross-Platform-CI.md) | 2026-03-05 | a17a7d2 | macOS + Linux matrix CI with all lint/syntax/test checks (EPIC-004) |
 | STORY-012 | [GitHub Copilot CLI Installation]((STORY-012)-GitHub-Copilot-CLI-Installation.md) | 2026-03-06 | 9a4bc83 | Standalone Copilot CLI on both platforms (EPIC-006) |
+| STORY-014 | [SteamOS Shell and Dotfile Setup]((STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | 2026-03-13 | 7065570 | Dotfiles + zsh via Konsole + git signing on Steam Deck (EPIC-007) |
 
 ## Abandoned
 
