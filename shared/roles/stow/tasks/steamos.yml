@@ -1,0 +1,10 @@
+---
+# SteamOS: stow is already installed via nix profile by the steamos-bootstrap role.
+# Verify it is available and add the Nix profile bin directory to PATH for this session.
+
+- name: Verify stow is available via Nix profile
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/stow --version"
+  register: _stow_check
+  changed_when: false
+  failed_when: _stow_check.rc != 0

@@ -2,8 +2,13 @@
 # Stow role: single owner of ALL stow operations.
 # Handles backup of pre-existing files, shared → secrets → platform overlay ordering.
 
+- name: Install Stow (SteamOS — already installed via nix bootstrap)
+  ansible.builtin.include_tasks: steamos.yml
+  when: ansible_distribution is search("SteamOS")
+
 - name: Include OS-specific tasks
   ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
+  when: ansible_distribution is not search("SteamOS")
 
 - name: Create backup directory for pre-existing files
   ansible.builtin.file:

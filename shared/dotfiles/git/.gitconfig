@@ -6,6 +6,7 @@
 [include]
   path = ~/.config/git/macos.gitconfig
   path = ~/.config/git/linux.gitconfig
+  path = ~/.config/git/steamos.gitconfig
   path = ~/.config/git/local.gitconfig
 
 [init]

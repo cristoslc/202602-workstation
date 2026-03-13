@@ -1,0 +1,14 @@
+# SteamOS-specific git config — included by .gitconfig.
+# Git commit signing uses ssh-keygen directly (no 1Password agent on SteamOS).
+# The signing key path is set via git_signing_key in the Ansible git role.
+
+[gpg "ssh"]
+  program = /home/deck/.nix-profile/bin/ssh-keygen
+
+[credential "https://github.com"]
+  helper =
+  helper = !/home/deck/.nix-profile/bin/gh auth git-credential
+
+[credential "https://gist.github.com"]
+  helper =
+  helper = !/home/deck/.nix-profile/bin/gh auth git-credential
