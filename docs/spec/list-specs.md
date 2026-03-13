@@ -5,6 +5,7 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | SPEC-010 | [LinNote CMake Build Directory Bug](Draft/(SPEC-010)-LinNote-CMake-Build-Directory-Bug/(SPEC-010)-LinNote-CMake-Build-Directory-Bug.md) | 2026-03-13 | — | Bug: cmake source path `..` should be `.` in linnote.yml |
+| SPEC-011 | [LinNote Missing Desktop File Install Failure](Draft/(SPEC-011)-LinNote-Missing-Desktop-File-Install-Failure/(SPEC-011)-LinNote-Missing-Desktop-File-Install-Failure.md) | 2026-03-13 | — | Bug: upstream desktop filename mismatch + binary case mismatch |
 
 ## Review
 

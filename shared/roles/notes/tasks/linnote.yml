@@ -39,10 +39,25 @@
         chdir: /tmp/linnote-build
       when: not _linnote_bin.stat.exists
 
+    - name: Fix upstream desktop file name mismatch
+      ansible.builtin.copy:
+        src: /tmp/linnote-build/linnote.desktop
+        dest: /tmp/linnote-build/org.example.LinNote.desktop
+        remote_src: true
+      when: not _linnote_bin.stat.exists
+
     - name: Install LinNote
       ansible.builtin.shell: cmake --install build
       args:
         chdir: /tmp/linnote-build
+      become: true
+      when: not _linnote_bin.stat.exists
+
+    - name: Symlink LinNote binary to lowercase name
+      ansible.builtin.file:
+        src: /usr/local/bin/LinNote
+        dest: /usr/local/bin/linnote
+        state: link
       become: true
       when: not _linnote_bin.stat.exists
 
