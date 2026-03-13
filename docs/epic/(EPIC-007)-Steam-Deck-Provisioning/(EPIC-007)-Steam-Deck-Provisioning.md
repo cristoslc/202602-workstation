@@ -1,10 +1,10 @@
 ---
 title: "EPIC-007: Steam Deck Provisioning"
 artifact: EPIC-007
-status: Active
+status: Testing
 author: cristos
 created: 2026-03-06
-last-updated: 2026-03-06
+last-updated: 2026-03-13
 parent-vision: VISION-001
 success-criteria:
   - A fresh Steam Deck in desktop mode reaches a usable dev environment via `make apply` (dotfiles, shell, git, CLI tools)
@@ -49,11 +49,11 @@ SPIKE-012 confirmed viability: `/home` and `/nix` persist across updates, Stow w
 
 | ID | Type | Title | Status | Depends On |
 |----|------|-------|--------|------------|
-| [SPEC-006](../../spec/Approved/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | Spec | SteamOS Platform Bootstrap | Approved | — |
-| [SPEC-007](../../spec/Approved/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | Spec | SteamOS Nix Package Role | Approved | SPEC-006 |
-| [SPEC-008](../../spec/Approved/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | Spec | SteamOS Flatpak App Role | Approved | SPEC-006 |
-| [SPEC-009](../../spec/Approved/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | Spec | Shared Role SteamOS Compatibility | Approved | SPEC-006 |
-| [STORY-014](../../story/Ready/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | Story | SteamOS Shell and Dotfile Setup | Ready | SPEC-006, SPEC-007 |
+| [SPEC-006](../../spec/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | Spec | SteamOS Platform Bootstrap | Implemented | — |
+| [SPEC-007](../../spec/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | Spec | SteamOS Nix Package Role | Implemented | SPEC-006 |
+| [SPEC-008](../../spec/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | Spec | SteamOS Flatpak App Role | Implemented | SPEC-006 |
+| [SPEC-009](../../spec/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | Spec | Shared Role SteamOS Compatibility | Implemented | SPEC-006 |
+| [STORY-014](../../story/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | Story | SteamOS Shell and Dotfile Setup | Implemented | SPEC-006, SPEC-007 |
 
 ## Research Spikes
 
@@ -77,3 +77,4 @@ None — this epic adds a new platform target without modifying existing macOS o
 |-------|------|--------|-------|
 | Proposed | 2026-03-06 | b58ca4e | Created from SPIKE-012 GO verdict |
 | Active | 2026-03-11 | — | Approved by user; not started |
+| Testing | 2026-03-13 | — | All 5 child specs/stories Implemented; pending physical Steam Deck validation |

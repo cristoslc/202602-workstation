@@ -6,13 +6,13 @@ _None._
 
 ## Active
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| EPIC-007 | [Steam Deck Provisioning](./(EPIC-007)-Steam-Deck-Provisioning/(EPIC-007)-Steam-Deck-Provisioning.md) | 2026-03-06 | b58ca4e | SteamOS desktop mode: Nix+Flatpak+Stow (from SPIKE-012) |
+_None._
 
 ## Testing
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| EPIC-007 | [Steam Deck Provisioning](./(EPIC-007)-Steam-Deck-Provisioning/(EPIC-007)-Steam-Deck-Provisioning.md) | 2026-03-13 | — | All 5 child specs/stories Implemented; pending physical Steam Deck validation |
 
 ## Complete
 
