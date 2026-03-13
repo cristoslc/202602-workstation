@@ -1,10 +1,10 @@
 ---
 title: "EPIC-003: Sync App Settings"
 artifact: EPIC-003
-status: Testing
+status: Complete
 author: cristos
 created: 2026-03-02
-last-updated: 2026-03-03
+last-updated: 2026-03-13
 parent-vision: VISION-001
 success-criteria:
   - "`make apply` reproduces all captured app configurations on a fresh machine"
@@ -84,3 +84,4 @@ _Gap items from SPIKE-005 resolved directly as implementation tasks (tracked in 
 | Proposed | 2026-03-02 | f99e8fa | Created to parent SPEC-001 and coordinate SPIKE-005/ADR-004 work |
 | Active | 2026-03-03 | 170ae5e | Dependencies resolved; beginning settings capture work |
 | Testing | 2026-03-03 | 3df2ca7 | All implementation tasks complete; pending bootstrap validation |
+| Complete | 2026-03-13 | — | All 3 child specs/stories implemented; all success criteria met |
