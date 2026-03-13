@@ -2,12 +2,7 @@
 
 ## Draft
 
-| ID | Title | Date | Commit | Notes |
-|----|-------|------|--------|-------|
-| SPEC-006 | [SteamOS Platform Bootstrap](Draft/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | 2026-03-12 | — | Foundation: steamos/ directory, bootstrap role, Nix install (EPIC-007) |
-| SPEC-007 | [SteamOS Nix Package Role](Draft/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | 2026-03-12 | — | Declarative CLI tools via Nix (EPIC-007) |
-| SPEC-008 | [SteamOS Flatpak App Role](Draft/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | 2026-03-12 | — | Declarative GUI apps via Flatpak (EPIC-007) |
-| SPEC-009 | [Shared Role SteamOS Compatibility](Draft/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | 2026-03-12 | — | SteamOS conditionals in git, shell, terminal, etc. (EPIC-007) |
+_None._
 
 ## Review
 
@@ -15,7 +10,12 @@ _None._
 
 ## Approved
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| SPEC-006 | [SteamOS Platform Bootstrap](Approved/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | 2026-03-13 | — | Foundation: steamos/ directory, bootstrap role, Nix install (EPIC-007) |
+| SPEC-007 | [SteamOS Nix Package Role](Approved/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | 2026-03-13 | — | Declarative CLI tools via Nix; depends on SPEC-006 (EPIC-007) |
+| SPEC-008 | [SteamOS Flatpak App Role](Approved/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | 2026-03-13 | — | Declarative GUI apps via Flatpak; depends on SPEC-006 (EPIC-007) |
+| SPEC-009 | [Shared Role SteamOS Compatibility](Approved/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | 2026-03-13 | — | SteamOS conditionals in git, shell, terminal, etc. (EPIC-007) |
 
 ## Implemented
 

@@ -5,11 +5,11 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | STORY-013 | [Cross-Platform Shell Alias Sync](Draft/(STORY-013)-Cross-Platform-Shell-Alias-Sync.md) | 2026-03-07 | — | Deduplicate shared aliases, audit live systems (EPIC-003) |
-| STORY-014 | [SteamOS Shell and Dotfile Setup](Draft/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | 2026-03-12 | — | Dotfiles + zsh via Konsole + git signing on Steam Deck (EPIC-007) |
-
 ## Ready
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| STORY-014 | [SteamOS Shell and Dotfile Setup](Ready/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | 2026-03-13 | — | Dotfiles + zsh via Konsole + git signing on Steam Deck; SPEC-006 approved (EPIC-007) |
 
 ## Implemented
 

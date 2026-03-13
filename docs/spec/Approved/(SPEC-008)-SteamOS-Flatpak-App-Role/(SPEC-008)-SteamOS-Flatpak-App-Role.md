@@ -1,10 +1,10 @@
 ---
 title: "SPEC-008: SteamOS Flatpak App Role"
 artifact: SPEC-008
-status: Draft
+status: Approved
 author: cristos
 created: 2026-03-12
-last-updated: 2026-03-12
+last-updated: 2026-03-13
 parent-epic: EPIC-007
 linked-research:
   - SPIKE-012
@@ -78,3 +78,4 @@ GUI applications on SteamOS must be installed via Flatpak to survive OS updates 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
+| Approved | 2026-03-13 | — | ADR check clean; spec reviewed and approved for implementation |

@@ -1,10 +1,10 @@
 ---
 title: "STORY-014: SteamOS Shell and Dotfile Setup"
 artifact: STORY-014
-status: Draft
+status: Ready
 author: cristos
 created: 2026-03-12
-last-updated: 2026-03-12
+last-updated: 2026-03-13
 parent-epic: EPIC-007
 depends-on:
   - SPEC-006
@@ -30,3 +30,4 @@ swain-do: required
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
+| Ready | 2026-03-13 | — | SPEC-006 approved; acceptance criteria reviewed and ready for implementation |
