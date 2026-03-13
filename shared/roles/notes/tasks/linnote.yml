@@ -33,7 +33,7 @@
 
     - name: Build LinNote
       ansible.builtin.shell: |
-        cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local ..
+        cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local .
         cmake --build build -j{{ ansible_processor_vcpus | default(2) }}
       args:
         chdir: /tmp/linnote-build
