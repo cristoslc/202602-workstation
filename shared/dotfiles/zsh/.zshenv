@@ -16,8 +16,11 @@ fi
 if [ -d "$HOME/.local/share/fnm" ]; then
   export PATH="$HOME/.local/share/fnm:$PATH"
 fi
-if command -v fnm &>/dev/null; then
-  eval "$(fnm env --use-on-cd)"
+
+# Non-interactive shells should use the default Node install directly.
+# Interactive per-directory switching is initialized from ~/.zshrc.
+if [ -d "$HOME/.local/share/fnm/aliases/default/bin" ]; then
+  export PATH="$HOME/.local/share/fnm/aliases/default/bin:$PATH"
 fi
 
 # uv managed Python

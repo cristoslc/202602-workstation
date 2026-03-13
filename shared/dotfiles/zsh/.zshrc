@@ -15,4 +15,9 @@ done
 if command -v fzf &>/dev/null; then
   eval "$(fzf --zsh 2>/dev/null)" || source <(fzf --zsh) 2>/dev/null || true
 fi
+
+if command -v fnm &>/dev/null; then
+  eval "$(fnm env --use-on-cd)"
+fi
+
 export ENABLE_LSP_TOOL=1
