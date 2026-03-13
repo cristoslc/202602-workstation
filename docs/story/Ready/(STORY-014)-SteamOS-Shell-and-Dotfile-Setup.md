@@ -30,4 +30,4 @@ swain-do: required
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
-| Ready | 2026-03-13 | — | SPEC-006 approved; acceptance criteria reviewed and ready for implementation |
+| Ready | 2026-03-13 | 83d9096 | SPEC-006 approved; acceptance criteria reviewed and ready for implementation |

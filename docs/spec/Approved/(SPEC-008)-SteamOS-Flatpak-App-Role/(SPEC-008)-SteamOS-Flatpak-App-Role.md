@@ -78,4 +78,4 @@ GUI applications on SteamOS must be installed via Flatpak to survive OS updates 
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
-| Approved | 2026-03-13 | — | ADR check clean; spec reviewed and approved for implementation |
+| Approved | 2026-03-13 | 83d9096 | ADR check clean; spec reviewed and approved for implementation |

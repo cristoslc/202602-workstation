@@ -9,7 +9,7 @@
 
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
-| STORY-014 | [SteamOS Shell and Dotfile Setup](Ready/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | 2026-03-13 | — | Dotfiles + zsh via Konsole + git signing on Steam Deck; SPEC-006 approved (EPIC-007) |
+| STORY-014 | [SteamOS Shell and Dotfile Setup](Ready/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | 2026-03-13 | 83d9096 | Dotfiles + zsh via Konsole + git signing on Steam Deck; SPEC-006 approved (EPIC-007) |
 
 ## Implemented
 

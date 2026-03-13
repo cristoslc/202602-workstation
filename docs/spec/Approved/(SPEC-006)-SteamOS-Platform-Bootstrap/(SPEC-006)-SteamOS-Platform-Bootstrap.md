@@ -79,4 +79,4 @@ The provisioning engine supports macOS and Linux Mint but has no SteamOS target.
 | Phase | Date | Commit | Notes |
 |-------|------|--------|-------|
 | Draft | 2026-03-12 | — | Created during EPIC-007 decomposition |
-| Approved | 2026-03-13 | — | ADR check clean; spec reviewed and approved for implementation |
+| Approved | 2026-03-13 | 83d9096 | ADR check clean; spec reviewed and approved for implementation |
