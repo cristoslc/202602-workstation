@@ -2,8 +2,13 @@
 # Git role: core git + gh + lazygit + delta
 # Sub-tasks carry tool-level tags for selective runs.
 
+- name: Include SteamOS git install (managed by nix-packages)
+  ansible.builtin.include_tasks: steamos.yml
+  when: ansible_distribution is search("SteamOS")
+
 - name: Include OS-specific git install
   ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
+  when: ansible_distribution is not search("SteamOS")
 
 - name: Ensure git config directory exists
   ansible.builtin.file:
@@ -50,12 +55,15 @@
 
 - name: Install GitHub CLI
   ansible.builtin.include_tasks: gh.yml
+  when: ansible_distribution is not search("SteamOS")
   tags: [gh]
 
 - name: Install lazygit
   ansible.builtin.include_tasks: lazygit.yml
+  when: ansible_distribution is not search("SteamOS")
   tags: [lazygit]
 
 - name: Install delta
   ansible.builtin.include_tasks: delta.yml
+  when: ansible_distribution is not search("SteamOS")
   tags: [delta]

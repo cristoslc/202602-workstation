@@ -19,8 +19,28 @@
         state: present
       become: true
 
+- name: Install zsh (SteamOS)
+  when: ansible_distribution is search("SteamOS")
+  block:
+    - name: Check if nix-managed zsh is already installed
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/zsh"
+      register: _nix_zsh_stat
+
+    - name: Install zsh via Nix profile
+      ansible.builtin.command: >
+        {{ ansible_facts.env.HOME }}/.nix-profile/bin/nix profile install nixpkgs#zsh
+      when: not _nix_zsh_stat.stat.exists
+      changed_when: true
+
+    - name: Set zsh path fact
+      ansible.builtin.set_fact:
+        zsh_path: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/zsh"
+
 - name: Install zsh (Debian)
-  when: ansible_facts.os_family == "Debian"
+  when:
+    - ansible_facts.os_family == "Debian"
+    - ansible_distribution is not search("SteamOS")
   block:
     - name: Install zsh
       ansible.builtin.apt:
@@ -37,6 +57,7 @@
     name: "{{ ansible_facts.user_id }}"
     shell: "{{ zsh_path }}"
   become: true
+  when: ansible_distribution is not search("SteamOS")
 
 - name: Create zsh config directory with verified ownership
   ansible.builtin.file:

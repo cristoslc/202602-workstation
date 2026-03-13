@@ -9,8 +9,33 @@
       - age
     state: present
 
+- name: Install age and sops (SteamOS)
+  when: ansible_distribution is search("SteamOS")
+  block:
+    - name: Check if age is installed via Nix
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/age"
+      register: _age_nix_stat
+
+    - name: Install age via Nix
+      ansible.builtin.command:
+        cmd: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/nix profile install nixpkgs#age"
+      when: not _age_nix_stat.stat.exists
+      changed_when: true
+
+    - name: Check if sops is installed via Nix
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/sops"
+      register: _sops_nix_stat
+
+    - name: Install sops via Nix
+      ansible.builtin.command:
+        cmd: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/nix profile install nixpkgs#sops"
+      when: not _sops_nix_stat.stat.exists
+      changed_when: true
+
 - name: Install sops and age (Debian)
-  when: ansible_facts.os_family == "Debian"
+  when: ansible_facts.os_family == "Debian" and not (ansible_distribution is search("SteamOS"))
   block:
     - name: Install age
       ansible.builtin.apt:

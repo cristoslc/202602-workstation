@@ -6,8 +6,24 @@
     name: direnv
     state: present
 
+- name: Install direnv (SteamOS)
+  when: ansible_distribution is search("SteamOS")
+  block:
+    - name: Check if nix-managed direnv is already installed
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/direnv"
+      register: _nix_direnv_stat
+
+    - name: Install direnv via Nix profile
+      ansible.builtin.command: >
+        {{ ansible_facts.env.HOME }}/.nix-profile/bin/nix profile install nixpkgs#direnv
+      when: not _nix_direnv_stat.stat.exists
+      changed_when: true
+
 - name: Install direnv (Debian)
-  when: ansible_facts.os_family == "Debian"
+  when:
+    - ansible_facts.os_family == "Debian"
+    - ansible_distribution is not search("SteamOS")
   ansible.builtin.apt:
     name: direnv
     state: present

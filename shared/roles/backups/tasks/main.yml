@@ -2,6 +2,8 @@
 # Backups role: Timeshift (Linux) + Restic/Backrest (both)
 
 - name: Install Timeshift
+  # Timeshift is Linux-only (systemd-based snapshots); not applicable on SteamOS.
+  when: not (ansible_distribution is search("SteamOS"))
   ansible.builtin.include_tasks: timeshift.yml
   tags: [timeshift]
 
@@ -10,5 +12,7 @@
   tags: [restic]
 
 - name: Install and configure Backrest
+  # Backrest requires launchd or systemd user service; not applicable on SteamOS.
+  when: not (ansible_distribution is search("SteamOS"))
   ansible.builtin.include_tasks: backrest.yml
   tags: [backrest]

@@ -1,0 +1,8 @@
+---
+# git, gh, lazygit, and delta are managed by the steamos nix-packages role.
+# This task file is intentionally a no-op — packages are declared in
+# steamos/group_vars/all.yml under nix_packages and installed by the
+# nix-packages role before this role runs.
+- name: Acknowledge git tooling is managed by nix-packages on SteamOS
+  ansible.builtin.set_fact:
+    git_packages_managed_by: nix-packages

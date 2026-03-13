@@ -7,8 +7,24 @@
     name: tmux
     state: present
 
+- name: Install tmux (SteamOS)
+  when: ansible_distribution is search("SteamOS")
+  block:
+    - name: Check if nix-managed tmux is already installed
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/tmux"
+      register: _nix_tmux_stat
+
+    - name: Install tmux via Nix profile
+      ansible.builtin.command: >
+        {{ ansible_facts.env.HOME }}/.nix-profile/bin/nix profile install nixpkgs#tmux
+      when: not _nix_tmux_stat.stat.exists
+      changed_when: true
+
 - name: Install tmux (Debian)
-  when: ansible_facts.os_family == "Debian"
+  when:
+    - ansible_facts.os_family == "Debian"
+    - ansible_distribution is not search("SteamOS")
   ansible.builtin.apt:
     name: tmux
     state: present

@@ -14,8 +14,19 @@
           Espanso requires accessibility permissions on macOS.
           Grant access in System Settings → Privacy & Security → Accessibility.
 
+- name: Install Espanso (SteamOS)
+  when: ansible_distribution is search("SteamOS")
+  block:
+    - name: Install Espanso via Flatpak
+      community.general.flatpak:
+        name: org.espanso.Espanso
+        state: present
+        remote: flathub
+        method: user
+  # Espanso Flatpak manages its own daemon; systemd service registration is skipped.
+
 - name: Install Espanso (Debian)
-  when: ansible_facts.os_family == "Debian"
+  when: ansible_facts.os_family == "Debian" and not (ansible_distribution is search("SteamOS"))
   block:
     - name: Check if Espanso is installed
       ansible.builtin.command: dpkg-query -W -f='${Status}' espanso
