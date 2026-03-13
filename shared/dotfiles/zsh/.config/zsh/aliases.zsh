@@ -38,8 +38,9 @@ elif command -v batcat &>/dev/null; then
   alias cat='batcat --paging=never'
 fi
 
-# Claude Code
+# AI coding agents — danger/auto-approve modes
 alias claude-danger='claude --allow-dangerously-skip-permissions'
+alias copilot-danger='copilot --allow-all --no-ask-user --autopilot'
 
 # Shell
 alias reload='source ~/.zshrc'
