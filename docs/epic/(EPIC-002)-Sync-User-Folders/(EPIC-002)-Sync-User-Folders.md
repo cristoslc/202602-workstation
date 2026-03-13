@@ -88,4 +88,4 @@ After bootstrap and a one-time migration step, user data folders (Documents, Pic
 | Testing | 2026-03-03 | 14f3b10 | All implementation tasks complete; pending bootstrap validation |
 | Active | 2026-03-03 | 871b26c | Regressed from Testing; SPEC-002/003 created for sync boundary enforcement (ADR-006) |
 | Testing | 2026-03-03 | 2c5b013 | SPEC-002/003 implemented; pending bootstrap validation |
-| Complete | 2026-03-13 | — | All 7 child specs/stories implemented; all success criteria met |
+| Complete | 2026-03-13 | e3ac23b | All 7 child specs/stories implemented; all success criteria met |
