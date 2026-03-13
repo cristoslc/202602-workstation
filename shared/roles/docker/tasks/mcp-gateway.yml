@@ -93,6 +93,9 @@
       when: item not in _mcp_enabled_servers
       register: _mcp_server_enable
       changed_when: _mcp_server_enable.rc == 0
+      retries: 6
+      delay: 10
+      until: _mcp_server_enable.rc == 0
 
     - name: Set Brave Search API key
       ansible.builtin.shell: echo '{{ docker_mcp_brave_api_key }}' | docker mcp secret set BRAVE_API_KEY

@@ -17,7 +17,7 @@
           - build-essential
           - cmake
           - qt6-base-dev
-          - libkf6windowsystem-dev
+          - libkf5windowsystem-dev
           - libqt6sql6-sqlite
         state: present
       become: true

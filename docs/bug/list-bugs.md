@@ -10,7 +10,10 @@ _None._
 
 ## Fixed
 
-_None._
+| ID | Title | Date | Commit | Notes |
+|----|-------|------|--------|-------|
+| BUG-002 | [Docker MCP Catalog Sync Race](./Fixed/(BUG-002)-Docker-MCP-Catalog-Sync-Race.md) | 2026-03-13 | _pending_ | Added retries to Enable MCP servers task |
+| BUG-003 | [LinNote KF6 Dependency Unavailable](./Fixed/(BUG-003)-LinNote-KF6-Dependency-Unavailable.md) | 2026-03-13 | _pending_ | Replaced libkf6windowsystem-dev with libkf5windowsystem-dev |
 
 ## Verified
 
