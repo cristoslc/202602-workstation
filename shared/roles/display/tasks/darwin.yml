@@ -1,6 +1,15 @@
 ---
-# macOS: Weylus
+# macOS: BetterDisplay (virtual displays) + Sunshine (streaming server)
+#        + Moonlight (streaming client)
 
-- name: Install Weylus
-  ansible.builtin.include_tasks: weylus.yml
-  tags: [weylus]
+- name: Install BetterDisplay
+  ansible.builtin.include_tasks: betterdisplay.yml
+  tags: [betterdisplay]
+
+- name: Install Sunshine
+  ansible.builtin.include_tasks: sunshine.yml
+  tags: [sunshine]
+
+- name: Install Moonlight
+  ansible.builtin.include_tasks: moonlight.yml
+  tags: [moonlight]

@@ -1,5 +1,7 @@
 ---
-# Display role: tools for extending displays to other devices.
+# Display role: tools for extending displays to tablets and other devices.
+# Architecture: BetterDisplay (virtual display) + Sunshine (streaming) + Moonlight (tablet client).
+# See DESIGN-001 for the user workflow.
 
 - name: Include OS-specific tasks
   ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"

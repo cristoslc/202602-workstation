@@ -4,6 +4,8 @@
 
 No interactive commands, no emoji in filenames, no fabricated tool names, always use non-interactive flags (-f, --no-pager, yes |). If you're unsure about a tool or path, ask me first.
 
+For Python package installation, always use `uv` instead of `pip` or `pip3`. Run one-off scripts with `uv run --with <package> python3 -c "..."` or install into the project with `uv add <package>`. Never use `pip3 install` or `pip install`.
+
 When a tool or service is reported as broken, do NOT attempt to use that same tool to diagnose the problem. Use alternative diagnostic approaches (logs, config inspection, API calls, etc.).
 
 ## Habits

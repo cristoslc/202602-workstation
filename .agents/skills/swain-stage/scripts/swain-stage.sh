@@ -14,7 +14,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LAYOUTS_DIR="$SKILL_DIR/references/layouts"
-YAZI_STAGE_CONFIG="$SKILL_DIR/config/yazi"
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 SETTINGS_PROJECT="$REPO_ROOT/swain.settings.json"
@@ -202,18 +201,10 @@ cmd_layout() {
     command=$(jq -r ".panes[$i].command // \"\"" "$layout_file")
 
     # Resolve placeholders in command
-    local resolved_editor resolved_browser
-    resolved_editor=$(get_editor)
-    resolved_browser=$(get_file_browser)
-    command="${command//\{editor\}/$resolved_editor}"
-    command="${command//\{fileBrowser\}/$resolved_browser}"
+    command="${command//\{editor\}/$(get_editor)}"
+    command="${command//\{fileBrowser\}/$(get_file_browser)}"
     command="${command//\{scriptDir\}/$SCRIPT_DIR}"
     command="${command//\{repoRoot\}/$REPO_ROOT}"
-
-    # Wrap yazi with single-pane config and correct editor
-    if [[ "$resolved_browser" == "yazi" && "$command" == *"yazi"* ]]; then
-      command="YAZI_CONFIG_HOME='$YAZI_STAGE_CONFIG' EDITOR='$resolved_editor' $command"
-    fi
 
     local split_flag="-h"  # horizontal split (side by side)
     case "$position" in
@@ -258,13 +249,7 @@ cmd_pane() {
       local dir="${1:-$REPO_ROOT}"
       local browser
       browser=$(get_file_browser)
-      local browser_cmd="$browser $dir"
-      if [[ "$browser" == "yazi" ]]; then
-        local editor
-        editor=$(get_editor)
-        browser_cmd="YAZI_CONFIG_HOME='$YAZI_STAGE_CONFIG' EDITOR='$editor' $browser $dir"
-      fi
-      tmux split-window -h -l 40% "$browser_cmd"
+      tmux split-window -h -l 40% "$browser $dir"
       tmux select-pane -t 0
       echo "pane: file browser opened"
       ;;

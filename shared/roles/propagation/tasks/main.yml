@@ -3,7 +3,7 @@
 
 - name: Install propagation script
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../scripts/propagate.sh"
+    src: "{{ playbook_dir }}/../../scripts/propagate.sh"
     dest: "{{ ansible_facts.env.HOME }}/.local/bin/workstation-propagate"
     mode: "0755"
 

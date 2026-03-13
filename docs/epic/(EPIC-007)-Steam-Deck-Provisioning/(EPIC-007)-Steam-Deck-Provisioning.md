@@ -47,7 +47,13 @@ SPIKE-012 confirmed viability: `/home` and `/nix` persist across updates, Stow w
 
 ## Child Specs / Stories
 
-_To be created during decomposition._
+| ID | Type | Title | Status | Depends On |
+|----|------|-------|--------|------------|
+| [SPEC-006](../../spec/Draft/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | Spec | SteamOS Platform Bootstrap | Draft | — |
+| [SPEC-007](../../spec/Draft/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | Spec | SteamOS Nix Package Role | Draft | SPEC-006 |
+| [SPEC-008](../../spec/Draft/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | Spec | SteamOS Flatpak App Role | Draft | SPEC-006 |
+| [SPEC-009](../../spec/Draft/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | Spec | Shared Role SteamOS Compatibility | Draft | SPEC-006 |
+| [STORY-014](../../story/Draft/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | Story | SteamOS Shell and Dotfile Setup | Draft | SPEC-006, SPEC-007 |
 
 ## Research Spikes
 

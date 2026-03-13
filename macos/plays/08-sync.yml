@@ -14,6 +14,9 @@
       when: sync_monitor_hub_address | default('') | length > 0
       tags: [sync-monitor, sync]
 
+    - role: git-repo-scanner
+      tags: [git-repo-scanner, sync]
+
     - role: propagation
       when: propagation_enabled | default(true) | bool
       tags: [propagation, sync]

@@ -1,0 +1,6 @@
+---
+# Productivity role: task management apps
+
+- name: Install Todoist
+  ansible.builtin.include_tasks: todoist.yml
+  tags: [todoist]

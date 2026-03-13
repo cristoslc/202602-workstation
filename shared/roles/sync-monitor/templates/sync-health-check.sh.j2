@@ -69,7 +69,7 @@ fi
 
 # ── evaluate results ────────────────────────────────────────────────
 
-if [[ ${#ERRORS[@]} -gt 0 ]]; then
+if [[ ${{ '{#ERRORS[@]}' }} -gt 0 ]]; then
   CURRENT=$(get_failures)
   CURRENT=$((CURRENT + 1))
   set_failures "$CURRENT"

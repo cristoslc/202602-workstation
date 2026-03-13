@@ -23,6 +23,7 @@ _None._
 | SPIKE-010 | [Login-Hook Propagation Mechanism](./Complete/(SPIKE-010)-Login-Hook-Propagation-Mechanism/(SPIKE-010)-Login-Hook-Propagation-Mechanism.md) | 2026-03-05 | 0f73e40 | GO — launchd user agent (macOS) + systemd user timer (Linux); pull-only + notify |
 | SPIKE-011 | [Cross-Platform CI Scope](./Complete/(SPIKE-011)-Cross-Platform-CI-Scope/(SPIKE-011)-Cross-Platform-CI-Scope.md) | 2026-03-05 | 0f73e40 | GO — all 8 check targets work without secrets; Linux every push + macOS weekly |
 | SPIKE-012 | [Steam Deck Desktop Mode Provisioning](./Complete/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | 2026-03-06 | b407c2f | GO — Nix+Flatpak+Stow strategy viable; all go criteria met |
+| SPIKE-013 | [Extended Desktop via Tablet](./Complete/(SPIKE-013)-Extended-Desktop-via-Tablet/(SPIKE-013)-Extended-Desktop-via-Tablet.md) | 2026-03-12 | — | GO — Sunshine+Moonlight+BetterDisplay; Weylus mirror-only |
 
 ## Planned
 

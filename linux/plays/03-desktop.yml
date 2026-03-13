@@ -39,7 +39,7 @@
       tags: [remote-desktop, rustdesk, remmina, desktop]
 
     - role: display
-      tags: [display, weylus, desktop]
+      tags: [display, sunshine, moonlight, desktop]
 
     - role: backups
       tags: [backups, timeshift, restic, backrest, desktop]
@@ -64,6 +64,9 @@
 
     - role: file-transfer
       tags: [file-transfer, filezilla, desktop]
+
+    - role: productivity
+      tags: [productivity, todoist, desktop]
 
     - role: power
       tags: [power, desktop]

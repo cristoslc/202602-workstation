@@ -1,6 +1,15 @@
 ---
-# Linux: Weylus
+# Linux: extend-display (virtual display creation) + Sunshine (streaming server)
+#        + Moonlight (streaming client)
 
-- name: Install Weylus
-  ansible.builtin.include_tasks: weylus.yml
-  tags: [weylus]
+- name: Install extend-display script
+  ansible.builtin.include_tasks: extend-display.yml
+  tags: [extend-display]
+
+- name: Install Sunshine
+  ansible.builtin.include_tasks: sunshine.yml
+  tags: [sunshine]
+
+- name: Install Moonlight
+  ansible.builtin.include_tasks: moonlight.yml
+  tags: [moonlight]

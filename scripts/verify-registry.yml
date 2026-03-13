@@ -452,14 +452,32 @@ roles:
   display:
     phase: desktop
     apps:
-      - name: Weylus
+      - name: BetterDisplay
         platforms: [macos]
-        check: {app_paths: ["/Applications/Weylus.app"]}
-        tags: [weylus]
-      - name: Weylus
+        check: {app_paths: ["/Applications/BetterDisplay.app"]}
+        tags: [betterdisplay]
+      - name: Sunshine
+        platforms: [macos]
+        check: {command: sunshine}
+        tags: [sunshine]
+        optional: true
+        note: "Experimental on macOS — brew tap LizardByte/homebrew && brew install sunshine"
+      - name: extend-display
         platforms: [linux]
-        check: {command: weylus}
-        tags: [weylus]
+        check: {path: "~/.local/bin/extend-display"}
+        tags: [extend-display]
+      - name: Sunshine
+        platforms: [linux]
+        check: {app_paths: ["/var/lib/flatpak/app/dev.lizardbyte.app.Sunshine"]}
+        tags: [sunshine]
+      - name: Moonlight
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Moonlight.app"]}
+        tags: [moonlight]
+      - name: Moonlight
+        platforms: [linux]
+        check: {app_paths: ["/var/lib/flatpak/app/com.moonlight_stream.Moonlight"]}
+        tags: [moonlight]
 
   backups:
     phase: desktop
@@ -606,6 +624,18 @@ roles:
         platforms: [linux]
         check: {command: filezilla}
         tags: [filezilla]
+
+  productivity:
+    phase: desktop
+    apps:
+      - name: Todoist
+        platforms: [macos]
+        check: {app_paths: ["/Applications/Todoist.app"]}
+        tags: [todoist]
+      - name: Todoist
+        platforms: [linux]
+        check: {app_paths: ["/snap/bin/todoist"]}
+        tags: [todoist]
 
   recipes:
     phase: desktop

@@ -1,0 +1,10 @@
+---
+# extend-display — helper script for creating/tearing down virtual displays on Linux.
+# Wraps xrandr to manage virtual outputs for Sunshine/Moonlight streaming.
+
+- name: Install extend-display script (Linux)
+  when: ansible_facts.os_family == "Debian"
+  ansible.builtin.copy:
+    src: extend-display
+    dest: "{{ ansible_env.HOME }}/.local/bin/extend-display"
+    mode: "0755"

@@ -1,0 +1,11 @@
+---
+# BetterDisplay — virtual display creation for macOS.
+# Creates dummy/virtual displays without physical hardware (HDMI dummy plugs).
+# Used with Sunshine+Moonlight to extend desktop to a tablet.
+# https://github.com/waydabber/BetterDisplay
+
+- name: Install BetterDisplay (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: betterdisplay
+    state: present

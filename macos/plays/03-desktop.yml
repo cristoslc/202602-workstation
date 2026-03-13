@@ -35,7 +35,7 @@
       tags: [remote-desktop, rustdesk, desktop]
 
     - role: display
-      tags: [display, weylus, desktop]
+      tags: [display, betterdisplay, sunshine, moonlight, desktop]
 
     - role: backups
       tags: [backups, restic, backrest, desktop]
@@ -60,6 +60,9 @@
 
     - role: file-transfer
       tags: [file-transfer, transmit, desktop]
+
+    - role: productivity
+      tags: [productivity, todoist, desktop]
 
     - role: recipes
       tags: [recipes, paprika, desktop]

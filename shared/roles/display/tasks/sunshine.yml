@@ -1,0 +1,43 @@
+---
+# Sunshine — self-hosted game/desktop streaming server (LizardByte).
+# Hardware-accelerated encoding via VideoToolbox (macOS) / VAAPI+NVENC (Linux).
+# Paired with Moonlight client on tablet for extended desktop streaming.
+# https://github.com/LizardByte/Sunshine
+
+- name: Install Sunshine (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  block:
+    - name: Add LizardByte Homebrew tap
+      community.general.homebrew_tap:
+        name: LizardByte/homebrew
+        state: present
+
+    - name: Install Sunshine via Homebrew
+      community.general.homebrew:
+        name: sunshine
+        state: present
+
+- name: Install Sunshine (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Ensure Flatpak is installed
+      ansible.builtin.apt:
+        name: flatpak
+        state: present
+      become: true
+
+    - name: Ensure Flathub remote is configured
+      ansible.builtin.command: flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      changed_when: false
+      become: true
+
+    - name: Check if Sunshine Flatpak is installed
+      ansible.builtin.command: flatpak info dev.lizardbyte.app.Sunshine
+      register: _sunshine_flatpak
+      changed_when: false
+      failed_when: false
+
+    - name: Install Sunshine via Flatpak
+      when: _sunshine_flatpak.rc != 0
+      ansible.builtin.command: flatpak install -y flathub dev.lizardbyte.app.Sunshine
+      become: true

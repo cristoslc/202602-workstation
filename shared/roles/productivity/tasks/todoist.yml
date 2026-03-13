@@ -1,0 +1,25 @@
+---
+# Todoist sub-task
+# Cross-platform task management app.
+
+- name: Install Todoist (macOS)
+  when: ansible_facts.os_family == "Darwin"
+  community.general.homebrew_cask:
+    name: todoist-app
+    state: present
+
+- name: Install Todoist (Debian)
+  when: ansible_facts.os_family == "Debian"
+  block:
+    - name: Check if todoist snap is installed
+      ansible.builtin.command: snap list todoist
+      register: _todoist_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install todoist snap
+      when: _todoist_check.rc != 0
+      community.general.snap:
+        name: todoist
+        state: present
+      become: true
