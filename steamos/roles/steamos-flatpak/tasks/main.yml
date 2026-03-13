@@ -1,0 +1,31 @@
+---
+# steamos-flatpak role: declarative GUI app installation via Flatpak.
+# Only runs when ansible_distribution is search("SteamOS").
+# Flatpak is pre-installed on SteamOS; this role configures Flathub and
+# installs/removes apps from the flatpak_apps list.
+
+- name: SteamOS Flatpak app management
+  when: ansible_distribution is search("SteamOS")
+  block:
+    - name: Ensure Flathub remote is configured
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+        method: user
+
+    - name: Install Flatpak apps from Flathub
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: present
+        remote: flathub
+        method: user
+      loop: "{{ flatpak_apps }}"
+
+    - name: Remove deprecated Flatpak apps
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: absent
+        method: user
+      loop: "{{ flatpak_apps_remove }}"
+      when: flatpak_apps_remove | length > 0

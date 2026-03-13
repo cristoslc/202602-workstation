@@ -1,0 +1,59 @@
+---
+# SteamOS-specific variables
+#
+# Variable precedence (highest to lowest):
+# 1. Extra vars (-e on command line): bootstrap_mode, etc.
+# 2. Platform secrets: steamos/secrets/vars.sops.yml (encrypted, decrypted by community.sops)
+# 3. This file: steamos/group_vars/all.yml
+# 4. Shared secrets: shared/secrets/vars.sops.yml (encrypted)
+# 5. Role defaults: roles/<name>/defaults/main.yml
+
+# Bootstrap mode (set by wizard, overridden by -e)
+# Values: fresh, new_account, existing_account
+bootstrap_mode: fresh
+
+# Platform identification
+platform: steamos
+platform_dir: steamos
+
+# Workstation directory (overridden by bootstrap.sh -e)
+workstation_dir: "{{ ansible_facts.env.HOME }}/.workstation"
+
+# --- Nix packages (installed via nix profile install nixpkgs#<pkg>) ---
+# These persist across SteamOS updates (installed to /nix, not /usr).
+nix_packages:
+  - git
+  - zsh
+  - curl
+  - wget
+  - age
+  - sops
+  - restic
+  - bat
+  - eza
+  - fd
+  - fzf
+  - ripgrep
+  - jq
+  - htop
+  - tree
+  - delta
+  - lazygit
+  - gh
+  - stow
+
+# Packages to remove from Nix profile (if deprecated)
+nix_packages_remove: []
+
+# --- Flatpak apps (installed from Flathub) ---
+flatpak_apps:
+  - org.mozilla.firefox
+  - com.brave.Browser
+  - org.espanso.Espanso
+  - com.slack.Slack
+  - org.signal.Signal
+  - com.spotify.Client
+  - org.videolan.VLC
+
+# Flatpak apps to remove (if deprecated)
+flatpak_apps_remove: []

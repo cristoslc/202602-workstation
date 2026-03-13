@@ -1,0 +1,14 @@
+---
+- name: "Phase 0: SteamOS Bootstrap"
+  hosts: localhost
+  connection: local
+
+  pre_tasks:
+    - name: Verify running on SteamOS
+      ansible.builtin.assert:
+        that: ansible_distribution is search("SteamOS")
+        fail_msg: "This playbook is for SteamOS (Steam Deck) only. ansible_distribution={{ ansible_distribution }}"
+
+  roles:
+    - role: steamos-bootstrap
+      tags: [bootstrap, system]

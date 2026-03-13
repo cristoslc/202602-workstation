@@ -1,0 +1,26 @@
+---
+- name: "Phase 4: Dotfiles and shared tools"
+  hosts: localhost
+  connection: local
+
+  pre_tasks:
+    - name: Verify running on SteamOS
+      ansible.builtin.assert:
+        that: ansible_distribution is search("SteamOS")
+        fail_msg: "This playbook is for SteamOS (Steam Deck) only."
+
+  roles:
+    - role: stow
+      tags: [stow, dotfiles]
+    - role: git
+      tags: [git]
+    - role: shell
+      tags: [shell]
+    - role: terminal
+      tags: [terminal]
+    - role: text-expansion
+      tags: [text-expansion, espanso]
+    - role: secrets-manager
+      tags: [secrets-manager]
+    - role: backups
+      tags: [backups]

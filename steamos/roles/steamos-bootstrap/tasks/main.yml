@@ -1,0 +1,15 @@
+---
+# steamos-bootstrap role: enable sshd, install Nix, install Stow via Nix
+# Platform guard: only runs when ansible_distribution is search("SteamOS")
+
+- name: Enable sshd
+  ansible.builtin.include_tasks: sshd.yml
+  tags: [sshd]
+
+- name: Install Nix single-user
+  ansible.builtin.include_tasks: nix.yml
+  tags: [nix]
+
+- name: Install GNU Stow via Nix
+  ansible.builtin.include_tasks: stow.yml
+  tags: [stow]

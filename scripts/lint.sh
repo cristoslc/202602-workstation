@@ -44,7 +44,7 @@ echo "Running ansible-lint..."
 if command -v ansible-lint &>/dev/null; then
   # Disable SOPS vars plugin — it requires an age key that won't exist in CI.
   export ANSIBLE_VARS_ENABLED=host_group_vars
-  for platform in linux macos; do
+  for platform in linux macos steamos; do
     echo "  Linting $platform..."
     cd "$REPO_DIR/$platform"
     ANSIBLE_CONFIG="$REPO_DIR/$platform/ansible.cfg" ansible-lint site.yml || exit_code=1

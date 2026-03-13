@@ -1,0 +1,4 @@
+---
+# Default package list — overridden by steamos/group_vars/all.yml
+nix_packages: []
+nix_packages_remove: []

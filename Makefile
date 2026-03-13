@@ -1,7 +1,13 @@
 SHELL := /bin/bash
 PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+# SteamOS detection: check /etc/os-release before falling back to linux.
+# uname -s returns "Linux" on SteamOS just like Linux Mint, so we must
+# check the distro ID explicitly.
+IS_STEAMOS := $(shell grep -qi '^ID=steamos' /etc/os-release 2>/dev/null && echo yes || echo no)
 ifeq ($(PLATFORM),darwin)
   PLATFORM_DIR := macos
+else ifeq ($(IS_STEAMOS),yes)
+  PLATFORM_DIR := steamos
 else
   PLATFORM_DIR := linux
 endif
@@ -64,6 +70,7 @@ shellcheck: ## Run shellcheck on all shell scripts
 ansible-lint: ## Run ansible-lint on all playbooks (SOPS disabled)
 	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/linux/ansible.cfg ansible-lint linux/site.yml
 	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/macos/ansible.cfg ansible-lint macos/site.yml
+	ANSIBLE_VARS_ENABLED=host_group_vars ANSIBLE_CONFIG=$(CURDIR)/steamos/ansible.cfg ansible-lint steamos/site.yml
 
 apply: ## Apply a specific role: make apply ROLE=git (or ROLE=gh for sub-task)
 ifndef ROLE

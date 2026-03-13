@@ -1,0 +1,14 @@
+---
+- name: "Phase 2: Dev tools (Nix packages)"
+  hosts: localhost
+  connection: local
+
+  pre_tasks:
+    - name: Verify running on SteamOS
+      ansible.builtin.assert:
+        that: ansible_distribution is search("SteamOS")
+        fail_msg: "This playbook is for SteamOS (Steam Deck) only."
+
+  roles:
+    - role: steamos-nix-packages
+      tags: [nix-packages, dev-tools]

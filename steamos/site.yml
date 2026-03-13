@@ -1,0 +1,9 @@
+---
+- name: "Phase 0: SteamOS Bootstrap (sshd, Nix, Stow)"
+  import_playbook: plays/00-bootstrap.yml
+- name: "Phase 2: Dev tools (Nix packages)"
+  import_playbook: plays/02-dev-tools.yml
+- name: "Phase 3: Desktop apps (Flatpak)"
+  import_playbook: plays/03-desktop.yml
+- name: "Phase 4: Dotfiles and shared tools"
+  import_playbook: plays/04-dotfiles.yml

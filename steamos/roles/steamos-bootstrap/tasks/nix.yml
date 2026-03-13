@@ -1,0 +1,39 @@
+---
+# Install Nix single-user via the Determinate Systems installer.
+# Idempotent: skips if /nix already exists.
+# Nix is stored in /nix which is a Valve-supported persistent path on SteamOS.
+
+- name: Check if Nix is already installed
+  ansible.builtin.stat:
+    path: /nix
+  register: _nix_dir
+
+- name: Download Determinate Systems Nix installer
+  ansible.builtin.get_url:
+    url: "{{ nix_installer_url }}"
+    dest: /tmp/nix-installer.sh
+    mode: "0755"
+  when: not _nix_dir.stat.exists
+  register: _nix_download
+  retries: 3
+  delay: 5
+  until: _nix_download is not failed
+
+- name: Install Nix single-user (Determinate Systems)
+  ansible.builtin.command:
+    cmd: /tmp/nix-installer.sh install linux --init none --no-confirm
+  when: not _nix_dir.stat.exists
+  changed_when: true
+
+- name: Clean up installer script
+  ansible.builtin.file:
+    path: /tmp/nix-installer.sh
+    state: absent
+  when: not _nix_dir.stat.exists
+
+- name: Verify nix command is available
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts.env.HOME }}/.nix-profile/bin/nix --version"
+  register: _nix_version
+  changed_when: false
+  failed_when: _nix_version.rc != 0

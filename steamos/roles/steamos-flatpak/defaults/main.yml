@@ -1,0 +1,4 @@
+---
+# Default lists — overridden by steamos/group_vars/all.yml
+flatpak_apps: []
+flatpak_apps_remove: []
