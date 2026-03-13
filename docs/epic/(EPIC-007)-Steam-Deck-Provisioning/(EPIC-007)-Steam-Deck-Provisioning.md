@@ -49,17 +49,17 @@ SPIKE-012 confirmed viability: `/home` and `/nix` persist across updates, Stow w
 
 | ID | Type | Title | Status | Depends On |
 |----|------|-------|--------|------------|
-| [SPEC-006](../../spec/Draft/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | Spec | SteamOS Platform Bootstrap | Draft | — |
-| [SPEC-007](../../spec/Draft/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | Spec | SteamOS Nix Package Role | Draft | SPEC-006 |
-| [SPEC-008](../../spec/Draft/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | Spec | SteamOS Flatpak App Role | Draft | SPEC-006 |
-| [SPEC-009](../../spec/Draft/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | Spec | Shared Role SteamOS Compatibility | Draft | SPEC-006 |
-| [STORY-014](../../story/Draft/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | Story | SteamOS Shell and Dotfile Setup | Draft | SPEC-006, SPEC-007 |
+| [SPEC-006](../../spec/Approved/(SPEC-006)-SteamOS-Platform-Bootstrap/(SPEC-006)-SteamOS-Platform-Bootstrap.md) | Spec | SteamOS Platform Bootstrap | Approved | — |
+| [SPEC-007](../../spec/Approved/(SPEC-007)-SteamOS-Nix-Package-Role/(SPEC-007)-SteamOS-Nix-Package-Role.md) | Spec | SteamOS Nix Package Role | Approved | SPEC-006 |
+| [SPEC-008](../../spec/Approved/(SPEC-008)-SteamOS-Flatpak-App-Role/(SPEC-008)-SteamOS-Flatpak-App-Role.md) | Spec | SteamOS Flatpak App Role | Approved | SPEC-006 |
+| [SPEC-009](../../spec/Approved/(SPEC-009)-Shared-Role-SteamOS-Compatibility/(SPEC-009)-Shared-Role-SteamOS-Compatibility.md) | Spec | Shared Role SteamOS Compatibility | Approved | SPEC-006 |
+| [STORY-014](../../story/Ready/(STORY-014)-SteamOS-Shell-and-Dotfile-Setup.md) | Story | SteamOS Shell and Dotfile Setup | Ready | SPEC-006, SPEC-007 |
 
 ## Research Spikes
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| [SPIKE-012](../../../research/Complete/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | Steam Deck Desktop Mode Provisioning | Complete | GO — all go criteria met |
+| [SPIKE-012](../../research/Complete/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning/(SPIKE-012)-Steam-Deck-Desktop-Mode-Provisioning.md) | Steam Deck Desktop Mode Provisioning | Complete | GO — all go criteria met |
 
 ## Key Dependencies
 

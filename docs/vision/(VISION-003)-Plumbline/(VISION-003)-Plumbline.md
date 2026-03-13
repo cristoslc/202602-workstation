@@ -69,8 +69,8 @@ Developers and power users who:
 
 | Type | ID | Title |
 |------|----|-------|
-| Vision | [VISION-001](../../(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code (source project) |
-| Vision | [VISION-002](../../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (potential consumer) |
+| Vision | [VISION-001](../(VISION-001)-Workstation-as-Code/(VISION-001)-Workstation-as-Code.md) | Workstation as Code (source project) |
+| Vision | [VISION-002](../(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | Server as Code (potential consumer) |
 
 ### Lifecycle
 

@@ -11,7 +11,7 @@
 | ID | Title | Date | Commit | Notes |
 |----|-------|------|--------|-------|
 | VISION-002 | [Server as Code](./(VISION-002)-Server-as-Code/(VISION-002)-Server-as-Code.md) | 2026-03-01 | 75224f8 | Initial creation |
-| VISION-003 | [Plumbline](./Draft/(VISION-003)-Plumbline/(VISION-003)-Plumbline.md) | 2026-03-05 | c53c8bb | Extract generic provisioning engine as standalone OSS tool |
+| VISION-003 | [Plumbline](./(VISION-003)-Plumbline/(VISION-003)-Plumbline.md) | 2026-03-05 | c53c8bb | Extract generic provisioning engine as standalone OSS tool |
 
 ## Sunset
 
