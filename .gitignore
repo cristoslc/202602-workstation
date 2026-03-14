@@ -42,6 +42,9 @@ __pycache__/
 .idea/
 .vscode/
 
+# Ticket tracker runtime state (tk / swain-do)
+.tickets/
+
 # Dolt database files (added by bd init)
 .dolt/
 *.db
